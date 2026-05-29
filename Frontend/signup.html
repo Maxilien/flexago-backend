@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Flexago Signup</title>
+  <style>
+    body { font-family: Arial; padding: 40px; max-width: 400px; margin: auto; }
+    input, select { width: 100%; padding: 10px; margin: 8px 0; }
+    button { width: 100%; padding: 12px; background: #0d6efd; color: white; border: none; cursor: pointer; }
+    button:hover { background: #0b5ed7; }
+  </style>
+</head>
+<body>
+
+  <h2>Create Your Flexago Account</h2>
+
+  <input id="firstName" placeholder="First Name">
+  <input id="lastName" placeholder="Last Name">
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Password (min 6 chars)">
+  <input id="phone" placeholder="Phone (optional)">
+
+  <label>Role</label>
+  <select id="role">
+    <option value="sender">Sender</option>
+    <option value="traveler">Traveler</option>
+  </select>
+
+  <button id="signup-btn">Create Account</button>
+
+  <p>Already have an account? <a href="login.html">Login</a></p>
+
+  <script src="signup.js"></script>
+</body>
+</html>

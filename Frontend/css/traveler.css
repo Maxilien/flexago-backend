@@ -1,0 +1,1565 @@
+/* ============================================================
+   GLOBAL THEME
+   ============================================================ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: radial-gradient(circle at top, #1e293b 0, #020617 55%, #000 100%);
+  color: #e2e8f0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Smooth transitions */
+button,
+input,
+textarea,
+select,
+.jobs-tab,
+.job-card,
+.sidebar-item,
+.primary-btn,
+.secondary-btn {
+  transition: all 0.18s ease-out;
+}
+
+/* ============================================================
+   LAYOUT (TRAVELER SHELL)
+   ============================================================ */
+.sender-container {
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+  overflow: hidden;
+  background: linear-gradient(135deg, #020617 0%, #020617 40%, #020617 100%);
+}
+
+.sender-main {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #475569 #020617;
+}
+
+.sender-main::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sender-main::-webkit-scrollbar-track {
+  background: #020617;
+}
+
+.sender-main::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 999px;
+}
+
+.account-page {
+  padding: 1.2rem;
+  max-width: 720px;
+  margin: auto;
+}
+
+.section-block {
+  margin-bottom: 2rem;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.8rem;
+  color: #e2e8f0;
+  letter-spacing: 0.01em;
+}
+
+/* ============================================================
+   SIDEBAR — PREMIUM
+   ============================================================ */
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-item::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at left, rgba(59,130,246,0.18), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+
+.sidebar-item span,
+.sidebar-item i {
+  color: #e2e8f0 !important;
+  font-size: 0.9rem;
+}
+
+.sidebar-item:hover {
+  background: #020617;
+}
+
+.sidebar-item:hover::before {
+  opacity: 1;
+}
+
+.sidebar-item.active {
+  background: #020617 !important;
+  border-left: 3px solid #3b82f6 !important;
+  box-shadow: 0 0 0 1px rgba(15,23,42,0.9), 0 10px 25px rgba(15,23,42,0.9);
+}
+
+.sidebar-item.active span {
+  color: #ffffff !important;
+  font-weight: 500;
+}
+
+.sidebar-item.active i {
+  color: #3b82f6 !important;
+}
+
+/* Sidebar SVG icons */
+.sidebar-item svg {
+  width: 18px;
+  height: 18px;
+  stroke: #e2e8f0 !important;
+  opacity: 0.9;
+}
+
+.sidebar-item:hover svg {
+  stroke: #f1f5f9 !important;
+}
+
+.sidebar-item.active svg {
+  stroke: #3b82f6 !important;
+  opacity: 1;
+}
+
+/* ============================================================
+   FORM FIELDS
+   ============================================================ */
+.input-shell {
+  position: relative;
+  overflow: visible;
+  margin-bottom: 18px;
+  color: #ffffff !important;
+}
+
+.form-label,
+.input-label {
+  font-size: 14px;
+  color: #cbd5e1;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.input-field {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #1f2937;
+  background: radial-gradient(circle at top left, #111827 0, #020617 60%);
+  color: #ffffff !important;
+  font-size: 14px;
+  box-shadow: 0 0 0 1px rgba(15,23,42,0.7);
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow:
+    0 0 0 1px rgba(37,99,235,0.7),
+    0 0 0 6px rgba(37,99,235,0.18);
+}
+
+/* Global inputs */
+input,
+textarea,
+select {
+  color: #ffffff !important;
+  background-color: #020617 !important;
+  border-radius: 8px;
+  border: 1px solid #1f2937;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #6b7280 !important;
+}
+
+/* Error state */
+.error {
+  border-color: #dc2626 !important;
+  box-shadow:
+    0 0 0 1px #dc2626 !important,
+    0 0 0 6px rgba(220,38,38,0.18) !important;
+}
+
+/* ============================================================
+   PAYOUT PANEL — PM‑C + ICON‑B + SVG‑3 (DUOTONE)
+   ============================================================ */
+
+.payout-method-panel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: radial-gradient(circle at top left, #020617 0, #020617 70%);
+  border: 1px solid #1f2937;
+  padding: 14px;
+  border-radius: 14px;
+  box-shadow: 0 14px 35px rgba(15,23,42,0.95);
+  margin-bottom: 18px;
+}
+
+.payout-method-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.payout-method-icon svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.payout-method-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.payout-method-main {
+  font-size: 0.95rem;
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
+.payout-method-sub {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+/* ============================================================
+   ACCOUNT PAGE — TURO STYLE
+   ============================================================ */
+.profile-photo-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.profile-photo {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: radial-gradient(circle at top, #1f2937 0, #020617 70%);
+  box-shadow: 0 12px 30px rgba(15,23,42,0.9);
+  border: 2px solid #1f2937;
+}
+
+.upload-btn {
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  border-radius: 999px;
+  color: white;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 10px 25px rgba(37,99,235,0.45);
+}
+
+.upload-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(37,99,235,0.55);
+}
+
+/* Status badges */
+.status-badge {
+  margin-top: 0.6rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-badge::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.status-badge.verified {
+  background: rgba(34,197,94,0.12);
+  color: #22c55e;
+}
+
+.status-badge.pending {
+  background: rgba(250,204,21,0.12);
+  color: #facc15;
+}
+
+.status-badge.failed {
+  background: rgba(239,68,68,0.12);
+  color: #ef4444;
+}
+
+/* ============================================================
+   AUTOCOMPLETE DROPDOWN
+   ============================================================ */
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #020617;
+  border: 1px solid #1f2937;
+  border-radius: 10px;
+  z-index: 9999;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 4px 0;
+  margin-top: 4px;
+  box-shadow:
+    0 18px 45px rgba(15,23,42,0.95),
+    0 0 0 1px rgba(15,23,42,0.9);
+}
+
+.autocomplete-item {
+  padding: 10px 12px;
+  cursor: pointer;
+  color: #e5e7eb;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.autocomplete-item::before {
+  content: "•";
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.active {
+  background: radial-gradient(circle at left, #1e293b 0, #020617 70%);
+}
+
+/* ============================================================
+   BUTTONS (GLOBAL)
+   ============================================================ */
+.primary-btn {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 12px 30px rgba(37,99,235,0.45);
+}
+
+.primary-btn:hover:not(.disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 36px rgba(37,99,235,0.55);
+}
+
+.primary-btn.disabled {
+  opacity: 0.5;
+  cursor: default;
+  box-shadow: none;
+}
+
+.secondary-btn {
+  background: radial-gradient(circle at top left, #111827 0, #020617 70%);
+  border: 1px solid #1f2937;
+  padding: 10px 14px;
+  border-radius: 999px;
+  color: #e2e8f0;
+  font-size: 14px;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+}
+
+.secondary-btn:hover {
+  background: #111827;
+  border-color: #334155;
+}
+
+/* ============================================================
+   PAYMENT PANEL — FORM SECTION
+   ============================================================ */
+
+.payment-methods {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.payment-method-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  background: radial-gradient(circle at top left, #111827 0, #020617 70%);
+  border: 1px solid #1f2937;
+  color: #cbd5e1;
+  cursor: pointer;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.payment-method-btn.active {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  border-color: #3b82f6;
+  color: white;
+  box-shadow: 0 10px 25px rgba(37,99,235,0.45);
+}
+
+/* Card + Bank form groups */
+.payout-form-group {
+  margin-bottom: 16px;
+}
+
+.payout-form-group .input-label {
+  margin-bottom: 4px;
+}
+
+.payout-inline {
+  display: flex;
+  gap: 10px;
+}
+
+.payout-inline .input-shell {
+  flex: 1;
+}
+
+/* IBAN toggle */
+#ibanInputShell {
+  margin-top: 10px;
+}
+
+/* ============================================================
+   TRAVELER MATCHES (LEGACY — SAFE)
+   ============================================================ */
+.match-card {
+  background: #020617;
+  border: 1px solid #1f2937;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 10px 25px rgba(15,23,42,0.9);
+}
+
+.match-header {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.match-sub {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-bottom: 10px;
+}
+
+.match-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.match-tag {
+  background: #111827;
+  color: #cbd5e1;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.match-price {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+/* ============================================================
+   JOBS TABS
+   ============================================================ */
+.jobs-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.jobs-tab {
+  flex: 1;
+  padding: 8px 10px;
+  background: radial-gradient(circle at top left, #111827 0, #020617 70%);
+  border: 1px solid #1f2937;
+  border-radius: 999px;
+  color: #cbd5e1;
+  cursor: pointer;
+  text-align: center;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+}
+
+.jobs-tab:hover {
+  border-color: #334155;
+  color: #e5e7eb;
+}
+
+.jobs-tab.active {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  border-color: #3b82f6;
+  color: white;
+  box-shadow: 0 10px 25px rgba(37,99,235,0.45);
+}
+/* ============================================================
+   JOB LIST + CARDS
+   ============================================================ */
+.jobs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.job-card {
+  background: radial-gradient(circle at top left, #020617 0, #020617 60%, #020617 100%);
+  border: 1px solid #1f2937;
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 14px 35px rgba(15,23,42,0.95);
+  position: relative;
+  overflow: hidden;
+}
+
+.job-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(56,189,248,0.12), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+
+.job-card:hover::before {
+  opacity: 1;
+}
+
+.job-main {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.job-route {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.job-pickup,
+.job-dropoff {
+  font-size: 0.85rem;
+  color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.job-pickup::before,
+.job-dropoff::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+}
+
+.job-pickup::before {
+  background: #22c55e;
+}
+
+.job-dropoff::before {
+  background: #ef4444;
+}
+#jobsPanel {
+  height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+
+.job-meta {
+  text-align: right;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.job-price {
+  font-size: 1rem;
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+.job-distance {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+.job-card::before {
+  z-index: -1;
+}
+
+/* Vehicle compatibility flag */
+.vehicle-compatibility {
+  margin-top: 6px;
+  font-size: 0.75rem;
+  color: #f97316;
+  background: rgba(248,113,113,0.08);
+  border-radius: 999px;
+  padding: 4px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vehicle-compatibility::before {
+  content: "!";
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #f97316;
+  color: #020617;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+}
+
+/* Accepted expanded section */
+.accepted-expanded {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #1f2937;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  font-size: 0.78rem;
+}
+
+.accepted-block-title {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.accepted-block-body {
+  color: #e5e7eb;
+}
+
+.accepted-block-body span {
+  display: block;
+  margin-bottom: 2px;
+}
+
+/* Item photo */
+.item-photo {
+  width: 100%;
+  max-height: 120px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #1f2937;
+}
+
+/* Contact buttons */
+.contact-sender-btn,
+.contact-receiver-btn {
+  margin-top: 6px;
+  background: #111827;
+  border: 1px solid #1f2937;
+  padding: 6px 8px;
+  border-radius: 999px;
+  color: #e5e7eb;
+  cursor: pointer;
+  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.contact-sender-btn:hover,
+.contact-receiver-btn:hover {
+  background: #1f2937;
+}
+#jobsPanel {
+  height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* Actions */
+.job-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.accept-btn {
+  flex: 1;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  border: none;
+  padding: 8px;
+  border-radius: 999px;
+  color: white;
+  cursor: pointer;
+  font-size: 0.85rem;
+  box-shadow: 0 10px 25px rgba(22,163,74,0.45);
+}
+
+.accept-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(22,163,74,0.55);
+}
+
+.decline-btn {
+  flex: 1;
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  border: none;
+  padding: 8px;
+  border-radius: 999px;
+  color: white;
+  cursor: pointer;
+  font-size: 0.85rem;
+  box-shadow: 0 10px 25px rgba(239,68,68,0.45);
+}
+
+.decline-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(239,68,68,0.55);
+}
+
+.completed-badge {
+  background: #111827;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #cbd5e1;
+  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Extra info */
+.job-extra {
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.job-timestamp,
+.job-duration {
+  opacity: 0.9;
+}
+
+.details-btn {
+  margin-top: 6px;
+  background: #111827;
+  border: 1px solid #1f2937;
+  padding: 6px 8px;
+  border-radius: 999px;
+  color: #cbd5e1;
+  cursor: pointer;
+  font-size: 0.75rem;
+  width: fit-content;
+}
+
+.details-btn:hover {
+  background: #1f2937;
+}
+
+/* Delivery photo section */
+.delivery-photo-section {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #1f2937;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.delivery-photo-preview {
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #1f2937;
+}
+
+/* ============================================================
+   EARNINGS SUMMARY
+   ============================================================ */
+
+.earnings-summary {
+  background: radial-gradient(circle at top left, #020617 0, #020617 70%);
+  border: 1px solid #1f2937;
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 14px 35px rgba(15,23,42,0.95);
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: #cbd5e1;
+}
+
+.summary-row strong {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+/* ============================================================
+   CHAT WIDGET — MATCHES Traveler.js
+   ============================================================ */
+#chatBubble {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 280px;
+  background: radial-gradient(circle at top left, #020617 0, #020617 70%);
+  border: 1px solid #1f2937;
+  border-radius: 14px;
+  display: none;
+  flex-direction: column;
+  z-index: 99999;
+  box-shadow: 0 18px 45px rgba(15,23,42,0.95);
+}
+
+#chatBubble.open {
+  display: flex;
+}
+
+.chat-header {
+  padding: 10px;
+  background: #111827;
+  color: #e2e8f0;
+  font-weight: 600;
+  border-radius: 14px 14px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#chatCloseBtn {
+  background: none;
+  border: none;
+  color: #cbd5e1;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+#chatBody {
+  padding: 10px;
+  height: 180px;
+  overflow-y: auto;
+  font-size: 13px;
+}
+
+.chat-line {
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  background: #020617;
+  border-radius: 8px;
+  color: #e2e8f0;
+}
+
+.chat-line.user {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+}
+
+.chat-input-row {
+  display: flex;
+  border-top: 1px solid #1f2937;
+}
+
+#chatInput {
+  flex: 1;
+  padding: 10px;
+  background: #020617;
+  border: none;
+  color: #e2e8f0;
+}
+
+#chatSendBtn {
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+
+/* ============================================================
+   SUPPORT PANEL
+   ============================================================ */
+#supportPanel {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  width: 260px;
+  background: radial-gradient(circle at top left, #020617 0, #020617 70%);
+  border: 1px solid #1f2937;
+  border-radius: 14px;
+  padding: 16px;
+  display: none;
+  z-index: 99999;
+  box-shadow: 0 18px 45px rgba(15,23,42,0.95);
+}
+
+#supportPanel.open {
+  display: block;
+}
+
+.support-box {
+  background: #020617;
+  border: 1px solid #1f2937;
+  padding: 16px;
+  border-radius: 10px;
+  margin: 10px 0 20px 0;
+}
+
+.support-box strong {
+  color: #e2e8f0;
+  font-size: 15px;
+}
+
+.support-box ul {
+  margin: 10px 0 0 18px;
+  padding: 0;
+}
+
+.support-box li {
+  color: #94a3b8;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+/* ============================================================
+   SKELETON LOADING
+   ============================================================ */
+.skeleton-card {
+  height: 90px;
+  background: linear-gradient(90deg, #020617 0%, #111827 50%, #020617 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 14px;
+  margin-bottom: 12px;
+  border: 1px solid #020617;
+  box-shadow: 0 10px 25px rgba(15,23,42,0.95);
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+
+/* ============================================================
+   EMPTY STATES
+   ============================================================ */
+.empty-state {
+  text-align: center;
+  padding: 20px;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.delivery-status {
+  margin-bottom: 10px;
+  font-size: 0.85rem;
+  color: #38bdf8;
+}
+
+/* ============================================================
+   MODALS
+   ============================================================ */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-content {
+  background: radial-gradient(circle at top left, #020617 0, #020617 70%);
+  border: 1px solid #1f2937;
+  padding: 20px;
+  border-radius: 14px;
+  width: 90%;
+  max-width: 420px;
+  color: #e2e8f0;
+  box-shadow: 0 18px 45px rgba(15,23,42,0.95);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.5rem;
+  float: right;
+  cursor: pointer;
+}
+
+.modal-title {
+  margin-bottom: 12px;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+/* ============================================================
+   VERIFICATION STATUS BADGE
+   ============================================================ */
+.verification-status-badge {
+  background: #020617;
+  border: 1px solid #1f2937;
+  padding: 12px 16px;
+  border-radius: 14px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 10px 25px rgba(15,23,42,0.95);
+}
+
+.verification-status-badge .status-label {
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.verification-status-badge .status-value {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* Status colors */
+.status-value.pending {
+  color: #fbbf24;
+}
+
+.status-value.ready {
+  color: #3b82f6;
+}
+
+.status-value.submitted {
+  color: #22c55e;
+}
+
+.status-value.rejected {
+  color: #ef4444;
+}
+/* ============================================================
+   VERIFICATION UPLOAD BOXES
+   ============================================================ */
+.upload-box {
+  background: #0f172a;
+  border: 1px dashed #334155;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: 0.2s ease;
+  margin-bottom: 10px;
+}
+
+.upload-box:hover {
+  background: #1e293b;
+  border-color: #3b82f6;
+  color: #e2e8f0;
+}
+
+/* ============================================================
+   VERIFICATION SUCCESS / FAILURE
+   ============================================================ */
+.success-icon,
+.error-icon {
+  font-size: 48px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.success-icon {
+  color: #22c55e;
+}
+
+.error-icon {
+  color: #ef4444;
+}
+
+.success-message,
+.error-message {
+  text-align: center;
+  color: #cbd5e1;
+  margin-bottom: 25px;
+  line-height: 1.5;
+}
+
+
+/* ============================================================
+   VERIFICATION PROGRESS BAR (NEW VERSION)
+   ============================================================ */
+.verification-progress {
+  width: 100%;
+  height: 8px;
+  background: #1e293b;
+  border-radius: 6px;
+  margin-bottom: 25px;
+  overflow: hidden;
+}
+
+#verificationProgressFill {
+  height: 100%;
+  width: 0%;
+  background: #3b82f6;
+  transition: width 0.3s ease;
+}
+
+/* ============================================================
+   REQUIREMENTS BOX
+   ============================================================ */
+.requirements-box {
+  background: #020617;
+  border: 1px solid #1f2937;
+  padding: 16px;
+  border-radius: 10px;
+  margin: 10px 0 20px 0;
+}
+
+.requirements-box strong {
+  color: #e2e8f0;
+  font-size: 15px;
+}
+
+.requirements-box ul {
+  margin: 10px 0 0 18px;
+  padding: 0;
+}
+
+.requirements-box li {
+  color: #94a3b8;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+/* ============================================================
+   FINAL DARK THEME POLISH
+   ============================================================ */
+input,
+textarea,
+select {
+  color: #ffffff !important;
+  background-color: #020617 !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af !important;
+}
+
+.input-shell input {
+  color: #ffffff !important;
+}
+
+/* ============================================================
+   RESPONSIVE POLISH
+   ============================================================ */
+@media (max-width: 900px) {
+  .sender-container {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .sender-main {
+    padding: 16px;
+  }
+
+  #mapContainer {
+    height: 220px;
+  }
+
+  #chatBubble,
+  #supportPanel {
+    width: 90%;
+    left: 50%;
+    transform: translateX(-50%);
+    right: auto;
+  }
+}
+
+/* ============================================================
+   PREMIUM UI POLISH (RESERVED BLOCK)
+   ============================================================ */
+/* Future micro-interactions, subtle animations, etc. */
+
+
+
+/* ============================================================
+   TRAVELER STATUS BUTTONS
+   ============================================================ */
+
+.traveler-status-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.8rem 0;
+  padding: 0.5rem 0;
+  border-top: 1px solid #1f2937;
+  border-bottom: 1px solid #1f2937;
+}
+
+.status-btn {
+  width: 100%;
+  padding: 0.55rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+/* Primary blue (default) */
+.status-btn.primary-btn {
+  background: #3b82f6;
+  color: white;
+}
+
+.status-btn.primary-btn:hover {
+  background: #2563eb;
+}
+
+/* Optional: distinct colors for each step */
+.on-my-way-pickup-btn {
+  background: #0ea5e9;
+}
+
+.on-my-way-pickup-btn:hover {
+  background: #0284c7;
+}
+
+.picked-up-btn {
+  background: #22c55e;
+}
+
+.picked-up-btn:hover {
+  background: #16a34a;
+}
+
+.on-my-way-dropoff-btn {
+  background: #f59e0b;
+}
+
+.on-my-way-dropoff-btn:hover {
+  background: #d97706;
+}
+
+.delivered-btn {
+  background: #8b5cf6;
+}
+
+.delivered-btn:hover {
+  background: #7c3aed;
+}
+
+/* ============================================================
+   ACCOUNT & IDENTITY — MATCH TRAVELER STYLE
+   ============================================================ */
+
+/* Profile photo wrapper */
+.profile-photo-wrapper {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.profile-photo-large {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255,255,255,0.1);
+}
+
+/* Change photo button */
+.upload-btn.small-btn {
+  margin-top: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+}
+
+/* Name + stats */
+.profile-header-text {
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+.profile-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.profile-stats {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+/* Section titles */
+.section-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 0.5rem;
+}
+
+/* Verified rows */
+.verified-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.verified-label {
+  color: #cbd5e1;
+  font-size: 0.85rem;
+}
+
+.verified-status {
+  color: #4ade80;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Input fields */
+.input-field {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #e2e8f0;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+}
+
+/* Save button */
+.primary-btn {
+  width: 100%;
+  padding: 0.65rem;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+
+/* ============================================================
+   MAP CONTAINER (FIXED HEIGHT)
+   ============================================================ */
+/* FORCE map to fixed height */
+#travelerMap {
+  height: 340px !important;
+  min-height: 340px !important;
+  max-height: 340px !important;
+  border-radius: 12px;
+  overflow: hidden;
+}
+/* ============================================================
+   JOB LIST SCROLL FIX
+   ============================================================ */
+
+/* Force job lists to scroll inside the panel */
+#jobsAvailableList,
+#jobsAcceptedList,
+#jobsCompletedList {
+  overflow-y: auto !important;
+  max-height: calc(100vh - 420px) !important;
+  padding-right: 6px;
+  scrollbar-width: thin;
+}
+
+/* Job header inside cards (title + payout) */
+.job-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.job-title {
+  font-weight: 600;
+  color: #f3f4f6;
+}
+
+.job-payout {
+  font-weight: 700;
+  color: #3b82f6;
+}
+
+/* Simple job details text */
+.job-details div {
+  color: #9ca3af;
+  margin-bottom: 4px;
+}
+
+/* Panel layout (outer container for jobs) */
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding-top: 12px;
+}
+
+/* Panel header (title + subtitle) */
+.panel-header {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #1f2937;
+}
+
+.panel-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.panel-subtitle {
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+/* ============================================================
+   JOB HEADER + BASIC TEXT
+   ============================================================ */
+
+.job-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.job-title {
+  font-weight: 600;
+  color: #f3f4f6;
+}
+
+.job-payout {
+  font-weight: 700;
+  color: #3b82f6;
+}
+
+.job-details div {
+  color: #9ca3af;
+  margin-bottom: 4px;
+}
+
+/* ============================================================
+   PANEL LAYOUT
+   ============================================================ */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding-top: 12px;
+}
+
+.panel-header {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #1f2937;
+}
+
+.panel-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.panel-subtitle {
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+

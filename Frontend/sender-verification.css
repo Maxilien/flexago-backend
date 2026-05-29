@@ -1,0 +1,98 @@
+body {
+  margin: 0;
+  font-family: Inter, sans-serif;
+  background: #f5f7fa;
+  display: flex;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 240px;
+  background: #111827;
+  color: white;
+  padding: 24px;
+  height: 100vh;
+}
+
+.sidebar .logo {
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 32px;
+}
+
+.sidebar nav a {
+  display: block;
+  padding: 12px 0;
+  color: #d1d5db;
+  text-decoration: none;
+  font-size: 15px;
+}
+
+.sidebar nav a.active {
+  color: white;
+  font-weight: bold;
+}
+
+/* MAIN CONTENT */
+.content {
+  flex: 1;
+  padding: 32px;
+}
+
+h1 {
+  margin-top: 0;
+}
+
+.subtitle {
+  color: #6b7280;
+  margin-bottom: 24px;
+}
+
+/* CARDS */
+.card {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.uploadLabel {
+  display: block;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+input[type="file"] {
+  margin-top: 6px;
+}
+
+/* BADGES */
+.badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.badge-unverified { background: #fee2e2; color: #b91c1c; }
+.badge-pending { background: #fef3c7; color: #b45309; }
+.badge-verified { background: #d1fae5; color: #065f46; }
+.badge-rejected { background: #fee2e2; color: #991b1b; }
+.badge-needs_resubmission { background: #fef3c7; color: #92400e; }
+
+/* BUTTONS */
+.btn {
+  background: #2563eb;
+  color: white;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 12px;
+}
+
+.btn:hover {
+  background: #1d4ed8;
+}

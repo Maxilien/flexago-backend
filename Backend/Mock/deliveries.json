@@ -1,0 +1,27 @@
+[
+  {
+    "id": "DEL-001",
+    "pickup": "123 Main St",
+    "dropoff": "500 Market Ave",
+    "status": "requested",
+    "value": 45,
+    "travelerId": null
+  },
+  {
+    "id": "DEL-002",
+    "pickup": "200 Congress Ave",
+    "dropoff": "Airport Blvd",
+    "status": "accepted",
+    "value": 60,
+    "travelerId": "TRV-001"
+  },
+  {
+    "id": "DEL-003",
+    "pickup": "UT Austin",
+    "dropoff": "Domain Northside",
+    "status": "delivered",
+    "value": 30,
+    "travelerId": "TRV-002"
+  }
+
+]

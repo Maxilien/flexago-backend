@@ -1,0 +1,421 @@
+/* =========================================
+   FLEXAGOO — GLOBAL STYLES
+   ========================================= */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+  background: #0f1115;
+  color: #e5e7eb;
+  line-height: 1.6;
+}
+
+/* Color system */
+:root {
+  --bg-dark: #0f1115;
+  --bg-light: #1a1d23;
+  --bg-panel: #16181d;
+
+  --text-main: #e5e7eb;
+  --text-muted: #9ca3af;
+
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+
+  --border: #2a2d33;
+}
+
+/* =========================================
+   NAVBAR
+   ========================================= */
+
+.nav {
+  width: 100%;
+  padding: 1.2rem 2rem;
+  background: var(--bg-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.nav-right {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.nav-link {
+  color: var(--text-main);
+  text-decoration: none;
+  font-weight: 500;
+  transition: 0.2s;
+}
+
+.nav-link:hover {
+  color: var(--primary);
+}
+
+.nav-btn {
+  padding: 0.5rem 1rem;
+  background: var(--primary);
+  border-radius: 6px;
+  color: white;
+  font-weight: 600;
+}
+
+.nav-btn:hover {
+  background: var(--primary-hover);
+}
+
+/* =========================================
+   HERO SECTION
+   ========================================= */
+
+.hero {
+  padding: 6rem 2rem;
+  text-align: center;
+  background: linear-gradient(180deg, #111318, #0f1115);
+}
+
+.hero h1 {
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.hero p {
+  font-size: 1.2rem;
+  color: var(--text-muted);
+  max-width: 600px;
+  margin: 0 auto 2rem;
+}
+
+.hero-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 0.8rem 1.6rem;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: 0.2s;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+.btn-secondary {
+  background: var(--bg-light);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* =========================================
+   SECTIONS
+   ========================================= */
+
+.section {
+  padding: 5rem 2rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.section.dark {
+  background: var(--bg-light);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.section-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 2.5rem;
+  text-align: center;
+}
+
+/* =========================================
+   HOW IT WORKS
+   ========================================= */
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 2rem;
+}
+
+.step {
+  background: var(--bg-panel);
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.step-number {
+  width: 40px;
+  height: 40px;
+  background: var(--primary);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto 1rem;
+  font-weight: 700;
+}
+
+/* =========================================
+   FEATURES
+   ========================================= */
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 2rem;
+}
+
+.feature-card {
+  background: var(--bg-panel);
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.feature-card h3 {
+  margin-bottom: 0.8rem;
+}
+
+/* =========================================
+   PRICING
+   ========================================= */
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 2rem;
+}
+
+.pricing-card {
+  background: var(--bg-panel);
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.price {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 1rem 0;
+}
+
+/* =========================================
+   CONTACT
+   ========================================= */
+
+.contact-text {
+  text-align: center;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.contact-box {
+  background: var(--bg-panel);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  text-align: center;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* =========================================
+   FOOTER
+   ========================================= */
+
+.footer {
+  padding: 2rem;
+  background: var(--bg-light);
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.footer a {
+  color: var(--text-muted);
+  text-decoration: none;
+  margin-left: 1rem;
+}
+
+.footer a:hover {
+  color: var(--primary);
+}
+
+/* =========================================
+   RESPONSIVE
+   ========================================= */
+
+@media (max-width: 768px) {
+  .hero h1 {
+    font-size: 2.4rem;
+  }
+
+  .nav-right {
+    display: none;
+  }
+
+  .footer {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+/* =========================================
+   ANIMATIONS — FADE & SLIDE
+   ========================================= */
+
+/* Fade In */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Slide Up */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Slide In Left */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Slide In Right */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+/* Apply fade-in */
+.fade-in {
+  animation: fadeIn 1s ease forwards;
+}
+
+/* Apply slide-up */
+.slide-up {
+  animation: slideUp 0.9s ease forwards;
+}
+
+/* Apply slide-left */
+.slide-left {
+  animation: slideInLeft 1s ease forwards;
+}
+
+/* Apply slide-right */
+.slide-right {
+  animation: slideInRight 1s ease forwards;
+}
+
+/* Delay helpers */
+.delay-1 { animation-delay: 0.2s; }
+.delay-2 { animation-delay: 0.4s; }
+.delay-3 { animation-delay: 0.6s; }
+.delay-4 { animation-delay: 0.8s; }
+.hero h1 {
+  animation: fadeIn 1s ease forwards;
+}
+
+.hero p {
+  animation: slideUp 1s ease forwards;
+  animation-delay: 0.2s;
+}
+
+.hero-buttons {
+  animation: fadeIn 1s ease forwards;
+  animation-delay: 0.4s;
+}
+.step {
+  opacity: 0;
+  animation: slideUp 0.8s ease forwards;
+}
+
+.step:nth-child(1) { animation-delay: 0.1s; }
+.step:nth-child(2) { animation-delay: 0.3s; }
+.step:nth-child(3) { animation-delay: 0.5s; }
+.feature-card {
+  opacity: 0;
+  animation: fadeIn 1s ease forwards;
+}
+
+.feature-card:nth-child(1) { animation-delay: 0.1s; }
+.feature-card:nth-child(2) { animation-delay: 0.3s; }
+.feature-card:nth-child(3) { animation-delay: 0.5s; }
+.feature-card:nth-child(4) { animation-delay: 0.7s; }
+.pricing-card {
+  opacity: 0;
+  animation: slideUp 1s ease forwards;
+}
+
+.pricing-card:nth-child(1) { animation-delay: 0.2s; }
+.pricing-card:nth-child(2) { animation-delay: 0.4s; }
+.contact-box {
+  opacity: 0;
+  animation: fadeIn 1s ease forwards;
+  animation-delay: 0.3s;
+}
+.contact-box {
+  opacity: 0;
+  animation: fadeIn 1s ease forwards;
+  animation-delay: 0.3s;
+}

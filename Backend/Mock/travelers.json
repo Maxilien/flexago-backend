@@ -1,0 +1,19 @@
+[
+  {
+    "id": "TRV-001",
+    "name": "Alex Johnson",
+    "status": "online",
+    "last_seen": "2 min ago",
+    "lat": null,
+    "lng": null
+  },
+  {
+    "id": "TRV-002",
+    "name": "Maria Lopez",
+    "status": "offline",
+    "last_seen": "1 hr ago",
+    "lat": null,
+    "lng": null
+  }
+
+]

@@ -1,0 +1,390 @@
+/* ============================================================
+   TRACKING PANEL — DARK THEME
+   ============================================================ */
+
+.delivery-summary-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  margin-bottom: 0.3rem;
+}
+
+/* Traveler info card */
+.traveler-info-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 0.8rem;
+  margin-bottom: 1.2rem;
+}
+
+.traveler-info-card.hidden {
+  display: none;
+}
+
+.traveler-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.traveler-photo {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.traveler-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #e2e8f0;
+}
+
+.traveler-rating {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+
+/* ============================================================
+   TIMELINE — DARK THEME
+   ============================================================ */
+
+.tracking-timeline {
+  margin-top: 1rem;
+  border-left: 2px solid #334155;
+  padding-left: 1rem;
+}
+
+.timeline-step {
+  position: relative;
+  padding: 0.6rem 0;
+}
+
+.timeline-step .dot {
+  width: 12px;
+  height: 12px;
+  background: #475569;
+  border-radius: 50%;
+  position: absolute;
+  left: -7px;
+  top: 0.8rem;
+  transition: background 0.25s ease;
+}
+
+.timeline-step .label {
+  font-size: 0.85rem;
+  color: #cbd5e1;
+}
+
+.timeline-step.active .dot {
+  background: #3b82f6;
+}
+
+.timeline-step.active .label {
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+.timeline-step.completed .dot {
+  background: #22c55e;
+}
+
+.timeline-step.completed .label {
+  color: #4ade80;
+  font-weight: 600;
+}
+
+
+/* ============================================================
+   STATUS PILL COLORS — DARK THEME
+   ============================================================ */
+
+#trackingStatusPill {
+  transition: background 0.25s ease, color 0.25s ease;
+  background: #334155;
+  color: #e2e8f0;
+}
+
+.status-waiting { background: #334155; color: #e2e8f0; }
+.status-accepted { background: #3b82f6; color: white; }
+.status-en-route-pickup { background: #0ea5e9; color: white; }
+.status-picked-up { background: #22c55e; color: white; }
+.status-en-route-dropoff { background: #f59e0b; color: #1e293b; }
+.status-delivered { background: #8b5cf6; color: white; }
+
+
+/* ============================================================
+   MAP PANEL — FIXED (NO STICKY)
+   ============================================================ */
+
+.map-panel {
+  position: relative;   /* was sticky — removed */
+  top: auto;
+  z-index: 1;
+  margin-top: 1rem;
+}
+
+/* ============================================================
+   CONTENT AREA — ALLOW SCROLLING
+   ============================================================ */
+
+.content-area {
+  overflow-y: auto;      /* was hidden — FIXED */
+  position: relative;
+}
+/* ============================================================
+   SENDER SIDEBAR — MATCH TRAVELER
+   ============================================================ */
+
+.sidebar {
+  background: #0f172a;
+  width: var(--sidebar-width);
+  padding: 1rem 0;
+  border-right: 1px solid rgba(255,255,255,0.06);
+  color: #e5e7eb;
+}
+
+.sidebar-header {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.65;
+  padding: 0.75rem 1.25rem;
+}
+
+.sidebar-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #e5e7eb;
+  opacity: 0.75;
+  transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+.sidebar-item:hover {
+  opacity: 1;
+  background: rgba(255,255,255,0.04);
+}
+
+.sidebar-item.active {
+  opacity: 1;
+  background: rgba(255,255,255,0.08);
+  border-left: 3px solid #3b82f6;
+  padding-left: calc(1.25rem - 3px);
+}
+
+.sidebar-footer {
+  margin-top: 2rem;
+  padding: 0 1.25rem;
+  font-size: 0.75rem;
+  opacity: 0.5;
+}
+
+
+/* ============================================================
+   ACCOUNT & IDENTITY — MATCH TRAVELER
+   ============================================================ */
+
+.profile-photo-wrapper {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.profile-photo-large {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255,255,255,0.1);
+}
+
+.upload-btn.small-btn {
+  margin-top: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+}
+
+.profile-header-text {
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+.profile-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.profile-stats {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.section-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 0.5rem;
+}
+
+.verified-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.verified-label {
+  color: #cbd5e1;
+  font-size: 0.85rem;
+}
+
+.verified-status {
+  color: #4ade80;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.input-field {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #e2e8f0;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.primary-btn {
+  width: 100%;
+  padding: 0.65rem;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+
+/* ============================================================
+   AUTOCOMPLETE DROPDOWN — REQUIRED FOR CREATE DELIVERY
+   ============================================================ */
+
+.input-shell {
+  position: relative;
+}
+
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  z-index: 9999;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 4px 0;
+  margin-top: 4px;
+}
+
+.autocomplete-item {
+  padding: 10px 12px;
+  cursor: pointer;
+  color: #e5e7eb;
+  font-size: 14px;
+}
+
+.autocomplete-item:hover {
+  background: #374151;
+}
+
+.hidden {
+  display: none;
+}
+#mapContainer {
+  width: 100%;
+  height: 260px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+/* ============================================================
+   PANEL — ALLOW FULL HEIGHT + SCROLL
+   ============================================================ */
+
+.panel {
+  max-height: none;      /* was calc(100vh - 80px) — FIXED */
+  overflow-y: visible;   /* was auto — FIXED */
+  padding-bottom: 2rem;
+}
+/* ============================================================
+   MAP CONTAINER — FORCE VISIBLE
+   ============================================================ */
+
+#mapContainer,
+.map-shell {
+  width: 100%;
+  height: 300px !important;
+  min-height: 300px !important;
+  background: #0f172a;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/* Remove placeholder overlay */
+.map-placeholder {
+  display: none !important;
+}
+#deliveryType,
+#deliveryType option {
+  color: white;
+  background-color: #0f172a; /* matches your dark theme */
+}
+/* ============================================================
+   DELIVERY PROOF — PHOTO + SIGNATURE
+   ============================================================ */
+
+.delivery-photo {
+  width: 100%;
+  max-width: 360px;
+  border-radius: 10px;
+  border: 1px solid #334155;
+  display: block;
+}
+
+.signature-image {
+  width: 220px;
+  background: #ffffff;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  display: block;
+}
+
+.tracking-signed {
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  background: #1e293b;
+  border: 1px solid #334155;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+}
+

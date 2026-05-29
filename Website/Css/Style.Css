@@ -1,0 +1,327 @@
+/* ============================
+   GLOBAL
+============================ */
+body {
+  background: #f2f2f2;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  color: #111;
+}
+
+a {
+  text-decoration: none;
+}
+
+/* ============================
+   FADE-IN ANIMATIONS
+============================ */
+.fade-in {
+  opacity: 0;
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+.fade-in-up {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeInUp 0.9s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================
+   NAVBAR — BLUE BANNER
+============================ */
+.nav {
+  background: linear-gradient(90deg, #0A4DFF, #4C8DFF);
+  padding: 18px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.nav-right .nav-link {
+  color: #fff;
+  margin-left: 28px;
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 0.95rem;
+}
+
+.nav-right .nav-link:hover {
+  opacity: 0.8;
+}
+
+/* ============================
+   HERO — REAL BACKGROUND + GRADIENT OVERLAY
+============================ */
+.hero {
+  padding: 160px 40px;
+  text-align: center;
+  background: url("https://images.unsplash.com/photo-1503376780353-7e6692767b70") center/cover no-repeat fixed;
+  color: #fff;
+  position: relative;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.55),
+    rgba(0, 0, 0, 0.35)
+  );
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+}
+
+.hero h1 {
+  font-size: 3.2rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: #fff;
+}
+
+.hero p {
+  font-size: 1.25rem;
+  max-width: 700px;
+  margin: 0 auto 40px;
+  color: #eaeaea;
+}
+
+.hero-buttons a {
+  padding: 14px 28px;
+  border-radius: 6px;
+  font-weight: 600;
+  margin: 0 10px;
+}
+
+.btn-primary {
+  background: #0A4DFF;
+  color: #fff;
+}
+
+.btn-secondary {
+  background: #fff;
+  color: #0A4DFF;
+  border: 2px solid #0A4DFF;
+}
+
+/* ============================
+   SECTIONS
+============================ */
+.section {
+  padding: 100px 40px;
+  text-align: center;
+}
+
+.section-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin-bottom: 40px;
+}
+
+.section p {
+  max-width: 800px;
+  margin: 0 auto;
+  font-size: 1.15rem;
+  line-height: 1.7;
+  color: #444;
+}
+
+.section.dark {
+  background: #fff;
+}
+
+/* ============================
+   SECTION IMAGES + PARALLAX
+============================ */
+.section-image {
+  width: 100%;
+  max-width: 600px;
+  border-radius: 12px;
+  margin: 20px auto 40px;
+  display: block;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.parallax-img {
+  transform: translateY(0);
+  transition: transform 0.6s ease-out;
+}
+
+/* ============================
+   HOW IT WORKS — 3 REAL PHOTOS
+============================ */
+.steps {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.step {
+  max-width: 300px;
+}
+
+.step-img {
+  width: 100%;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.step h3 {
+  margin-bottom: 10px;
+}
+
+/* ============================
+   FEATURES
+============================ */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 30px;
+}
+
+.feature-card {
+  background: #fff;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* ============================
+   PRICING
+============================ */
+.pricing-grid {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.pricing-card {
+  background: #fff;
+  padding: 30px;
+  border-radius: 8px;
+  width: 260px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.price {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #0A4DFF;
+}
+
+/* ============================
+   CONTACT
+============================ */
+.contact-box {
+  margin-top: 20px;
+  padding: 20px;
+  background: #fff;
+  display: inline-block;
+  border-radius: 8px;
+}
+
+/* ============================
+   CTA SECTION
+============================ */
+.cta-section {
+  background: linear-gradient(135deg, #0A4DFF, #4C8DFF);
+  color: #fff;
+}
+
+.cta-section p {
+  color: #f5f5f5;
+}
+
+.cta-buttons {
+  margin-top: 30px;
+}
+
+.cta-buttons .btn-primary,
+.cta-buttons .btn-secondary {
+  margin: 0 10px;
+}
+
+/* ============================
+   FOOTER
+============================ */
+.footer {
+  padding: 30px 40px;
+  background: #0A4DFF;
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+}
+
+.footer a {
+  color: #fff;
+  margin-left: 20px;
+}
+
+/* ============================
+   RESPONSIVE (MOBILE)
+============================ */
+@media (max-width: 768px) {
+  .nav {
+    padding: 14px 20px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .nav-right {
+    margin-top: 10px;
+  }
+
+  .nav-right .nav-link {
+    margin-left: 0;
+    margin-right: 16px;
+    font-size: 0.85rem;
+  }
+
+  .hero {
+    padding: 120px 20px;
+    background-attachment: scroll;
+  }
+
+  .hero h1 {
+    font-size: 2.4rem;
+  }
+
+  .section {
+    padding: 70px 20px;
+  }
+
+  .footer {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+}
