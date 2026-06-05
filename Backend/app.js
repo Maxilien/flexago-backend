@@ -28,11 +28,15 @@ const errorHandler = require("./middleware/errorHandler");
 const app = express();
 
 /* ============================================================
-   CORE MIDDLEWARE
+   CORE MIDDLEWARE (UPDATED CORS)
    ============================================================ */
 
 app.use(cors({
   origin: [
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+    "http://127.0.0.1",
+    "http://localhost",
     "https://flexago-frontend.onrender.com",
     "https://flexago-backend.onrender.com"
   ],
