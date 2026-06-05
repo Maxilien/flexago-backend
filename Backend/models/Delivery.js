@@ -1,141 +1,84 @@
-// models/Delivery.js
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
+
+const GeoPointSchema = new mongoose.Schema({
+  address: { type: String, required: true },
+  location: {
+    type: {
+      type: String,
+      enum: ["Point"],
+      default: "Point"
+    },
+    coordinates: {
+      type: [Number], // [lng, lat]
+      required: true
+    }
+  },
+  contactName: String,
+  contactPhone: String,
+  instructions: String
+});
+
+const PackageSchema = new mongoose.Schema({
+  type: String,
+  weight: Number,
+  size: String,
+  insurance: Boolean,
+  deliveryType: String,
+  description: String,
+  declaredValue: Number
+});
 
 const DeliverySchema = new mongoose.Schema(
   {
-    // Sender (embedded)
     sender: {
-      name: { type: String, required: true },
-      phone: { type: String, required: true },
-      email: { type: String, required: true }
+      name: String,
+      phone: String,
+      email: String
     },
 
-    // Traveler (User)
-    traveler: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      default: null
-    },
-
-    // Pickup details (GeoJSON)
-    pickup: {
-      address: { type: String, required: true },
-      location: {
-        type: {
-          type: String,
-          enum: ["Point"],
-          default: "Point",
-          required: true
-        },
-        coordinates: {
-          type: [Number], // [lng, lat]
-          required: true
-        }
-      },
-      contactName: String,
-      contactPhone: String
-    },
-
-    // Dropoff details (GeoJSON)
-    dropoff: {
-      address: { type: String, required: true },
-      location: {
-        type: {
-          type: String,
-          enum: ["Point"],
-          default: "Point",
-          required: true
-        },
-        coordinates: {
-          type: [Number], // [lng, lat]
-          required: true
-        }
-      },
-      contactName: String,
-      contactPhone: String,
+    receiver: {
+      name: String,
+      phone: String,
       instructions: String
     },
 
-    // Package details
-    package: {
-      type: { type: String, required: true }, // envelope, small_box, etc.
-      weight: Number,
-      insurance: String,
-      deliveryType: String,
-      description: String,
-      declaredValue: Number,
-      size: {
-        type: String,
-        enum: ["small", "medium", "large"]
-      }
-    },
+    pickup: GeoPointSchema,
+    dropoff: GeoPointSchema,
 
-    // Delivery lifecycle
+    package: PackageSchema,
+
+    price: { type: Number, required: true },
+    payoutAmount: { type: Number, required: true },
+
+    travelerId: { type: String, default: null },
+
     status: {
       type: String,
       enum: [
         "created",
-        "matched",
+        "available",
         "accepted",
-        "pickup_confirmed",
         "in_transit",
-        "dropoff_confirmed",
         "delivered",
-        "completed",
-        "cancelled"
+        "payout_pending",
+        "payout_completed"
       ],
-      default: "created"
+      default: "available"
     },
 
-    // Cost & payout
-    pricing: {
-      senderFee: Number,
-      travelerEarnings: Number,
-      distanceKm: Number
-    },
+    acceptedAt: Date,
+    pickedUpAt: Date,
+    deliveredAt: Date,
+    payoutCompletedAt: Date,
 
-    // Delivery proof
-    deliveryPhoto: {
-      type: String,
-      default: null
-    },
-    deliverySignature: {
-      type: String,
-      default: null
-    },
-    deliverySignedBy: {
-      type: String,
-      default: null
-    },
-    deliveredAt: {
-      type: Date,
-      default: null
-    },
+    proofPhoto: String,
 
-    // Timeline
-    timestampsLog: {
-      createdAt: Date,
-      matchedAt: Date,
-      acceptedAt: Date,
-      pickupConfirmedAt: Date,
-      inTransitAt: Date,
-      dropoffConfirmedAt: Date,
-      completedAt: Date,
-      cancelledAt: Date
-    },
-
-    // Notes
     notes: String
   },
   { timestamps: true }
 );
 
-// Geo indexes
 DeliverySchema.index({ "pickup.location": "2dsphere" });
 DeliverySchema.index({ "dropoff.location": "2dsphere" });
 
-// Status index
-DeliverySchema.index({ status: 1 });
-
-export default mongoose.model("Delivery", DeliverySchema);
-
+module.exports = mongoose.model("Delivery", DeliverySchema);

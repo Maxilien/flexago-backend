@@ -1,14 +1,18 @@
-// server-ws.js
-import express from "express";
-import http from "http";
-import { WebSocketServer } from "ws";
-import cors from "cors";
+// server-ws.js (CommonJS VERSION)
+// ------------------------------------------------------
+// Standalone HTTP + WebSocket Test Server
+// ------------------------------------------------------
+
+const express = require("express");
+const http = require("http");
+const { WebSocketServer } = require("ws");
+const cors = require("cors");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- HTTP API (your existing routes can live here) ---
+// --- HTTP API (mock endpoints) ---
 app.post("/pricing/quote", (req, res) => {
   const { distanceKm, durationMin, urgency, size } = req.body;
 
@@ -30,9 +34,6 @@ app.post("/pricing/quote", (req, res) => {
 });
 
 app.post("/matches/search", (req, res) => {
-  const { pickupCoords, dropoffCoords, urgency, size } = req.body;
-
-  // Mock matches – replace with real logic later
   const matches = [
     {
       id: "M1",
@@ -68,7 +69,6 @@ const travelerClients = new Set();
 wss.on("connection", (ws, req) => {
   const url = req.url || "";
 
-  // Simple routing by path
   if (url.startsWith("/ws/sender")) {
     senderClients.add(ws);
     console.log("Sender connected");
@@ -100,7 +100,6 @@ wss.on("connection", (ws, req) => {
 function handleIncomingMessage(ws, msg) {
   switch (msg.type) {
     case "traveler_position":
-      // Broadcast traveler position to all senders
       broadcastToSenders({
         type: "traveler_position",
         travelerId: msg.travelerId,
@@ -109,7 +108,6 @@ function handleIncomingMessage(ws, msg) {
       break;
 
     case "delivery_status":
-      // Broadcast delivery status to all senders
       broadcastToSenders({
         type: "delivery_status",
         status: msg.status
@@ -117,10 +115,17 @@ function handleIncomingMessage(ws, msg) {
       break;
 
     case "new_match":
-      // Broadcast new match to all senders
       broadcastToSenders({
         type: "new_match",
         match: msg.match
+      });
+      break;
+
+    case "delivery_accept":
+      broadcastToSenders({
+        type: "delivery_status",
+        status: "accepted",
+        deliveryId: msg.deliveryId
       });
       break;
 
@@ -128,22 +133,6 @@ function handleIncomingMessage(ws, msg) {
       console.log("Unhandled WS message type:", msg.type);
   }
 }
-case "delivery_accept":
-  broadcastToSenders({
-    type: "delivery_status",
-    status: "accepted",
-    deliveryId: msg.deliveryId
-  });
-  break;
-
-case "delivery_status":
-  broadcastToSenders({
-    type: "delivery_status",
-    status: msg.status,
-    deliveryId: msg.deliveryId
-  });
-  break;
-
 
 // --- Broadcast helpers ---
 function broadcastToSenders(payload) {
@@ -166,7 +155,6 @@ function broadcastToTravelers(payload) {
 
 // --- Simple traveler simulation (optional) ---
 setInterval(() => {
-  // Fake traveler moving around Austin
   const lat = 30.2672 + (Math.random() - 0.5) * 0.02;
   const lng = -97.7431 + (Math.random() - 0.5) * 0.02;
 

@@ -1,14 +1,17 @@
+// backend/routes/userRoutes.js
 // ------------------------------------------------------
-// Flexagoo User Routes
+// Flexagoo User Routes (CommonJS)
 // ------------------------------------------------------
 
-import express from "express";
-import {
+console.log("🟢 userRoutes.js LOADED");
+
+const express = require("express");
+const {
   createUser,
   getUserById,
   updateUser,
   loginUser
-} from "../controllers/userController.js";
+} = require("../controllers/userController");
 
 const router = express.Router();
 
@@ -24,6 +27,4 @@ router.get("/:id", getUserById);
 // UPDATE USER
 router.put("/:id", updateUser);
 
-
-
-export default router;
+module.exports = router;

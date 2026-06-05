@@ -3,8 +3,10 @@
 // Flexagoo Explorer Routes (Legacy Mock API)
 // ------------------------------------------------------
 
-import express from "express";
-import * as explorerController from "../controllers/explorerController.js";
+console.log("🟢 explorerRoutes.js LOADED");
+
+const express = require("express");
+const explorerController = require("../controllers/explorerController");
 
 const router = express.Router();
 
@@ -15,5 +17,5 @@ const router = express.Router();
 router.get("/sender", explorerController.getSenderData);
 router.get("/traveler", explorerController.getTravelerData);
 
-export default router;
+module.exports = router;
 

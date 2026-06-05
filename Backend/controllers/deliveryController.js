@@ -1,148 +1,11 @@
 // controllers/deliveryController.js
-// ------------------------------------------------------
-// Flexago Delivery Controller (Create + Search)
-// ------------------------------------------------------
+const Delivery = require("../models/Delivery");
 
-import Delivery from "../models/Delivery.js";
-
-console.log("🟢 USING CORRECT CONTROLLER FILE");
+console.log("🟢 Flexago Marketplace Delivery Controller Loaded");
 
 /* ============================================================
-   GEOJSON VALIDATION HELPER
+   GEO HELPERS
    ============================================================ */
-function isValidGeoPoint(obj) {
-  if (!obj) return false;
-  if (!obj.location) return false;
-  if (obj.location.type !== "Point") return false;
-  if (!Array.isArray(obj.location.coordinates)) return false;
-  if (obj.location.coordinates.length !== 2) return false;
-
-  const [lng, lat] = obj.location.coordinates;
-  return Number.isFinite(lng) && Number.isFinite(lat);
-}
-
-/* ============================================================
-   NORMALIZE PAYLOAD (ACCEPT OLD + NEW FORMATS)
-   ============================================================ */
-function normalizeGeoPoint(raw) {
-  if (!raw) return null;
-
-  // NEW FORMAT
-  if (raw.location && Array.isArray(raw.location.coordinates)) {
-    return {
-      address: raw.address,
-      location: {
-        type: "Point",
-        coordinates: [
-          Number(raw.location.coordinates[0]),
-          Number(raw.location.coordinates[1])
-        ]
-      }
-    };
-  }
-
-  // OLD FORMAT
-  if (Array.isArray(raw.coordinates)) {
-    return {
-      address: raw.address,
-      location: {
-        type: "Point",
-        coordinates: [
-          Number(raw.coordinates[0]),
-          Number(raw.coordinates[1])
-        ]
-      }
-    };
-  }
-
-  return null;
-}
-
-/* ============================================================
-   CREATE DELIVERY
-   ============================================================ */
-export const createDelivery = async (req, res) => {
-  try {
-    console.log("🔥 RAW req.body:", JSON.stringify(req.body, null, 2));
-
-    const {
-      pickup: rawPickup,
-      dropoff: rawDropoff,
-      package: pkg,
-      sender,
-      receiver,
-      notes
-    } = req.body;
-
-    const pickup = normalizeGeoPoint(rawPickup);
-    const dropoff = normalizeGeoPoint(rawDropoff);
-
-    if (!isValidGeoPoint(pickup)) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid pickup coordinates."
-      });
-    }
-
-    if (!isValidGeoPoint(dropoff)) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid dropoff coordinates."
-      });
-    }
-
-    const deliveryPayload = {
-      sender: {
-        name: sender.name,
-        phone: sender.phone,
-        email: sender.email
-      },
-
-      pickup: {
-        address: pickup.address,
-        location: pickup.location,
-        contactName: sender.name,
-        contactPhone: sender.phone
-      },
-
-      dropoff: {
-        address: dropoff.address,
-        location: dropoff.location,
-        contactName: receiver.name,
-        contactPhone: receiver.phone,
-        instructions: receiver.instructions
-      },
-
-      package: {
-        type: pkg.type,
-        weight: pkg.weight,
-        insurance: pkg.insurance,
-        deliveryType: pkg.deliveryType,
-        description: pkg.description || null,
-        declaredValue: pkg.declaredValue || 0,
-        size: pkg.size || null
-      },
-
-      notes
-    };
-
-    const delivery = await Delivery.create(deliveryPayload);
-
-    res.status(201).json({
-      success: true,
-      data: delivery
-    });
-
-  } catch (err) {
-    console.error("Create Delivery Error:", err);
-    res.status(400).json({ success: false, error: err.message });
-  }
-};
-
-/* ============================================================
-   GEO / DISTANCE HELPERS
-   ============================================================ */
-
 const EARTH_RADIUS_MILES = 3958.8;
 
 function toRad(deg) {
@@ -203,52 +66,118 @@ function distancePointToPolylineMiles(point, polyline) {
 }
 
 /* ============================================================
-   TRAVELER SEARCH (CORRECTED)
+   NORMALIZE GEO POINT
    ============================================================ */
-export const searchTravelerJobs = async (req, res) => {
+function normalizeGeoPoint(raw) {
+  if (!raw) return null;
+
+  if (raw.location && Array.isArray(raw.location.coordinates)) {
+    return {
+      address: raw.address,
+      location: {
+        type: "Point",
+        coordinates: [
+          Number(raw.location.coordinates[0]),
+          Number(raw.location.coordinates[1])
+        ]
+      }
+    };
+  }
+
+  if (Array.isArray(raw.coordinates)) {
+    return {
+      address: raw.address,
+      location: {
+        type: "Point",
+        coordinates: [
+          Number(raw.coordinates[0]),
+          Number(raw.coordinates[1])
+        ]
+      }
+    };
+  }
+
+  return null;
+}
+
+/* ============================================================
+   CREATE DELIVERY (Marketplace)
+   ============================================================ */
+async function createDelivery(req, res) {
+  console.log("🔥 USING NEW CREATE DELIVERY CONTROLLER");
+
+  try {
+    const {
+      pickup: rawPickup,
+      dropoff: rawDropoff,
+      package: pkg,
+      sender,
+      receiver,
+      notes,
+      price
+    } = req.body;
+
+    const pickup = normalizeGeoPoint(rawPickup);
+    const dropoff = normalizeGeoPoint(rawDropoff);
+
+    if (!pickup || !dropoff) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid pickup or dropoff coordinates."
+      });
+    }
+
+    const numericPrice = Number(price) || 25;
+    const payoutAmount = numericPrice * 0.8;
+
+    const delivery = await Delivery.create({
+      sender,
+      receiver,
+      pickup,
+      dropoff,
+      package: pkg,
+      notes,
+      price: numericPrice,
+      payoutAmount,
+      status: "available"
+    });
+
+    res.status(201).json({ success: true, data: delivery });
+  } catch (err) {
+    console.error("Create Delivery Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+/* ============================================================
+   SEARCH TRAVELER JOBS
+   ============================================================ */
+async function searchTravelerJobs(req, res) {
   try {
     const {
       start,
       destination,
       route,
       maxMiles = 5,
-      deliveryType,
-      status
+      deliveryType
     } = req.body;
-
-    if (!start || !destination) {
-      return res.status(400).json({
-        success: false,
-        error: "start and destination are required."
-      });
-    }
 
     const startPoint = [Number(start.lng), Number(start.lat)];
     const destPoint = [Number(destination.lng), Number(destination.lat)];
 
-    // Allow empty route (fallback mode)
     let polyline = [];
     if (Array.isArray(route) && route.length >= 2) {
       polyline = route.map(([lng, lat]) => [Number(lng), Number(lat)]);
     }
 
-    // Base MongoDB query
-    const query = {};
-    if (status) query.status = status;
+    const query = { status: "available" };
     if (deliveryType) query["package.deliveryType"] = deliveryType;
 
     const deliveries = await Delivery.find(query).lean();
 
     const matched = deliveries
       .map((job) => {
-        if (
-          !job.pickup ||
-          !job.dropoff ||
-          !job.pickup.location ||
-          !job.dropoff.location
-        ) {
-          return null;
-        }
+        if (!job.pickup || !job.dropoff) return null;
 
         const pickup = job.pickup.location.coordinates;
         const dropoff = job.dropoff.location.coordinates;
@@ -259,18 +188,11 @@ export const searchTravelerJobs = async (req, res) => {
         const dPickupRoute = distancePointToPolylineMiles(pickup, polyline);
         const dDropoffRoute = distancePointToPolylineMiles(dropoff, polyline);
 
-        const pickupNearStart = dPickupStart <= maxMiles;
-        const dropoffNearDest = dDropoffDest <= maxMiles;
-
-        const pickupOnRoute = dPickupRoute <= maxMiles;
-        const dropoffOnRoute = dDropoffRoute <= maxMiles;
-
-        // Fallback matching when no route provided
         const matches =
           polyline.length < 2
-            ? pickupNearStart && dropoffNearDest
-            : (pickupNearStart || pickupOnRoute) &&
-              (dropoffNearDest || (pickupOnRoute && dropoffOnRoute));
+            ? dPickupStart <= maxMiles && dDropoffDest <= maxMiles
+            : (dPickupStart <= maxMiles || dPickupRoute <= maxMiles) &&
+              (dDropoffDest <= maxMiles || dDropoffRoute <= maxMiles);
 
         if (!matches) return null;
 
@@ -301,40 +223,139 @@ export const searchTravelerJobs = async (req, res) => {
         return da - db;
       });
 
-    res.json({
-      success: true,
-      count: matched.length,
-      data: matched
-    });
+    res.json({ success: true, count: matched.length, data: matched });
   } catch (err) {
-    console.error("Traveler search error:", err);
+    console.error("Search Error:", err);
     res.status(500).json({ success: false, error: "Search failed" });
   }
-};
+}
+
 /* ============================================================
-   TRAVELER ACCEPTS A JOB
+   ACCEPT JOB
    ============================================================ */
-export const acceptTravelerJob = async (req, res) => {
+async function acceptTravelerJob(req, res) {
   try {
     const { jobId } = req.params;
-
-    console.log("Traveler accepting job:", jobId);
+    const { travelerId } = req.body;
 
     const job = await Delivery.findById(jobId);
-    if (!job) {
-      return res.status(404).json({ success: false, error: "Job not found" });
+    if (!job) return res.status(404).json({ success: false, error: "Job not found" });
+
+    if (job.status !== "available") {
+      return res.status(400).json({ success: false, error: "Job already taken" });
     }
 
-    // Update job status
     job.status = "accepted";
+    job.travelerId = travelerId;
     job.acceptedAt = new Date();
 
     await job.save();
 
     res.json({ success: true, data: job });
   } catch (err) {
-    console.error("Accept Traveler Job Error:", err);
+    console.error("Accept Job Error:", err);
     res.status(500).json({ success: false, error: "Server error" });
   }
-};
+}
 
+/* ============================================================
+   PICKUP JOB
+   ============================================================ */
+async function pickupTravelerJob(req, res) {
+  try {
+    const { jobId } = req.params;
+
+    const job = await Delivery.findById(jobId);
+    if (!job) return res.status(404).json({ success: false, error: "Job not found" });
+
+    job.status = "in_transit";
+    job.pickedUpAt = new Date();
+
+    await job.save();
+
+    res.json({ success: true, data: job });
+  } catch (err) {
+    console.error("Pickup Job Error:", err);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+}
+
+/* ============================================================
+   DELIVER JOB
+   ============================================================ */
+async function deliverTravelerJob(req, res) {
+  try {
+    const { jobId } = req.params;
+
+    const job = await Delivery.findById(jobId);
+    if (!job) return res.status(404).json({ success: false, error: "Job not found" });
+
+    job.status = "delivered";
+    job.deliveredAt = new Date();
+
+    await job.save();
+
+    res.json({ success: true, data: job });
+  } catch (err) {
+    console.error("Deliver Job Error:", err);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+}
+
+/* ============================================================
+   COMPLETE JOB (moves to payout_pending)
+   ============================================================ */
+async function completeTravelerJob(req, res) {
+  try {
+    const { jobId } = req.params;
+    const { proofPhoto } = req.body;
+
+    const job = await Delivery.findById(jobId);
+    if (!job) return res.status(404).json({ success: false, error: "Job not found" });
+
+    job.status = "payout_pending";
+    job.proofPhoto = proofPhoto || null;
+
+    await job.save();
+
+    res.json({ success: true, data: job });
+  } catch (err) {
+    console.error("Complete Job Error:", err);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+}
+
+/* ============================================================
+   PAYOUT JOB (final step)
+   ============================================================ */
+async function payoutTravelerJob(req, res) {
+  try {
+    const { jobId } = req.params;
+
+    const job = await Delivery.findById(jobId);
+    if (!job) return res.status(404).json({ success: false, error: "Job not found" });
+
+    job.status = "payout_completed";
+    job.payoutCompletedAt = new Date();
+
+    await job.save();
+
+    res.json({ success: true, data: job });
+  } catch (err) {
+    console.error("Payout Job Error:", err);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+}
+
+/* ============================================================
+   EXPORT CONTROLLER
+   ============================================================ */
+module.exports = {
+  createDelivery,
+  searchTravelerJobs,
+  acceptTravelerJob,
+  pickupTravelerJob,
+  deliverTravelerJob,
+  completeTravelerJob,
+  payoutTravelerJob
+};

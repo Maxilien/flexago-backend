@@ -1,12 +1,14 @@
 // backend/ws/explorerSocket.js
 // ------------------------------------------------------
-// Flexago WebSocket Engine (MongoDB + Mongoose)
+// Flexago WebSocket Engine (CommonJS + Mongoose)
 // Real-time traveler GPS + delivery status broadcasting
 // ------------------------------------------------------
 
-import { WebSocketServer } from "ws";
-import Traveler from "../models/Traveler.js";
-import Delivery from "../models/Delivery.js";
+console.log("🟢 explorerSocket.js LOADED");
+
+const { WebSocketServer } = require("ws");
+const Traveler = require("../models/Traveler");
+const Delivery = require("../models/Delivery");
 
 let wss = null;
 
@@ -16,7 +18,7 @@ const deliveryRooms = {};
 /* ============================================================
    ROOM MANAGEMENT
    ============================================================ */
-export function joinRoom(ws, deliveryId) {
+function joinRoom(ws, deliveryId) {
   if (!deliveryRooms[deliveryId]) {
     deliveryRooms[deliveryId] = new Set();
   }
@@ -31,7 +33,7 @@ export function joinRoom(ws, deliveryId) {
   });
 }
 
-export function broadcastToRoom(deliveryId, payload) {
+function broadcastToRoom(deliveryId, payload) {
   const room = deliveryRooms[deliveryId];
   if (!room) return;
 
@@ -45,7 +47,7 @@ export function broadcastToRoom(deliveryId, payload) {
 /* ============================================================
    INITIALIZE WEBSOCKET SERVER
    ============================================================ */
-export function initExplorerSocket(server) {
+function initExplorerSocket(server) {
   wss = new WebSocketServer({ server });
 
   console.log("🔌 WebSocket server initialized (MongoDB mode)");
@@ -140,3 +142,9 @@ export function initExplorerSocket(server) {
     });
   });
 }
+
+module.exports = {
+  joinRoom,
+  broadcastToRoom,
+  initExplorerSocket
+};

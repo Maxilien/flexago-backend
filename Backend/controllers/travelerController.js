@@ -1,34 +1,38 @@
 // controllers/travelerController.js
 // ------------------------------------------------------
-// Flexagoo Traveler Controller (MongoDB + Mongoose)
+// Flexagoo Traveler Controller (CommonJS)
 // ------------------------------------------------------
 
-import Traveler from "../models/Traveler.js";
+console.log("🟢 travelerController.js LOADED");
+
+const Traveler = require("../models/Traveler");
 
 // Create traveler profile
-export const createTraveler = async (req, res) => {
+async function createTraveler(req, res) {
   try {
     const traveler = await Traveler.create(req.body);
     res.status(201).json({ success: true, data: traveler });
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });
   }
-};
+}
 
 // Get traveler by user ID
-export const getTravelerByUser = async (req, res) => {
+async function getTravelerByUser(req, res) {
   try {
     const traveler = await Traveler.findOne({ user: req.params.userId }).populate("user");
-    if (!traveler) return res.status(404).json({ success: false, error: "Traveler not found" });
+    if (!traveler) {
+      return res.status(404).json({ success: false, error: "Traveler not found" });
+    }
 
     res.json({ success: true, data: traveler });
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });
   }
-};
+}
 
 // Update traveler location (real-time)
-export const updateTravelerLocation = async (req, res) => {
+async function updateTravelerLocation(req, res) {
   try {
     const { lng, lat } = req.body;
 
@@ -38,8 +42,8 @@ export const updateTravelerLocation = async (req, res) => {
         location: {
           type: "Point",
           coordinates: [lng, lat],
-          updatedAt: new Date(),
-        },
+          updatedAt: new Date()
+        }
       },
       { new: true }
     );
@@ -48,4 +52,10 @@ export const updateTravelerLocation = async (req, res) => {
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });
   }
+}
+
+module.exports = {
+  createTraveler,
+  getTravelerByUser,
+  updateTravelerLocation
 };

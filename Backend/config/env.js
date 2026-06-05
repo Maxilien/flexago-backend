@@ -1,17 +1,15 @@
 // backend/config/env.js
 
-import path from "path";
-import { fileURLToPath } from "url";
-import dotenv from "dotenv";
+const path = require("path");
+const dotenv = require("dotenv");
 
-// Needed because __dirname does not exist in ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Resolve __dirname in CommonJS (no need for fileURLToPath)
+const envPath = path.join(__dirname, "../.env");
 
 // Load .env file
-dotenv.config({ path: path.join(__dirname, "../.env") });
+dotenv.config({ path: envPath });
 
-export default {
+module.exports = {
   NODE_ENV: process.env.NODE_ENV,
   PORT: process.env.PORT,
   MONGO_URI: process.env.MONGO_URI

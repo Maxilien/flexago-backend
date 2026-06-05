@@ -1,11 +1,11 @@
 // models/User.js
 // ------------------------------------------------------
-// Flexagoo User Schema (Mongoose)
+// Flexagoo User Schema (CommonJS)
 // Secure, scalable, compliance‑ready + JWT + Hashing
 // ------------------------------------------------------
 
-import mongoose from "mongoose";
-import bcrypt from "bcryptjs";
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
 const UserSchema = new mongoose.Schema(
   {
@@ -33,7 +33,7 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: true,
       minlength: 6,
-      select: false, // prevents password from being returned in queries
+      select: false,
     },
 
     role: {
@@ -47,7 +47,6 @@ const UserSchema = new mongoose.Schema(
       required: false,
     },
 
-    // KYC / Identity Verification
     kyc: {
       ssnLast4: { type: String },
       dob: { type: Date },
@@ -57,11 +56,9 @@ const UserSchema = new mongoose.Schema(
       verifiedAt: { type: Date },
     },
 
-    // Security
     resetToken: String,
     resetTokenExpire: Date,
 
-    // Traveler-specific fields (optional)
     travelerProfile: {
       vehicleType: { type: String },
       licensePlate: { type: String },
@@ -91,5 +88,5 @@ UserSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-export default mongoose.model("User", UserSchema);
+module.exports = mongoose.model("User", UserSchema);
 

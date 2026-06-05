@@ -1,15 +1,15 @@
 // scripts/migrate.js
 // ------------------------------------------------------
-// Flexagoo Migration Script
+// Flexagoo Migration Script (CommonJS)
 // Imports mock JSON data into MongoDB using Mongoose
 // ------------------------------------------------------
 
-import dotenv from "dotenv";
-import mongoose from "mongoose";
-import User from "../models/User.js";
-import Traveler from "../models/Traveler.js";
-import Delivery from "../models/Delivery.js";
-import fs from "fs";
+const dotenv = require("dotenv");
+const mongoose = require("mongoose");
+const User = require("../models/User");
+const Traveler = require("../models/Traveler");
+const Delivery = require("../models/Delivery");
+const fs = require("fs");
 
 dotenv.config();
 

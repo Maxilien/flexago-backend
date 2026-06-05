@@ -1,34 +1,73 @@
 // controllers/userController.js
 // ------------------------------------------------------
-// Flexagoo User Controller (MongoDB + Mongoose)
+// Flexagoo User Controller (CommonJS)
 // ------------------------------------------------------
 
-import User from "../models/User.js";
+console.log("🟢 userController.js LOADED");
 
-// Create new user (registration)
-export const createUser = async (req, res) => {
+const User = require("../models/User");
+const Traveler = require("../models/Traveler");
+const bcrypt = require("bcryptjs");
+
+// ------------------------------------------------------
+// CREATE USER + AUTO‑CREATE TRAVELER PROFILE
+// ------------------------------------------------------
+async function createUser(req, res) {
   try {
+    // 1. Create the user (password is auto‑hashed by User model)
     const user = await User.create(req.body);
-    res.status(201).json({ success: true, data: user });
-  } catch (err) {
-    res.status(400).json({ success: false, error: err.message });
-  }
-};
 
-// Get user by ID
-export const getUserById = async (req, res) => {
+    // 2. Check if Traveler already exists (safety)
+    let traveler = await Traveler.findOne({ userId: user._id });
+
+    // 3. If not, create Traveler profile automatically
+    if (!traveler) {
+      traveler = await Traveler.create({
+        userId: user._id,
+        vehicleType: "car",
+        yearJoined: new Date().getFullYear(),
+        totalTrips: 0,
+        createdAt: new Date()
+      });
+    }
+
+    // 4. Return both
+    res.status(201).json({
+      success: true,
+      data: {
+        user,
+        traveler
+      }
+    });
+
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      error: err.message
+    });
+  }
+}
+
+// ------------------------------------------------------
+// GET USER BY ID
+// ------------------------------------------------------
+async function getUserById(req, res) {
   try {
     const user = await User.findById(req.params.id).select("-password");
-    if (!user) return res.status(404).json({ success: false, error: "User not found" });
+    if (!user)
+      return res.status(404).json({ success: false, error: "User not found" });
 
     res.json({ success: true, data: user });
+
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });
   }
-};
+}
 
-// Update user
-export const updateUser = async (req, res) => {
+// ------------------------------------------------------
+// UPDATE USER
+// ------------------------------------------------------
+async function updateUser(req, res) {
   try {
     const updated = await User.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -36,33 +75,45 @@ export const updateUser = async (req, res) => {
     }).select("-password");
 
     res.json({ success: true, data: updated });
+
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });
   }
-};
-// ------------------------------------------------------
-// LOGIN USER
-// ------------------------------------------------------
-export const loginUser = async (req, res) => {
-  try {
-    const { email, password } = req.body;
+}
 
-    // Find user by email
-    const user = await User.findOne({ email });
+// ------------------------------------------------------
+// LOGIN USER (SECURE VERSION)
+// ------------------------------------------------------
+async function loginUser(req, res) {
+  try {
+    // ⭐ CRITICAL FIX: Always lowercase email before searching
+    const email = req.body.email.toLowerCase();
+    const password = req.body.password;
+
+    // 1. Find user and explicitly include password
+    const user = await User.findOne({ email }).select("+password");
     if (!user)
       return res.status(404).json({ success: false, error: "User not found" });
 
-    // Simple password check (no hashing yet)
-    if (user.password !== password)
+    // 2. Compare hashed password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch)
       return res.status(401).json({ success: false, error: "Invalid password" });
 
-    // Return user (remove password)
+    // 3. Remove password before sending
     const safeUser = user.toObject();
     delete safeUser.password;
 
     res.json({ success: true, data: safeUser });
+
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });
   }
-};
+}
 
+module.exports = {
+  createUser,
+  getUserById,
+  updateUser,
+  loginUser
+};

@@ -1,6 +1,11 @@
-import express from "express";
-import http from "http";
-import { WebSocketServer } from "ws";
+// backend/ws/testServer.js
+// ------------------------------------------------------
+// Standalone WebSocket Test Server (CommonJS)
+// ------------------------------------------------------
+
+const express = require("express");
+const http = require("http");
+const { WebSocketServer } = require("ws");
 
 const app = express();
 const server = http.createServer(app);
@@ -16,7 +21,6 @@ server.on("upgrade", (req, socket, head) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const path = url.pathname;
 
-  // Expect: /ws/delivery/DEL123
   const match = path.match(/^\/ws\/delivery\/(.+)$/);
   if (!match) {
     socket.destroy();
@@ -73,5 +77,5 @@ app.get("/simulate/:deliveryId", (req, res) => {
 });
 
 server.listen(8080, () => {
-  console.log("WebSocket server running on ws://localhost:8080");
+  console.log("WebSocket test server running on ws://localhost:8080");
 });

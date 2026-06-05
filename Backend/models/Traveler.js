@@ -1,10 +1,10 @@
 // models/Traveler.js
 // ------------------------------------------------------
-// Flexagoo Traveler Schema (Mongoose)
+// Flexagoo Traveler Schema (CommonJS)
 // Real-time location, route matching, compliance-ready
 // ------------------------------------------------------
 
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const TravelerSchema = new mongoose.Schema(
   {
@@ -85,5 +85,5 @@ const TravelerSchema = new mongoose.Schema(
 // ------------------------------------------------------
 TravelerSchema.index({ location: "2dsphere" });
 
-export default mongoose.model("Traveler", TravelerSchema);
+module.exports = mongoose.model("Traveler", TravelerSchema);
 

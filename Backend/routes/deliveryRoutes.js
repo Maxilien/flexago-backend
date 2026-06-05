@@ -1,23 +1,25 @@
-console.log("🟢 deliveryRoutes.js LOADED FROM:", import.meta.url);
-
 // routes/deliveryRoutes.js
 // ------------------------------------------------------
-// Flexago Delivery Routes
+// Flexago Delivery Routes (CommonJS)
 // ------------------------------------------------------
 
-import express from "express";
-import {
+console.log("🟢 deliveryRoutes.js LOADED");
+
+const express = require("express");
+const {
   createDelivery,
   searchTravelerJobs
-} from "../controllers/deliveryController.js";
+} = require("../controllers/deliveryController");
 
 const router = express.Router();
 
 // Sender creates a delivery
-router.post("/", createDelivery);
+router.post("/", (req, res, next) => {
+  console.log("🔥 DELIVERY ROUTE HIT");
+  next();
+}, createDelivery);
 
 // Traveler job search (POST because it requires JSON body)
 router.post("/search", searchTravelerJobs);
 
-export default router;
-
+module.exports = router;
