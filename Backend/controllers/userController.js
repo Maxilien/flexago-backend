@@ -18,12 +18,12 @@ async function createUser(req, res) {
     const user = await User.create(req.body);
 
     // 2. Check if Traveler already exists (safety)
-    let traveler = await Traveler.findOne({ userId: user._id });
+    let traveler = await Traveler.findOne({ user: user._id });
 
     // 3. If not, create Traveler profile automatically
     if (!traveler) {
       traveler = await Traveler.create({
-        userId: user._id,
+        user: user._id,                     // ⭐ FIXED FIELD NAME
         vehicleType: "car",
         yearJoined: new Date().getFullYear(),
         totalTrips: 0,
@@ -86,7 +86,7 @@ async function updateUser(req, res) {
 // ------------------------------------------------------
 async function loginUser(req, res) {
   try {
-    // ⭐ CRITICAL FIX: Always lowercase email before searching
+    // ⭐ Always lowercase email before searching
     const email = req.body.email.toLowerCase();
     const password = req.body.password;
 
