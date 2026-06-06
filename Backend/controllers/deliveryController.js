@@ -139,7 +139,7 @@ async function createDelivery(req, res) {
       notes,
       price: numericPrice,
       payoutAmount,
-      status: "available"
+      status: "open"
     });
 
     res.status(201).json({ success: true, data: delivery });
@@ -170,7 +170,7 @@ async function searchTravelerJobs(req, res) {
       polyline = route.map(([lng, lat]) => [Number(lng), Number(lat)]);
     }
 
-    const query = { status: "available" };
+    const query = { status: "open" };
     if (deliveryType) query["package.deliveryType"] = deliveryType;
 
     const deliveries = await Delivery.find(query).lean();
@@ -241,7 +241,7 @@ async function acceptTravelerJob(req, res) {
     const job = await Delivery.findById(jobId);
     if (!job) return res.status(404).json({ success: false, error: "Job not found" });
 
-    if (job.status !== "available") {
+    if (job.status !== "open") {
       return res.status(400).json({ success: false, error: "Job already taken" });
     }
 
