@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title data-i18n="sender.nav.title">Flexago Delivery</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Flexago + Sender CSS -->
+  <link rel="stylesheet" href="css/traveler.css" />
+  <link rel="stylesheet" href="css/sender.css" />
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+</head>
+
+<body>
+  <div class="app-shell">
+
+    <!-- ========================================================= -->
+    <!-- TOP NAVBAR                                                -->
+    <!-- ========================================================= -->
+    <header class="top-nav">
+      <div class="top-nav-left">
+        <button class="hamburger-btn" id="hamburgerBtn">
+          <i data-lucide="menu"></i>
+        </button>
+
+        <div class="logo-mark"><div class="logo-mark-inner"></div></div>
+
+        <div class="top-nav-title">
+          <div class="top-nav-title-main" data-i18n="sender.nav.title">
+            Flexago Delivery
+          </div>
+          <div class="top-nav-title-sub" data-i18n="sender.nav.subtitle">
+            Logistics marketplace for senders
+          </div>
+        </div>
+      </div>
+
+      <div class="top-nav-center">
+        <div class="top-nav-search">
+          <i data-lucide="search" style="width:14px;height:14px;color:#9ca3af;"></i>
+          <input
+            type="text"
+            placeholder="Search deliveries, travelers, routes..."
+            data-i18n-placeholder="sender.nav.searchPlaceholder"
+          />
+        </div>
+      </div>
+
+      <div class="top-nav-right">
+        <div class="env-pill" data-i18n="sender.nav.env">SANDBOX</div>
+        <div class="version-pill" data-i18n="sender.nav.version">v1.0.0</div>
+
+        <select class="lang-select" id="languageSelector">
+          <option value="en">EN</option>
+          <option value="es">ES</option>
+          <option value="fr">FR</option>
+          <option value="ht">HT</option>
+          <option value="zh">ZH</option>
+          <option value="pt">PT</option>
+        </select>
+      </div>
+    </header>
+
+    <!-- ========================================================= -->
+    <!-- MAIN LAYOUT                                               -->
+    <!-- ========================================================= -->
+    <div class="main-layout">
+
+<!-- ====== SIDEBAR ====== -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header" data-i18n="sender.sidebar.section">
+    Sender Workspace
+  </div>
+
+  <nav class="sidebar-nav">
+    <button class="sidebar-item active" data-view="account">
+      <span class="sidebar-item-icon"><i data-lucide="user"></i></span>
+      <span data-i18n="sender.sidebar.profile">Account & Identity</span>
+    </button>
+
+    <button class="sidebar-item" data-view="create">
+      <span class="sidebar-item-icon"><i data-lucide="plus-circle"></i></span>
+      <span data-i18n="sender.sidebar.create">Create Delivery</span>
+    </button>
+
+    <button class="sidebar-item" data-view="payments">
+      <span class="sidebar-item-icon"><i data-lucide="wallet"></i></span>
+      <span data-i18n="sender.sidebar.payments">Payouts</span>
+    </button>
+
+    <button class="sidebar-item" data-view="verification">
+      <span class="sidebar-item-icon"><i data-lucide="shield-check"></i></span>
+      <span data-i18n="sender.sidebar.verification">Verification</span>
+    </button>
+
+    <button class="sidebar-item" data-view="support">
+      <span class="sidebar-item-icon"><i data-lucide="life-buoy"></i></span>
+      <span data-i18n="sender.sidebar.support">Support</span>
+    </button>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div data-i18n="sender.sidebar.footer">
+      Connected to the Flexago logistics network.
+    </div>
+  </div>
+</aside>
+
+<!-- ====== CONTENT AREA ====== -->
+<main class="content-area">
+  <div id="mainContentArea" class="main-content">
+  
+
+<!-- ============================================================
+     SENDER ACCOUNT & IDENTITY — FINAL CLEAN VERSION
+============================================================ -->
+<section id="accountView" class="hidden">
+  <div class="panel">
+
+    <!-- PROFILE HEADER -->
+    <div style="text-align:center; margin-bottom:2rem;">
+
+      <img id="senderProfilePhotoPreview"
+           class="profile-photo-large"
+           src="img/default-profile.png"
+           alt="Profile Photo" />
+
+      <button id="senderProfilePhotoUploadBtn"
+              class="primary-btn"
+              style="width:auto; padding:6px 14px; margin-top:0.75rem;">
+        Change Photo
+      </button>
+
+      <input id="senderProfilePhotoInput"
+             type="file"
+             accept="image/*"
+             style="display:none;" />
+
+      <h2 id="senderProfileFullName"
+          style="margin-top:1rem; font-size:1.2rem; font-weight:600;">
+        Sender Name
+      </h2>
+
+      <div style="color:var(--text-muted); font-size:0.85rem; margin-top:0.25rem;">
+        <span id="senderDeliveriesCount">0</span> deliveries • Joined
+        <span id="senderJoinedYear">2026</span>
+      </div>
+    </div>
+
+    <!-- VERIFIED INFORMATION -->
+    <div class="panel-subtitle" style="margin-bottom:10px;">Verified Information</div>
+
+    <div class="support-box" style="margin-bottom:25px;">
+      <ul>
+        <li>Phone Number ✓ Verified</li>
+        <li>Email ✓ Verified</li>
+        <li>Identity Check ✓ Verified</li>
+      </ul>
+    </div>
+
+    <!-- PERSONAL INFORMATION -->
+    <div class="panel-title" style="margin-bottom:10px;">Personal Information</div>
+
+    <div class="form-grid">
+
+      <div>
+        <label class="form-label">First Name</label>
+        <input id="senderFirstNameInput" class="input-field" placeholder="First Name" />
+      </div>
+
+      <div>
+        <label class="form-label">Last Name</label>
+        <input id="senderLastNameInput" class="input-field" placeholder="Last Name" />
+      </div>
+
+      <div>
+        <label class="form-label">Date of Birth</label>
+        <input id="senderDobInput" type="date" class="input-field" />
+      </div>
+
+      <div>
+        <label class="form-label">Phone Number</label>
+        <input id="senderPhoneInput" class="input-field" placeholder="Phone Number" />
+      </div>
+
+      <div>
+        <label class="form-label">Email Address</label>
+        <input id="senderEmailInput" class="input-field" placeholder="Email Address" />
+      </div>
+
+    </div>
+
+    <button id="saveSenderAccountBtn" class="primary-btn" style="margin-top:1.5rem;">
+      Save Changes
+    </button>
+
+  </div>
+</section>
+
+<!-- ========================================================= -->
+<!-- VERIFICATION VIEW (SENDER VERSION)                        -->
+<!-- ========================================================= -->
+<section id="verificationView" class="hidden">
+
+  <div class="panel" id="verificationPanel">
+
+    <header class="panel-header">
+      <div>
+        <div class="panel-title" data-i18n="sender.verification.title">
+          Verification
+        </div>
+        <div class="panel-subtitle" data-i18n="sender.verification.subtitle">
+          Verify your identity to access all Flexago features.
+        </div>
+      </div>
+    </header>
+
+    <div class="panel-body">
+
+      <div class="verification-status-badge" id="senderVerificationStatusBadge">
+        <span data-i18n="sender.verification.status_unverified">Unverified</span>
+      </div>
+
+      <section class="section-block">
+        <h2 class="section-title" data-i18n="sender.verification.id_front_title">
+          Upload ID (Front)
+        </h2>
+
+        <div class="upload-box" id="senderIdFrontBox">
+          <i data-lucide="upload"></i>
+          <span data-i18n="sender.verification.id_front_label">Upload front side of your ID</span>
+          <input type="file" id="senderIdFrontInput" accept="image/*" style="display:none;" />
+        </div>
+
+        <img id="senderIdFrontPreview" class="upload-preview hidden" />
+      </section>
+
+      <section class="section-block">
+        <h2 class="section-title" data-i18n="sender.verification.id_back_title">
+          Upload ID (Back)
+        </h2>
+
+        <div class="upload-box" id="senderIdBackBox">
+          <i data-lucide="upload"></i>
+          <span data-i18n="sender.verification.id_back_label">Upload back side of your ID</span>
+          <input type="file" id="senderIdBackInput" accept="image/*" style="display:none;" />
+        </div>
+
+        <img id="senderIdBackPreview" class="upload-preview hidden" />
+      </section>
+
+      <section class="section-block">
+        <h2 class="section-title" data-i18n="sender.verification.selfie_title">
+          Selfie for Verification
+        </h2>
+
+        <div class="upload-box" id="senderSelfieBox">
+          <i data-lucide="camera"></i>
+          <span data-i18n="sender.verification.selfie_label">Upload a selfie</span>
+          <input type="file" id="senderSelfieInput" accept="image/*" style="display:none;" />
+        </div>
+
+        <img id="senderSelfiePreview" class="upload-preview hidden" />
+      </section>
+
+      <section class="section-block">
+        <button id="submitSenderVerificationBtn"
+                class="primary-btn disabled"
+                disabled
+                data-i18n="sender.verification.submit">
+          Submit for Verification
+        </button>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- SUCCESS (nested) -->
+  <div id="verificationSuccessView" class="hidden">
+    <div class="panel success-panel">
+
+      <header class="panel-header">
+        <div>
+          <div class="panel-title" data-i18n="sender.verification.success_title">
+            Verification Submitted
+          </div>
+          <div class="panel-subtitle" data-i18n="sender.verification.success_subtitle">
+            Our team is reviewing your documents.
+          </div>
+        </div>
+      </header>
+
+      <div class="panel-body">
+        <div class="success-icon">
+          <i data-lucide="check-circle"></i>
+        </div>
+
+        <p data-i18n="sender.verification.success_message">
+          You will be notified once your identity has been verified.
+        </p>
+
+        <button class="primary-btn" data-view="account" data-i18n="sender.verification.back_to_account">
+          Back to Account
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FAILED (nested) -->
+  <div id="verificationFailedView" class="hidden">
+    <div class="panel error-panel">
+
+      <header class="panel-header">
+        <div>
+          <div class="panel-title" data-i18n="sender.verification.failed_title">
+            Verification Failed
+          </div>
+          <div class="panel-subtitle" data-i18n="sender.verification.failed_subtitle">
+            Please review your documents and try again.
+          </div>
+        </div>
+      </header>
+
+      <div class="panel-body">
+        <div class="error-icon">
+          <i data-lucide="alert-triangle"></i>
+        </div>
+
+        <p data-i18n="sender.verification.failed_message">
+          Make sure your photos are clear and all information is visible.
+        </p>
+
+        <button class="primary-btn" data-view="verification" data-i18n="sender.verification.retry">
+          Retry Verification
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+</section>
+
+<!-- ========================================================= -->
+<!-- PAYOUTS VIEW (SENDER VERSION)                             -->
+<!-- ========================================================= -->
+<section id="paymentsView" class="hidden">
+  <div class="panel" id="payoutsPanel">
+
+    <header class="panel-header">
+      <div>
+        <div class="panel-title" data-i18n="sender.payouts.title">
+          Payouts
+        </div>
+        <div class="panel-subtitle" data-i18n="sender.payouts.subtitle">
+          Manage how you receive your delivery earnings.
+        </div>
+      </div>
+    </header>
+
+    <div class="panel-body">
+
+      <section class="section-block">
+        <h2 class="section-title" data-i18n="sender.payouts.current_method">
+          Current Payout Method
+        </h2>
+
+        <div id="senderPayoutMethodDisplay" class="payout-method-display">
+          <i data-lucide="credit-card"></i>
+          <span data-i18n="sender.payouts.no_method">No payout method added</span>
+        </div>
+      </section>
+
+      <section class="section-block">
+        <h2 class="section-title" data-i18n="sender.payouts.add_edit_title">
+          Add or Edit Payout Method
+        </h2>
+
+        <div class="payout-method-toggle">
+          <button class="toggle-btn active" data-method="card" id="senderPayoutCardTab">
+            <i data-lucide="credit-card"></i>
+            <span data-i18n="sender.payouts.card">Debit Card</span>
+          </button>
+
+          <button class="toggle-btn" data-method="bank" id="senderPayoutBankTab">
+            <i data-lucide="banknote"></i>
+            <span data-i18n="sender.payouts.bank">Bank Account</span>
+          </button>
+        </div>
+
+        <div id="senderPayoutCardForm" class="payout-form">
+          <input class="input-field"
+                 id="senderCardNameInput"
+                 placeholder="Name on card"
+                 data-i18n-placeholder="sender.payouts.card_name" />
+
+          <input class="input-field"
+                 id="senderCardNumberInput"
+                 placeholder="Card number"
+                 data-i18n-placeholder="sender.payouts.card_number" />
+
+          <div class="input-row">
+            <input class="input-field"
+                   id="senderCardExpInput"
+                   placeholder="MM/YY"
+                   data-i18n-placeholder="sender.payouts.exp_placeholder" />
+
+            <input class="input-field"
+                   id="senderCardCvvInput"
+                   placeholder="CVC"
+                   data-i18n-placeholder="sender.payouts.cvv_placeholder" />
+          </div>
+        </div>
+
+        <div id="senderPayoutBankForm" class="payout-form hidden">
+          <input class="input-field"
+                 id="senderBankNameInput"
+                 placeholder="Account holder name"
+                 data-i18n-placeholder="sender.payouts.bank_name_placeholder" />
+
+          <input class="input-field"
+                 id="senderBankRoutingInput"
+                 placeholder="Routing number"
+                 data-i18n-placeholder="sender.payouts.routing_placeholder" />
+
+          <input class="input-field"
+                 id="senderBankAccountInput"
+                 placeholder="Account number"
+                 data-i18n-placeholder="sender.payouts.account_placeholder" />
+
+          <input class="input-field"
+                 id="senderBankConfirmInput"
+                 placeholder="Re-enter account number"
+                 data-i18n-placeholder="sender.payouts.confirm_account_placeholder" />
+        </div>
+
+      </section>
+
+      <section class="section-block">
+        <button id="saveSenderPayoutBtn"
+                class="primary-btn disabled"
+                disabled
+                data-i18n="sender.payouts.save">
+          Save Payout Method
+        </button>
+      </section>
+
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================= -->
+<!-- TRACK DELIVERY VIEW (KEEP THIS ONE ONLY)                  -->
+<!-- ========================================================= -->
+<section id="trackView" class="hidden">
+  <div class="panel" id="trackPanel">
+
+    <header class="panel-header">
+      <div>
+        <div class="panel-title">Track Delivery</div>
+        <div class="panel-subtitle">
+          Enter a delivery ID to view its status and route.
+        </div>
+      </div>
+    </header>
+
+    <div class="panel-body">
+
+      <!-- SEARCH BAR -->
+      <section class="section-block">
+        <input id="trackSearchInput"
+               class="input-field"
+               placeholder="Enter delivery ID (e.g., 65f1c9...)">
+        <button id="trackSearchBtn" class="primary-btn" style="margin-top:0.5rem;">
+          Search Delivery
+        </button>
+      </section>
+
+      <!-- RESULTS PANEL -->
+      <section id="trackResults" class="hidden">
+
+        <h2 class="section-title">Delivery Details</h2>
+
+        <div class="track-info-row">
+          <strong>Status:</strong>
+          <span id="trackStatus">—</span>
+        </div>
+
+        <div class="track-info-row">
+          <strong>Pickup:</strong>
+          <span id="trackPickup">—</span>
+        </div>
+
+        <div class="track-info-row">
+          <strong>Dropoff:</strong>
+          <span id="trackDropoff">—</span>
+        </div>
+
+        <div class="track-info-row">
+          <strong>Traveler:</strong>
+          <span id="trackTraveler">—</span>
+        </div>
+
+        <div class="track-info-row">
+          <strong>Last Update:</strong>
+          <span id="trackUpdated">—</span>
+        </div>
+
+        <!-- MAP -->
+        <div id="trackMap" style="
+          width:100%;
+          height:300px;
+          background:#0f172a;
+          border-radius:10px;
+          margin-top:1rem;">
+        </div>
+
+      </section>
+
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================= -->
+<!-- SUPPORT VIEW (SENDER VERSION)                             -->
+<!-- ========================================================= -->
+<section id="supportView" class="hidden">
+  <div class="panel" id="supportPanel">
+
+    <header class="panel-header">
+      <div>
+        <div class="panel-title" data-i18n="sender.support.title">
+          Support
+        </div>
+        <div class="panel-subtitle" data-i18n="sender.support.subtitle">
+          Get help with your deliveries, payments, or account.
+        </div>
+      </div>
+    </header>
+
+    <div class="panel-body">
+
+      <section class="section-block">
+        <h2 class="section-title" data-i18n="sender.support.categories">
+          Support Categories
+        </h2>
+
+        <div class="support-category-list">
+
+          <button class="support-category" data-category="delivery">
+            <i data-lucide="package"></i>
+            <span data-i18n="sender.support.delivery">Delivery Issues</span>
+          </button>
+
+          <button class="support-category" data-category="payments">
+            <i data-lucide="credit-card"></i>
+            <span data-i18n="sender.support.payments">Payment & Payouts</span>
+          </button>
+
+          <button class="support-category" data-category="account">
+            <i data-lucide="user"></i>
+            <span data-i18n="sender.support.account">Account & Identity</span>
+          </button>
+
+          <button class="support-category" data-category="other">
+            <i data-lucide="help-circle"></i>
+            <span data-i18n="sender.support.other">Other Questions</span>
+          </button>
+
+        </div>
+      </section>
+
+      <section class="section-block">
+        <button id="openSenderSupportTicketBtn"
+                class="primary-btn"
+                data-i18n="sender.support.open_ticket">
+          Open Support Ticket
+        </button>
+      </section>
+
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================= -->
+<!-- SUPPORT TICKET MODAL                                      -->
+<!-- ========================================================= -->
+<div id="senderSupportTicketModal" class="modal hidden">
+  <div class="modal-content">
+
+    <div class="modal-header">
+      <h2 data-i18n="sender.support.ticket_title">New Support Ticket</h2>
+      <button class="modal-close-btn" id="closeSenderSupportTicketModal">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <input class="input-field"
+             id="senderSupportSubjectInput"
+             placeholder="Subject"
+             data-i18n-placeholder="sender.support.subject_placeholder" />
+
+      <textarea class="input-field"
+                id="senderSupportMessageInput"
+                placeholder="Describe your issue..."
+                data-i18n-placeholder="sender.support.message_placeholder"></textarea>
+    </div>
+
+    <div class="modal-footer">
+      <button id="submitSenderSupportTicketBtn"
+              class="primary-btn disabled"
+              disabled
+              data-i18n="sender.support.submit_ticket">
+        Submit Ticket
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ========================================================= -->
+<!-- CREATE DELIVERY VIEW                                      -->
+<!-- ========================================================= -->
+<section id="createView" class="hidden">
+
+  <div class="top-columns">
+
+    <div class="panel" id="senderPanel">
+      <header class="panel-header">
+        <div>
+          <div class="panel-title" data-i18n="sender.panel.title">Create delivery</div>
+          <div class="panel-subtitle" data-i18n="sender.panel.subtitle">
+            Describe your shipment and we’ll match you with trusted travelers.
+          </div>
+        </div>
+        <div class="status-pill" data-i18n="sender.panel.status">Draft · Not yet published</div>
+      </header>
+
+      <div class="panel-body">
+
+        <!-- ========================================================= -->
+        <!-- FORM GRID                                                 -->
+        <!-- ========================================================= -->
+        <div class="form-grid">
+
+          <!-- PICKUP -->
+          <div class="form-field limit-width">
+            <label class="form-label">
+              <span data-i18n="sender.form.pickup.label">Pickup location</span>
+              <span class="required">*</span>
+            </label>
+
+            <div class="input-shell">
+              <i data-lucide="navigation" class="input-icon"></i>
+              <input type="text" id="pickupInput" placeholder="Enter pickup address" />
+              <input type="hidden" id="pickup-lat">
+              <input type="hidden" id="pickup-lng">
+              <div id="senderPickupAutocomplete" class="autocomplete-dropdown hidden"></div>
+            </div>
+          </div>
+
+          <!-- DROPOFF -->
+          <div class="form-field limit-width">
+            <label class="form-label">
+              <span data-i18n="sender.form.dropoff.label">Dropoff location</span>
+              <span class="required">*</span>
+            </label>
+
+            <div class="input-shell">
+              <i data-lucide="flag" class="input-icon"></i>
+              <input type="text" id="dropoffInput" placeholder="Enter dropoff address" />
+              <input type="hidden" id="dropoff-lat">
+              <input type="hidden" id="dropoff-lng">
+              <div id="senderDropoffAutocomplete" class="autocomplete-dropdown hidden"></div>
+            </div>
+          </div>
+
+          <!-- SIZE -->
+          <div class="form-field">
+            <label class="form-label">Size</label>
+            <div class="pill-row" id="sizePills">
+              <button class="pill active" data-value="small">Small</button>
+              <button class="pill" data-value="medium">Medium</button>
+              <button class="pill" data-value="large">Large</button>
+            </div>
+          </div>
+
+          <!-- DECLARED VALUE -->
+          <div class="form-field">
+            <label class="form-label">Declared value</label>
+            <div class="input-shell">
+              <span style="font-size:0.75rem;color:#9ca3af;">USD</span>
+              <input type="number" id="valueInput" placeholder="0.00" min="0" step="0.01" />
+            </div>
+          </div>
+
+          <!-- DELIVERY TYPE -->
+          <div class="form-field">
+            <label class="form-label">Delivery type <span class="required">*</span></label>
+            <select id="deliveryType" class="input-shell">
+              <option value="local">Local (same state)</option>
+              <option value="nationwide">Nationwide</option>
+              <option value="international">International</option>
+            </select>
+          </div>
+
+          <!-- SENDER DETAILS -->
+          <div class="form-field full-width">
+            <label class="form-label">Sender details</label>
+            <input id="senderName" class="input-shell" placeholder="Full name" />
+            <input id="senderPhone" class="input-shell" placeholder="Phone number" />
+            <input id="senderEmail" class="input-shell" placeholder="Email address" />
+          </div>
+
+          <!-- RECEIVER DETAILS -->
+          <div class="form-field full-width">
+            <label class="form-label">Receiver details</label>
+            <input id="receiverName" class="input-shell" placeholder="Full name" />
+            <input id="receiverPhone" class="input-shell" placeholder="Phone number" />
+            <input id="receiverEmail" class="input-shell" placeholder="Email address" />
+            <input id="receiverAddress" class="input-shell" placeholder="Delivery address" />
+            <textarea id="receiverInstructions" class="input-shell" placeholder="Special instructions (optional)"></textarea>
+          </div>
+
+          <!-- PACKAGE TYPE -->
+          <div class="form-field">
+            <label class="form-label">Package type</label>
+            <select id="packageType" class="input-shell">
+              <option value="envelope">Envelope</option>
+              <option value="small_box">Small box</option>
+              <option value="medium_box">Medium box</option>
+              <option value="large_box">Large box</option>
+              <option value="bag">Bag</option>
+              <option value="fragile">Fragile item</option>
+              <option value="electronics">Electronics</option>
+              <option value="documents">Documents</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <!-- WEIGHT -->
+          <div class="form-field">
+            <label class="form-label">Weight (lbs)</label>
+            <input id="weightInput" class="input-shell" type="number" min="0" placeholder="Enter weight in pounds" />
+          </div>
+
+          <!-- ITEM DESCRIPTION -->
+          <div class="form-field">
+            <label class="form-label">Item description</label>
+            <input id="itemDescription" class="input-shell" placeholder="Describe the item" />
+          </div>
+
+          <!-- INSURANCE -->
+          <div class="form-field">
+            <label class="form-label">Insurance</label>
+            <select id="insuranceType" class="input-shell">
+              <option value="waive">Waive insurance</option>
+              <option value="basic">Basic insurance (up to $100)</option>
+              <option value="premium">Premium insurance</option>
+            </select>
+          </div>
+
+          <!-- NOTES -->    <!-- INSURANCE -->
+          <div class="form-field">
+            <label class="form-label">Insurance</label>
+            <select id="insuranceType" class="input-shell">
+              <option value="waive">Waive insurance</option>
+              <option value="basic">Basic insurance (up to $100)</option>
+              <option value="premium">Premium insurance</option>
+            </select>
+          </div>
+
+          <!-- NOTES -->
+          <div class="form-field full-width">
+            <label class="form-label">Notes for traveler</label>
+            <textarea id="notesInput" class="input-shell" rows="2" placeholder="Anything special the traveler should know?"></textarea>
+          </div>
+
+          <!-- PHOTO UPLOAD -->
+          <div class="form-field full-width">
+            <label class="form-label">Photo (optional)</label>
+            <div class="input-shell" style="justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:0.4rem;">
+                <i data-lucide="image" style="width:14px;height:14px;color:#9ca3af;"></i>
+                <span style="font-size:0.75rem;color:#9ca3af;">Add a reference photo</span>
+              </div>
+              <button type="button" class="primary-btn" id="photoUploadBtn" style="padding:0.25rem 0.6rem;font-size:0.7rem;">
+                <i data-lucide="upload" style="width:14px;height:14px;"></i> Upload
+              </button>
+            </div>
+            <input type="file" id="photoInput" accept="image/*" style="display:none;" />
+            <img id="photoPreview" style="margin-top:0.4rem;max-width:120px;border-radius:6px;display:none;" />
+          </div>
+
+          <!-- ESTIMATE -->
+          <div class="form-field full-width">
+            <label class="form-label">Estimated cost</label>
+            <div class="input-shell" id="estimateShell">
+              <span id="estimateValue" style="font-size:0.8rem;color:#e5e7eb;">$0.00</span>
+              <span style="font-size:0.7rem;color:#9ca3af;">Based on distance, urgency, and size</span>
+            </div>
+          </div>
+
+        </div> <!-- END form-grid -->
+
+        <!-- ========================================================= -->
+        <!-- ACTION ROW                                                -->
+        <!-- ========================================================= -->
+        <div class="action-row">
+          <button class="primary-btn" id="generate-matches-btn">
+            <i data-lucide="sparkles" style="width:14px;height:14px;"></i>
+            <span data-i18n="sender.generate_matches">Generate traveler matches</span>
+          </button>
+
+          <div class="protection-text" data-i18n="sender.protection_notice">
+            Protected by Flexago escrow and verified travelers.
+          </div>
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- MAP PANEL                                                 -->
+        <!-- ========================================================= -->
+        <section class="map-panel">
+          <header class="panel-header">
+            <div>
+              <div class="panel-title" data-i18n="sender.route_preview">Route preview</div>
+              <div class="panel-subtitle" data-i18n="sender.route_preview_subtitle">
+                Pickup, dropoff, and traveler position in real time.
+              </div>
+            </div>
+          </header>
+
+          <div class="map-shell" id="mapContainer">
+            <div class="map-placeholder">Map will render here.</div>
+          </div>
+        </section>
+
+      </div> <!-- END panel-body -->
+    </div> <!-- END senderPanel -->
+
+  </div> <!-- END top-columns -->
+
+</section>
+
+<!-- ========================================================= -->
+<!-- WAITING SECTION (JS shows this) -->
+<!-- ========================================================= -->
+<div id="waiting-section" style="display:none;">
+  <div class="panel">
+    <header class="panel-header">
+      <div class="panel-title">Matching travelers…</div>
+      <div class="panel-subtitle">We’re finding the best traveler for your delivery.</div>
+    </header>
+
+    <div style="padding:1rem;">
+      <p>Please wait while we match your delivery with available travelers.</p>
+      <p style="margin-top:0.5rem;font-size:0.8rem;color:#9ca3af;">
+        This usually takes less than a minute.
+      </p>
+    </div>
+  </div>
+</div>
+
+
+<!-- ========================================================= -->
+<!-- TRACK DELIVERY VIEW (UPDATED SENDER VERSION)              -->
+<!-- ========================================================= -->
+<section id="trackView" class="hidden">
+  <div class="panel" id="trackingPanel">
+    <header class="panel-header">
+      <div>
+        <div class="panel-title">Delivery tracking</div>
+        <div class="panel-subtitle">Real‑time updates from your traveler.</div>
+      </div>
+      <div id="trackingStatusPill" class="status-pill">Waiting for traveler…</div>
+    </header>
+
+    <div class="panel-body">
+
+      <!-- SUMMARY -->
+      <div class="delivery-summary-card">
+        <div class="summary-row"><strong>Pickup:</strong> <span id="trackingPickup"></span></div>
+        <div class="summary-row"><strong>Dropoff:</strong> <span id="trackingDropoff"></span></div>
+        <div class="summary-row"><strong>Package:</strong> <span id="trackingPackage"></span></div>
+      </div>
+
+      <!-- TRAVELER CARD -->
+      <div id="trackingTravelerCard" class="traveler-info-card hidden">
+        <div class="traveler-header">
+          <img id="trackingTravelerPhoto" class="traveler-photo" />
+          <div>
+            <div id="trackingTravelerName" class="traveler-name"></div>
+            <div id="trackingTravelerRating" class="traveler-rating"></div>
+          </div>
+        </div>
+        <button id="trackingContactTraveler" class="secondary-btn" style="margin-top:0.4rem;">
+          <i data-lucide="phone"></i> Contact traveler
+        </button>
+      </div>
+
+      <!-- TIMELINE -->
+      <div class="tracking-timeline">
+        <div class="timeline-step" id="step_accepted"><div class="dot"></div><div class="label">Traveler accepted your delivery</div></div>
+        <div class="timeline-step" id="step_en_route_pickup"><div class="dot"></div><div class="label">On the way to pickup</div></div>
+        <div class="timeline-step" id="step_picked_up"><div class="dot"></div><div class="label">Package picked up</div></div>
+        <div class="timeline-step" id="step_en_route_dropoff"><div class="dot"></div><div class="label">On the way to dropoff</div></div>
+        <div class="timeline-step" id="step_delivered"><div class="dot"></div><div class="label">Delivered</div></div>
+      </div>
+
+      <!-- SIGNED BY -->
+      <div id="trackingSignedBy" class="tracking-signed hidden" style="margin-top: 0.8rem;">
+        <strong>Signed by:</strong> <span id="trackingSignedByName"></span>
+      </div>
+
+      <!-- DELIVERY PHOTO -->
+      <div id="trackingDeliveryPhotoContainer" class="hidden" style="margin-top: 1rem;">
+        <div class="section-title">Delivery photo</div>
+        <img id="trackingDeliveryPhoto" class="delivery-photo" style="width: 100%; border-radius: 10px; margin-top: 0.5rem;" />
+      </div>
+
+      <!-- SIGNATURE -->
+      <div id="trackingSignatureContainer" class="hidden" style="margin-top: 1rem;">
+        <div class="section-title">Recipient signature</div>
+        <img id="trackingSignatureImage" class="signature-image" style="width: 220px; background: #fff; padding: 8px; border-radius: 6px; margin-top: 0.5rem;" />
+      </div>
+
+      <!-- MAP -->
+      <div id="trackingMap" class="map-container" style="height: 260px; border-radius: 10px; margin-top: 1rem;"></div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ========================================================= -->
+<!-- SUPPORT CHAT WIDGET                                       -->
+<!-- ========================================================= -->
+<div id="chatWidget" class="chat-widget hidden">
+  <div class="chat-header">
+    <span data-i18n="sender.chat.header">Support Chat</span>
+    <button id="closeChatBtn"><i data-lucide="x"></i></button>
+  </div>
+
+  <div class="chat-body" id="chatMessages">
+    <div class="chat-message bot">
+      <span data-i18n="sender.chat.intro">
+        Hi! Tell us about your delivery and we’ll help you choose the best traveler.
+      </span>
+    </div>
+  </div>
+
+  <div class="chat-input-row">
+    <input id="chatInput"
+           placeholder="Type a message..."
+           data-i18n-placeholder="sender.chat.placeholder" />
+    <button id="sendChatBtn" data-i18n="sender.chat.send">Send</button>
+  </div>
+</div>
+
+<button id="openChatBtn" class="chat-floating-btn">
+  <i data-lucide="message-circle"></i>
+</button>
+ </div>
+</main>
+<!-- ========================================================= -->
+<!-- SCRIPTS (FINAL, RACE‑CONDITION SAFE)                      -->
+<!-- ========================================================= -->
+
+<!-- 1. Safe initMap wrapper (prevents early Google Maps calls) -->
+<script>
+  window.initMap = function initMapSafe() {
+    // If sender.js is loaded and initSenderMap exists → run it
+    if (typeof window.initSenderMap === "function") {
+      window.initSenderMap();
+      return;
+    }
+
+    // Otherwise retry until sender.js finishes parsing
+    setTimeout(initMapSafe, 50);
+  };
+</script>
+
+<!-- 2. Lucide Icons -->
+<script>lucide.createIcons();</script>
+
+<!-- 3. i18n -->
+<script src="i18n.js"></script>
+
+<!-- 4. Socket.IO (use CDN, Render version is unreliable) -->
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+<!-- 5. Sender logic (MUST load BEFORE Google Maps) -->
+<script src="./sender.js"></script>
+<!-- ADD THIS RIGHT HERE -->
+<script>
+  window.initSenderMap = window.initSenderMap || function(){};
+</script>
+<!-- 6. Google Maps (loads last, async, safe) -->
+<script
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBhFXLfZHwpdaGkprcpKgKZiQDw2Vg_ArI&libraries=places&callback=initMap"
+  async
+  defer
+></script>
+
+</body>
+</html>

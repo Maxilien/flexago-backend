@@ -1,0 +1,449 @@
+/* ============================================================
+   1. GLOBAL THEME — DARK SENDER UI
+============================================================ */
+:root {
+  --sidebar-width: 260px;
+  --panel-radius: 14px;
+
+  --panel-bg: #0f1f4a; /* dark navy */
+  --page-bg: #0a1a3a;  /* deep blue */
+
+  --border-color: #1f2937;
+  --text-light: #e2e8f0;
+  --text-muted: #94a3b8;
+
+  --blue: #3b82f6;
+  --blue-dark: #2563eb;
+  --sky: #38bdf8;
+
+  --transition-fast: 250ms ease-in-out;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--page-bg);
+  color: var(--text-light);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.hidden {
+  display: none !important;
+}
+
+button,
+input,
+textarea,
+select {
+  transition: all 0.18s ease-out;
+}
+
+/* ============================================================
+   2. MAIN APP LAYOUT
+============================================================ */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.main-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ============================================================
+   3. TOP NAVIGATION BAR — SKY BLUE
+============================================================ */
+.top-nav {
+  height: 56px;
+  background: var(--sky);
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  z-index: 50;
+}
+
+.top-nav-title-main,
+.top-nav-title-sub {
+  color: #0f172a;
+}
+
+.top-nav-search {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #e0f7ff;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+.top-nav-search input {
+  background: transparent;
+  border: none;
+  color: #0f172a;
+  outline: none;
+  font-size: 0.85rem;
+}
+
+/* ============================================================
+   4. SIDEBAR
+============================================================ */
+.sidebar {
+  width: var(--sidebar-width);
+  background: #020617;
+  border-right: 1px solid var(--border-color);
+  padding: 1rem 0.75rem;
+  overflow-y: auto;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  color: var(--text-light);
+  font-size: 0.9rem;
+}
+
+.sidebar-item:hover {
+  background: #0f172a;
+}
+
+.sidebar-item.active {
+  background: #0f172a;
+  border-left: 3px solid var(--blue);
+  box-shadow: 0 0 0 1px rgba(15,23,42,0.9), 0 10px 25px rgba(15,23,42,0.9);
+}
+
+.sidebar-item svg {
+  width: 18px;
+  height: 18px;
+  stroke: var(--text-light);
+}
+
+.sidebar-item.active svg {
+  stroke: var(--blue);
+}
+
+/* ============================================================
+   5. CONTENT AREA (SCROLLBAR RESTORED)
+============================================================ */
+.content-area {
+  flex: 1;
+  overflow-y: auto !important; /* restore scrolling */
+  padding: 1rem;
+  background: var(--page-bg);
+}
+
+/* ============================================================
+   6. PANEL — DARK BLUE
+============================================================ */
+.panel {
+  background: var(--panel-bg);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: var(--panel-radius);
+  padding: 1.5rem;
+  box-shadow: 0 14px 35px rgba(0,0,0,0.45);
+  margin-bottom: 1.5rem;
+  overflow: visible !important; /* allow autocomplete */
+}
+
+.panel-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.panel-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+/* ============================================================
+   7. PANEL BODY
+============================================================ */
+.panel-body {
+  overflow: visible !important;
+}
+
+.panel-body > * + * {
+  margin-top: 1.25rem;
+}
+
+/* ============================================================
+   8. FORM GRID
+============================================================ */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  overflow: visible !important;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
+.limit-width {
+  max-width: 480px;
+}
+
+.form-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* ============================================================
+   9. INPUT-SHELL (Create Delivery)
+============================================================ */
+.input-shell {
+  display: flex;
+  align-items: center;
+  background: #1b2b4a;
+  border: 1px solid #2c3e5e;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+
+  position: relative; /* REQUIRED */
+  overflow: visible !important;
+  z-index: 100000; /* ensures dropdown appears above map */
+}
+
+.input-shell input,
+.input-shell textarea,
+.input-shell select {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-light);
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.input-shell .input-icon {
+  margin-right: 0.5rem;
+  color: var(--text-muted);
+}
+
+.input-shell input {
+  padding-left: 0.25rem;
+}
+
+.input-shell:focus-within {
+  border-color: var(--sky);
+}
+
+/* ============================================================
+   10. AUTOCOMPLETE DROPDOWN
+============================================================ */
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 6px;
+
+  max-height: 220px;
+  overflow-y: auto;
+
+  padding: 4px 0;
+  z-index: 200000; /* ABOVE map */
+}
+
+.autocomplete-item {
+  padding: 10px 12px;
+  cursor: pointer;
+  color: #e5e7eb;
+}
+
+.autocomplete-item:hover {
+  background: #374151;
+}
+
+/* ============================================================
+   11. SIZE PILLS
+============================================================ */
+.pill-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pill {
+  padding: 0.45rem 1rem;
+  border-radius: 20px;
+  background: #1b2b4a;
+  border: 1px solid #2c3e5e;
+  color: var(--text-light);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.pill.active {
+  background: var(--sky);
+  color: #0f172a;
+  border-color: var(--sky);
+}
+
+/* ============================================================
+   12. ACTION ROW
+============================================================ */
+.action-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.protection-text {
+  font-size: 0.75rem;
+  color: rgba(148,163,184,0.9);
+}
+
+/* ============================================================
+   13. MAP PANEL
+============================================================ */
+.map-panel {
+  margin-top: 2rem !important;
+}
+
+.map-shell {
+  width: 100%;
+  height: 380px;
+  background: #0a1a3a;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================================
+   14. PROFILE HEADER
+============================================================ */
+.profile-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.profile-photo-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.profile-photo-large {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(255,255,255,0.25);
+  box-shadow: 0 0 12px rgba(0,0,0,0.35);
+}
+
+#senderProfilePhotoUploadBtn {
+  padding: 0.4rem 1rem;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  width: auto;
+}
+
+.profile-name {
+  margin-top: 1rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.profile-stats {
+  margin-top: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+/* ============================================================
+   15. BUTTONS
+============================================================ */
+.primary-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.primary-btn:hover {
+  opacity: 0.9;
+}
+
+/* ============================================================
+   16. SUPPORT PANEL
+============================================================ */
+#supportPanel {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  width: 260px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 16px;
+  display: none;
+  z-index: 99999;
+  box-shadow: 0 18px 45px rgba(15,23,42,0.95);
+}
+
+#supportPanel.open {
+  display: block;
+}
+
+.support-box {
+  background: #020617;
+  border: 1px solid var(--border-color);
+  padding: 16px;
+  border-radius: 10px;
+}
+
+/* ============================================================
+   17. VIEW SWITCHING
+============================================================ */
+section[id$="View"] {
+  display: none;
+}
+
+section[id$="View"]:not(.hidden) {
+  display: block;
+}
