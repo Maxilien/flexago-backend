@@ -1,7 +1,33 @@
+window.userId = localStorage.getItem("userId");
+
+if (!window.userId) {
+  console.warn("No userId on window – redirecting to login");
+  window.location.href = "login.html";
+}
+
 /* ============================================================
    FLEXAGO TRAVELER — FINAL VERSION
    PART 1 — GLOBAL STATE • MAP • ROUTE • AUTOCOMPLETE • HELPERS
    ============================================================ */
+
+/* ============================================================
+   GLOBAL CONFIG
+   ============================================================ */
+// const BASE_URL = "https://flexago-backend.onrender.com";
+// const WS_URL = "wss://flexago-backend.onrender.com";
+
+// const socket = io(WS_URL, {
+//   path: "/socket.io",
+//   transports: ["websocket"]
+// });
+
+/* ============================================================
+   GLOBAL CONFIG
+   ============================================================ */
+const BASE_URL = "https://flexago-backend.onrender.com";
+const WS_URL = "wss://flexago-backend.onrender.com";
+
+// Socket.IO removed — using native WebSocket instead
 
 
 /* ============================================================
@@ -11,9 +37,9 @@ let travelerMap = null;
 let travelerDirections = null;
 let travelerDirectionsRenderer = null;
 
-let currentTravelerStart = null;        // { lat, lng }
-let currentTravelerDest = null;         // { lat, lng }
-let currentTravelerPolyline = [];       // [ [lng, lat], ... ]
+let currentTravelerStart = null;
+let currentTravelerDest = null;
+let currentTravelerPolyline = [];
 
 let ws = null;
 let availableJobs = [];
@@ -23,7 +49,6 @@ let completedJobs = [];
 let travelerRouteRadiusMiles = 5;
 let travelerPickupMarker = null;
 let travelerDropoffMarker = null;
-
 
 /* ============================================================
    DARK MAP STYLE
@@ -54,14 +79,11 @@ const FLEXAGO_DARK_STYLE = [
 ];
 
 /* ============================================================
-   TRAVELER MAP INITIALIZATION (NEW)
+   TRAVELER MAP INITIALIZATION
    ============================================================ */
 function initTravelerMap() {
   const container = document.getElementById("travelerMap");
-  if (!container || typeof google === "undefined" || !google.maps) {
-    console.warn("⚠️ travelerMap container missing or Google Maps not loaded");
-    return;
-  }
+  if (!container || typeof google === "undefined" || !google.maps) return;
 
   travelerMap = new google.maps.Map(container, {
     center: { lat: 30.2672, lng: -97.7431 },
@@ -84,18 +106,13 @@ function initTravelerMap() {
   });
 
   travelerDirectionsRenderer.setMap(travelerMap);
-
-  console.log("🗺️ Traveler map initialized");
 }
 
 /* ============================================================
-   TRAVELER ROUTE DRAWING + POLYLINE EXTRACTION
+   TRAVELER ROUTE DRAWING
    ============================================================ */
 function updateTravelerRoute() {
-  if (!currentTravelerStart || !currentTravelerDest) {
-    console.warn("⚠️ Missing start or destination — cannot draw route");
-    return;
-  }
+  if (!currentTravelerStart || !currentTravelerDest) return;
 
   travelerDirections.route(
     {
@@ -104,45 +121,40 @@ function updateTravelerRoute() {
       travelMode: google.maps.TravelMode.DRIVING
     },
     (result, status) => {
-      if (status !== "OK") {
-        console.warn("⚠️ Directions failed:", status);
-        return;
-      }
+      if (status !== "OK") return;
 
       travelerDirectionsRenderer.setDirections(result);
 
       const path = result.routes[0].overview_path;
       currentTravelerPolyline = path.map(p => [p.lng(), p.lat()]);
-
-      console.log("🟢 Traveler polyline updated:", currentTravelerPolyline);
     }
   );
 }
-
 /* ============================================================
-   AUTOCOMPLETE (2025+ API)
+   AUTOCOMPLETE INIT (REQUIRED)
    ============================================================ */
 function initTravelerAutocomplete() {
   initTravelerAutocompleteField("pickupInput", "start");
   initTravelerAutocompleteField("dropoffInput", "dest");
 }
 
-
+/* ============================================================
+   AUTOCOMPLETE (2025+ API — FIXED)
+   ============================================================ */
 function initTravelerAutocompleteField(inputId, type) {
   const input = document.getElementById(inputId);
-  if (!input) {
-    console.warn("Traveler autocomplete: input not found:", inputId);
-    return;
-  }
+  if (!input) return;
 
   const autocomplete = new google.maps.places.Autocomplete(input, {
-    fields: ["geometry", "formatted_address"]
+    fields: ["geometry", "formatted_address"],
+    types: ["geocode"]
   });
 
   autocomplete.addListener("place_changed", () => {
     const place = autocomplete.getPlace();
+
     if (!place || !place.geometry) {
-      console.warn("Traveler autocomplete: missing geometry");
+      console.warn("⚠ Autocomplete returned no geometry for:", inputId);
       return;
     }
 
@@ -151,17 +163,22 @@ function initTravelerAutocompleteField(inputId, type) {
       lng: place.geometry.location.lng()
     };
 
- if (type === "start") {
-  currentTravelerStart = coords;
-  setTravelerMarker("pickup", coords);
-}
+    // ⭐ FIX: Write coordinates to global state + hidden inputs
+    if (type === "start") {
+      currentTravelerStart = coords;
+      document.getElementById("pickup-lat").value = coords.lat;
+      document.getElementById("pickup-lng").value = coords.lng;
+      setTravelerMarker("pickup", coords);
+    }
 
-if (type === "dest") {
-  currentTravelerDest = coords;
-  setTravelerMarker("dropoff", coords);
-}
+    if (type === "dest") {
+      currentTravelerDest = coords;
+      document.getElementById("dropoff-lat").value = coords.lat;
+      document.getElementById("dropoff-lng").value = coords.lng;
+      setTravelerMarker("dropoff", coords);
+    }
 
-
+    // ⭐ Now the route can draw correctly
     updateTravelerRoute();
   });
 }
@@ -177,30 +194,17 @@ function initRoutePlanner() {
 
   if (radiusSlider) {
     travelerRouteRadiusMiles = Number(radiusSlider.value) || 5;
-
-    if (radiusLabel) {
-      radiusLabel.textContent = `${travelerRouteRadiusMiles} mi`;
-    }
+    if (radiusLabel) radiusLabel.textContent = `${travelerRouteRadiusMiles} mi`;
 
     radiusSlider.addEventListener("input", (e) => {
       travelerRouteRadiusMiles = Number(e.target.value) || 5;
-
-      if (radiusLabel) {
-        radiusLabel.textContent = `${travelerRouteRadiusMiles} mi`;
-      }
-
+      if (radiusLabel) radiusLabel.textContent = `${travelerRouteRadiusMiles} mi`;
       refreshJobs();
     });
   }
 }
-
 /* ============================================================
-   FLEXAGO TRAVELER — FINAL VERSION
-   PART 2 — HELPERS • MAP CALLBACK • JOB FETCHING
-   ============================================================ */
-
-/* ============================================================
-   SMALL HELPERS
+   HELPERS
    ============================================================ */
 function debounce(fn, delay = 250) {
   let timer = null;
@@ -211,12 +215,9 @@ function debounce(fn, delay = 250) {
 }
 
 function safe(fn) {
-  try {
-    fn();
-  } catch (err) {
-    console.warn("Flexago error:", err);
-  }
+  try { fn(); } catch (err) { console.warn("Flexago error:", err); }
 }
+
 async function getRealMiles(pickupAddress, dropoffAddress) {
   return new Promise((resolve) => {
     const service = new google.maps.DirectionsService();
@@ -230,10 +231,8 @@ async function getRealMiles(pickupAddress, dropoffAddress) {
       (result, status) => {
         if (status === "OK") {
           const meters = result.routes[0].legs[0].distance.value;
-          const miles = meters * 0.000621371;
-          resolve(miles);
+          resolve(meters * 0.000621371);
         } else {
-          console.warn("Directions API failed:", status);
           resolve(null);
         }
       }
@@ -241,24 +240,27 @@ async function getRealMiles(pickupAddress, dropoffAddress) {
   });
 }
 
+/* ============================================================
+   ACCEPT / DECLINE (UPDATED URLs + WEBSOCKET HOOK)
+   ============================================================ */
 async function acceptJob(jobId) {
   try {
-    const res = await fetch(`http://localhost:3000/api/deliveries/${jobId}/accept`, {
+    const res = await fetch(`${BASE_URL}/api/deliveries/${jobId}/accept`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ travelerId: window.travelerId })
     });
 
-    if (!res.ok) {
-      console.warn("Accept failed");
-      return;
-    }
+    if (!res.ok) return;
 
     const updated = await res.json();
 
-    // Move job to accepted list
+    // Update local state
     acceptedJobs.push(updated.data);
     availableJobs = availableJobs.filter(j => j._id !== jobId);
+
+    // ⭐ START REAL-TIME UPDATES FOR THIS DELIVERY
+    initJobSocket(jobId);
 
     refreshJobs();
   } catch (err) {
@@ -268,36 +270,27 @@ async function acceptJob(jobId) {
 
 async function declineJob(jobId) {
   try {
-    const res = await fetch(`http://localhost:3000/api/deliveries/${jobId}/decline`, {
+    const res = await fetch(`${BASE_URL}/api/deliveries/${jobId}/decline`, {
       method: "POST",
       headers: { "Content-Type": "application/json" }
     });
 
-    if (!res.ok) {
-      console.warn("Decline failed");
-      return;
-    }
+    if (!res.ok) return;
 
-    // Remove from available list
     availableJobs = availableJobs.filter(j => j._id !== jobId);
-
     refreshJobs();
   } catch (err) {
     console.error("Error declining job:", err);
   }
 }
-
-
+/* ============================================================
+   MARKERS (CLEAN + FINAL)
+   ============================================================ */
 function setTravelerMarker(type, position) {
   if (!travelerMap) return;
 
-  // Remove old marker
-  if (type === "pickup" && travelerPickupMarker) {
-    travelerPickupMarker.setMap(null);
-  }
-  if (type === "dropoff" && travelerDropoffMarker) {
-    travelerDropoffMarker.setMap(null);
-  }
+  if (type === "pickup" && travelerPickupMarker) travelerPickupMarker.setMap(null);
+  if (type === "dropoff" && travelerDropoffMarker) travelerDropoffMarker.setMap(null);
 
   const isPickup = type === "pickup";
 
@@ -307,7 +300,7 @@ function setTravelerMarker(type, position) {
     icon: {
       path: google.maps.SymbolPath.CIRCLE,
       scale: 10,
-      fillColor: isPickup ? "#22c55e" : "#ef4444",   // green / red
+      fillColor: isPickup ? "#22c55e" : "#ef4444",
       fillOpacity: 1,
       strokeColor: isPickup ? "#166534" : "#7f1d1d",
       strokeWeight: 2
@@ -318,8 +311,11 @@ function setTravelerMarker(type, position) {
   else travelerDropoffMarker = marker;
 }
 
+/* ============================================================
+   PAYOUT CALCULATION (UNIFIED + FINAL)
+   ============================================================ */
 function calculatePayout(job, miles) {
-  const type = job.deliveryType || "local"; 
+  const type = job.deliveryType || "local";
   const weight = job.package?.weight || 0;
   const insurance = job.package?.insurance || "waive";
 
@@ -333,34 +329,63 @@ function calculatePayout(job, miles) {
     base = 10;
     perMile = 1.2;
   } else if (type === "international") {
-    return 200 * 0.8; // traveler gets 80%
+    return 200 * 0.8;
   }
 
   let price = base + (miles * perMile);
-
-  // Weight fee
   price += weight * 0.25;
 
-  // Insurance
   if (insurance === "basic") price += 10;
   if (insurance === "premium") price += weight * 1.0;
 
-  // Traveler receives 80%
   return price * 0.8;
 }
 
 /* ============================================================
-   GOOGLE MAP CALLBACK (TRAVELER)
+   GOOGLE MAP CALLBACK (FINAL + CORRECT ORDER)
    ============================================================ */
-window.initMap = initTravelerMap;
+window.initMap = function () {
+  initTravelerMap();
+  initTravelerAutocomplete();
+  initJobSearch();        // must be before user clicks
+  initRoutePlanner();     // safe to run last
+};
 
 /* ============================================================
-   JOB FETCHING (PRODUCTION SEARCH)
+   JOB FETCHING (CLEAN + GUARDED + OPTIMIZED)
    ============================================================ */
-let isSearching = false;   // <-- ADD THIS ABOVE THE FUNCTION
 
+// Compute real driving miles safely
+async function computeMiles(pickup, dropoff) {
+  return new Promise(resolve => {
+    if (!pickup?.lat || !pickup?.lng || !dropoff?.lat || !dropoff?.lng) {
+      console.warn("Skipping computeMiles — missing coordinates");
+      return resolve(0);
+    }
+
+    const service = new google.maps.DistanceMatrixService();
+
+    service.getDistanceMatrix(
+      {
+        origins: [{ lat: pickup.lat, lng: pickup.lng }],
+        destinations: [{ lat: dropoff.lat, lng: dropoff.lng }],
+        travelMode: "DRIVING"
+      },
+      (res, status) => {
+        if (status !== "OK") return resolve(0);
+
+        const meters = res.rows[0].elements[0].distance.value;
+        resolve(meters / 1609.34);
+      }
+    );
+  });
+}
+
+let isSearching = false;
+
+// Load available jobs
 async function loadAvailableJobs() {
-  if (isSearching) return;   // ⛔ Prevent double-render
+  if (isSearching) return;
   isSearching = true;
 
   try {
@@ -384,23 +409,27 @@ async function loadAvailableJobs() {
       maxMiles: 999999
     };
 
-    console.log("🔵 Sending payload to backend:", payload);
-
-    const res = await fetch("http://localhost:3000/api/deliveries/search", {
+    const res = await fetch(`${BASE_URL}/api/deliveries/search`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
 
     if (!res.ok) {
-      console.warn("Failed to load available jobs");
+      console.error("Job search failed:", res.status);
       return;
     }
 
     const data = await res.json();
     availableJobs = Array.isArray(data.data) ? data.data : [];
 
-    console.log("🟢 Jobs received:", availableJobs);
+    // Enrich jobs
+    await Promise.all(
+      availableJobs.map(async (job) => {
+        job.realMiles = await computeMiles(job.pickup, job.dropoff);
+        job.payout = calculatePayout(job, job.realMiles);
+      })
+    );
 
     refreshJobs();
     refreshEarnings();
@@ -408,21 +437,19 @@ async function loadAvailableJobs() {
   } catch (err) {
     console.error("Error loading jobs:", err);
   } finally {
-    isSearching = false;   // 🔵 Allow next refresh
+    isSearching = false;
   }
 }
 
 /* ============================================================
-   ROUTE MATCHING (BACKEND-DRIVEN)
+   ROUTE MATCHING (PLACEHOLDER)
    ============================================================ */
 function isJobOnRoute(job) {
-  // Backend already applies full route + distance logic.
-  // For now, treat all returned jobs as on-route.
   return true;
 }
 
 /* ============================================================
-   REFRESH JOB LISTS
+   REFRESH JOB LISTS (CLEAN + FINAL)
    ============================================================ */
 function refreshJobs() {
   const availableList = document.getElementById("jobsAvailableList");
@@ -455,7 +482,7 @@ function refreshJobs() {
 }
 
 /* ============================================================
-   EARNINGS REFRESH (BASIC)
+   EARNINGS
    ============================================================ */
 function refreshEarnings() {
   const earningsEl = document.getElementById("earningsValue");
@@ -469,149 +496,118 @@ function refreshEarnings() {
   earningsEl.textContent = `$${total.toFixed(2)}`;
 }
 /* ============================================================
-   JOB RENDERING
+   JOB CARD RENDERING — TRAVELER VERSION (ENHANCED)
    ============================================================ */
 function renderJobCard(job, status, listElement) {
-  const template = document.getElementById("jobCardTemplate");
-  if (!template || !listElement) return;
+  if (!listElement) return;
 
-  // 1. Clone template
-  const cardFragment = template.content.cloneNode(true);
-  const card = cardFragment.querySelector(".job-card");
+  const card = document.createElement("div");
+  card.className = "job-card";
 
-  // ===============================
-  // CREATE ACTION BUTTONS  ✅ KEEP THIS
-  // ===============================
-const acceptBtn = card.querySelector(".accept-btn");
-const declineBtn = card.querySelector(".decline-btn");
+  // --- Compute Miles ---
+  const miles =
+    job.distanceMiles ??
+    job.distance ??
+    ((job._distance?.pickupStartMiles || 0) +
+     (job._distance?.dropoffDestMiles || 0));
 
+  // --- Compute Payout ---
+  const payout =
+    job.payout != null
+      ? Number(job.payout).toFixed(2)
+      : "0.00";
 
+  // --- Badge Color ---
+  const badgeColor =
+    miles < 10 ? "green" :
+    miles < 50 ? "orange" :
+    "red";
 
-  // ===============================
-  // BASIC FIELDS
-  // ===============================
-  card.querySelector(".job-pickup").textContent =
-    job.pickup?.address || "";
+  card.innerHTML = `
+    <div class="job-header">
+      <span class="badge badge-${badgeColor}">
+        ${miles.toFixed(1)} mi
+      </span>
+      <button class="details-btn" data-id="${job._id}">View Details</button>
+    </div>
 
-  card.querySelector(".job-dropoff").textContent =
-    job.dropoff?.address || "";
+    <div class="job-row">
+      <div class="job-label"><span class="icon-pin pickup"></span> Pickup:</div>
+      <div class="job-value">${job.pickupAddress || job.pickup?.address || "—"}</div>
+    </div>
 
-  card.querySelector(".job-size").textContent =
-    `${job.package?.type || ""}, ${job.package?.weight || ""} lbs`;
+    <div class="job-row">
+      <div class="job-label"><span class="icon-pin dropoff"></span> Dropoff:</div>
+      <div class="job-value">${job.dropoffAddress || job.dropoff?.address || "—"}</div>
+    </div>
 
-  // ===============================
-  // DISTANCE + PAYOUT
-  // ===============================
-  const tempMiles =
-    (job.distance?.pickupStartMiles || 0) +
-    (job.distance?.dropoffDestMiles || 0);
+    <div class="job-row">
+      <div class="job-label"><span class="icon-money"></span> Payout:</div>
+      <div class="job-value">$${payout}</div>
+    </div>
 
-  card.querySelector(".job-distance").textContent =
-    `${tempMiles.toFixed(2)} miles`;
+    <div class="job-actions">
+      ${status === "available" ? `
+        <button class="primary-btn accept-btn" data-id="${job._id}">Accept</button>
+        <button class="secondary-btn decline-btn" data-id="${job._id}">Decline</button>
+      ` : ""}
 
-  getRealMiles(job.pickup?.address, job.dropoff?.address).then((miles) => {
-    const milesValue = miles || tempMiles;
+      ${status === "accepted" ? `
+        <button class="primary-btn complete-btn" data-id="${job._id}">Complete Delivery</button>
+      ` : ""}
 
-    card.querySelector(".job-distance").textContent =
-      `${milesValue.toFixed(2)} miles`;
-
-    const payout = calculatePayout(job, milesValue);
-    card.querySelector(".job-price").textContent =
-      `$${payout.toFixed(2)}`;
-  });
-
-// ===============================
-// ACCEPT / DECLINE BUTTONS  ✅ USE THE NEW BUTTONS
-// ===============================
-if (status === "available") {
-
-  acceptBtn.addEventListener("click", () => {
-    console.log("ACCEPT CLICKED", job._id);   // ⭐ TEST A
-    acceptJob(job._id, window.travelerId);
-  });
-
-  declineBtn.addEventListener("click", () => {
-    console.log("DECLINE CLICKED", job._id);  // optional test
-    declineJob(job._id);
-  });
-
-} else {
-  acceptBtn.style.display = "none";
-  declineBtn.style.display = "none";
-}
-
-  // ===============================
-  // ACCEPTED JOB — EXPANDED DETAILS
-  // ===============================
-  if (status === "accepted") {
-    const details = document.createElement("div");
-    details.className = "job-expanded";
-    details.innerHTML = `
-      <div class="job-section">
-        <strong>Sender:</strong> ${job.sender?.name || ""}
-        <br><strong>Phone:</strong> ${job.sender?.phone || ""}
-        <br><strong>Email:</strong> ${job.sender?.email || ""}
-      </div>
-
-      <div class="job-section">
-        <strong>Pickup Instructions:</strong> ${job.pickup?.location || ""}
-      </div>
-
-      <div class="job-section">
-        <strong>Dropoff Instructions:</strong> ${job.dropoff?.location || ""}
-      </div>
-
-      <div class="job-section">
-        <strong>Package:</strong> ${job.package?.type}, ${job.package?.weight} lbs
-      </div>
-    `;
-    card.appendChild(details);
-  }
+      ${status === "completed" ? `
+        <div class="completed-tag">Completed</div>
+      ` : ""}
+    </div>
+  `;
 
   listElement.appendChild(card);
+
+  // Attach handlers
+  if (status === "available") {
+    card.querySelector(".accept-btn").addEventListener("click", () => acceptJob(job._id));
+    card.querySelector(".decline-btn").addEventListener("click", () => declineJob(job._id));
+  }
+
+  if (status === "accepted") {
+    card.querySelector(".complete-btn").addEventListener("click", () => completeJob(job._id));
+  }
+
+  // View Details Modal
+  card.querySelector(".details-btn").addEventListener("click", () => openJobDetailsModal(job));
 }
 
-
 /* ============================================================
-   FLEXAGO TRAVELER — FINAL VERSION
-   PART 3 — JOB ACTIONS • WEBSOCKETS • CHAT • JOB TABS
+   JOB ACTIONS — FINAL CORRECT VERSION
    ============================================================ */
 
-
-/* ============================================================
-   JOB ACTIONS — FIXED VERSION
-   ============================================================ */
-async function acceptJob(jobId, travelerId) {
+// ACCEPT JOB
+async function acceptJob(jobId) {
   try {
-    console.log("Traveler ID:", travelerId);
-
-    const res = await fetch(
-      `http://localhost:3000/api/traveler/jobs/${jobId}/accept`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ travelerId })
-      }
-    );
+    const res = await fetch(`${BASE_URL}/api/traveler/jobs/${jobId}/accept`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+    });
 
     if (!res.ok) throw new Error("Failed to accept job");
 
     await loadAvailableJobs();
+    await loadAcceptedJobs();
   } catch (err) {
     console.error("Accept job failed:", err);
     alert("Unable to accept job. Please try again.");
   }
 }
 
+// DECLINE JOB
 async function declineJob(jobId) {
   try {
-    const res = await fetch(
-      `http://localhost:3000/api/travelers-db/jobs/${jobId}/decline`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" }
-      }
-    );
+    const res = await fetch(`${BASE_URL}/api/traveler/jobs/${jobId}/decline`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+    });
+
     if (!res.ok) throw new Error("Failed to decline job");
 
     await loadAvailableJobs();
@@ -621,54 +617,62 @@ async function declineJob(jobId) {
   }
 }
 
+// UPDATE JOB STATUS (optional)
 async function updateTravelerStatus(jobId, status) {
   try {
-    const res = await fetch(
-      `http://localhost:3000/api/travelers-db/jobs/${jobId}/status`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status })
-      }
-    );
+    const res = await fetch(`${BASE_URL}/api/traveler/jobs/${jobId}/status`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status })
+    });
+
     if (!res.ok) throw new Error("Failed to update job status");
 
     await loadAvailableJobs();
+    await loadAcceptedJobs();
   } catch (err) {
     console.error("Update job status failed:", err);
     alert("Unable to update status. Please try again.");
   }
 }
 
+// COMPLETE JOB
 async function completeJob(jobId, photoBase64) {
   try {
-    const res = await fetch(
-      `http://localhost:3000/api/travelers-db/jobs/${jobId}/complete`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ proofPhoto: photoBase64 })
-      }
-    );
+    const res = await fetch(`${BASE_URL}/api/traveler/jobs/${jobId}/complete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ proofPhoto: photoBase64 })
+    });
+
     if (!res.ok) throw new Error("Failed to complete delivery");
 
     await loadAvailableJobs();
+    await loadCompletedJobs();
   } catch (err) {
     console.error("Complete delivery failed:", err);
     alert("Unable to complete delivery. Please try again.");
   }
 }
-/* ============================================================
-   REAL-TIME JOB UPDATES (WEBSOCKETS)
-   ============================================================ */
-let wsUpdateTimeout = null;   // <-- MUST be OUTSIDE initJobSocket()
 
-function initJobSocket() {
+/* ============================================================
+   REAL-TIME JOB UPDATES (DELIVERY-SPECIFIC WEBSOCKET)
+   ============================================================ */
+let wsUpdateTimeout = null;
+
+function initJobSocket(deliveryId) {
+  if (!deliveryId) {
+    console.warn("❗ initJobSocket called without deliveryId");
+    return;
+  }
+
   try {
-    ws = new WebSocket("ws://localhost:3000/ws/traveler");
+    ws = new WebSocket(
+      `wss://flexago-backend.onrender.com/ws/delivery/${deliveryId}`
+    );
 
     ws.addEventListener("open", () => {
-      console.log("Job WebSocket connected");
+      console.log("Job WebSocket connected for delivery:", deliveryId);
     });
 
     ws.addEventListener("message", (event) => {
@@ -684,7 +688,7 @@ function initJobSocket() {
 
           wsUpdateTimeout = setTimeout(() => {
             if (!isSearching) {
-              loadAvailableJobs();   // 🔵 Debounced refresh
+              loadAvailableJobs();   // Debounced refresh
             }
           }, 300);
         }
@@ -695,12 +699,14 @@ function initJobSocket() {
 
     ws.addEventListener("close", () => {
       console.warn("Job WebSocket closed — reconnecting in 3s");
-      setTimeout(initJobSocket, 3000);
+      setTimeout(() => initJobSocket(deliveryId), 3000);
     });
+
   } catch (err) {
     console.error("initJobSocket failed:", err);
   }
 }
+
 /* ============================================================
    CHAT WIDGET
    ============================================================ */
@@ -770,20 +776,15 @@ function initJobsTabs() {
           lists[key].classList.toggle("hidden", key !== target);
         }
       });
-
-      window.scrollTo({ top: 0, behavior: "smooth" });
     });
   });
 }
 
 /* ============================================================
-   FLEXAGO TRAVELER — FINAL VERSION
-   PART 4 — ACCOUNT • VERIFICATION • PAYOUTS
+   ACCOUNT • VERIFICATION • PAYOUTS
    ============================================================ */
 
-/* ============================================================
-   ACCOUNT STATE
-   ============================================================ */
+/* ACCOUNT STATE */
 let accountState = {
   profilePhoto: null,
   firstName: "",
@@ -795,9 +796,7 @@ let accountState = {
 
 let accountOriginalState = null;
 
-/* ============================================================
-   ACCOUNT PAGE INITIALIZER
-   ============================================================ */
+/* ACCOUNT PAGE INIT */
 function initAccountPage() {
   safe(initProfilePhotoUpload);
   safe(initAccountFieldTracking);
@@ -805,9 +804,7 @@ function initAccountPage() {
   safe(loadAccountData);
 }
 
-/* ============================================================
-   PROFILE PHOTO UPLOAD
-   ============================================================ */
+/* PROFILE PHOTO UPLOAD */
 function initProfilePhotoUpload() {
   const btn = document.getElementById("profilePhotoUploadBtn");
   const input = document.getElementById("profilePhotoInput");
@@ -832,9 +829,7 @@ function initProfilePhotoUpload() {
   });
 }
 
-/* ============================================================
-   ACCOUNT FIELD TRACKING
-   ============================================================ */
+/* ACCOUNT FIELD TRACKING */
 function initAccountFieldTracking() {
   const fields = [
     "firstNameInput",
@@ -869,9 +864,8 @@ function markAccountDirty() {
   btn.disabled = false;
   btn.classList.remove("disabled");
 }
-/* ============================================================
-   SAVE BUTTON
-   ============================================================ */
+
+/* SAVE BUTTON */
 function initAccountSaveButton() {
   const btn = document.getElementById("saveAccountBtn");
   if (!btn) return;
@@ -887,13 +881,10 @@ function initAccountSaveButton() {
     syncAccountState();
 
     try {
-      // TODO: Replace fake API with real backend endpoint
       await fakeSaveAccountApi(accountState);
-
       accountOriginalState = JSON.parse(JSON.stringify(accountState));
       showAccountToast("Your account details have been saved.");
     } catch (err) {
-      console.warn("Save account error:", err);
       showAccountToast("Unable to save changes. Please try again.");
       btn.disabled = false;
       btn.classList.remove("disabled");
@@ -903,7 +894,6 @@ function initAccountSaveButton() {
   });
 }
 
-// Placeholder for real backend call
 async function fakeSaveAccountApi(payload) {
   return new Promise(resolve => setTimeout(resolve, 800));
 }
@@ -912,9 +902,7 @@ function showAccountToast(message) {
   alert(message);
 }
 
-/* ============================================================
-   LOAD EXISTING DATA (OPTIONAL BACKEND)
-   ============================================================ */
+/* LOAD EXISTING ACCOUNT DATA */
 async function loadAccountData() {
   const data = null;
 
@@ -926,28 +914,24 @@ async function loadAccountData() {
   accountOriginalState = JSON.parse(JSON.stringify(accountState));
 }
 
-/* ============================================================
-   ACCOUNT HELPERS
-   ============================================================ */
+/* ACCOUNT HELPERS */
 function valueOf(id) {
   const el = document.getElementById(id);
   return el ? el.value.trim() : "";
 }
 
 /* ============================================================
-   VERIFICATION STATE
+   VERIFICATION
    ============================================================ */
+
 let verificationState = {
-  step1: null, // ID Front
-  step2: null, // ID Back
-  step3: null, // Selfie
-  step4: null, // Address Proof
+  step1: null,
+  step2: null,
+  step3: null,
+  step4: null,
   submitted: false
 };
 
-/* ============================================================
-   INIT VERIFICATION PAGE
-   ============================================================ */
 function initVerificationPage() {
   safe(initVerificationUploads);
   safe(updateVerificationProgressBar);
@@ -955,9 +939,7 @@ function initVerificationPage() {
   safe(initVerificationSubmit);
 }
 
-/* ============================================================
-   UPLOAD HANDLER (TRAVELER VERSION)
-   ============================================================ */
+/* UPLOAD HANDLER */
 function initVerificationUploads() {
   setupUpload(1);
   setupUpload(2);
@@ -993,9 +975,7 @@ function setupUpload(step) {
   });
 }
 
-/* ============================================================
-   PROGRESS BAR (TRAVELER VERSION)
-   ============================================================ */
+/* PROGRESS BAR */
 function updateVerificationProgressBar() {
   const total = 4;
   const completed = [
@@ -1011,9 +991,7 @@ function updateVerificationProgressBar() {
   if (fill) fill.style.width = percent + "%";
 }
 
-/* ============================================================
-   STATUS BADGE (TRAVELER VERSION)
-   ============================================================ */
+/* STATUS BADGE */
 function updateVerificationStatusBadge() {
   const badge = document.getElementById("verificationStatusBadge");
   if (!badge) return;
@@ -1040,9 +1018,7 @@ function updateVerificationStatusBadge() {
   }
 }
 
-/* ============================================================
-   SUBMIT VERIFICATION (TRAVELER VERSION)
-   ============================================================ */
+/* SUBMIT VERIFICATION — UPDATED URL */
 function initVerificationSubmit() {
   const btn = document.querySelector("#template-verification .primary-btn");
   if (!btn) return;
@@ -1063,7 +1039,7 @@ function initVerificationSubmit() {
     btn.textContent = "Submitting...";
 
     try {
-      const res = await fetch("/api/traveler/verification", {
+      const res = await fetch(`${BASE_URL}/api/traveler/verification`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1081,7 +1057,6 @@ function initVerificationSubmit() {
 
       btn.textContent = "Submitted";
     } catch (err) {
-      console.error(err);
       alert("Unable to submit verification. Please try again.");
       btn.disabled = false;
       btn.textContent = "Submit Verification";
@@ -1089,9 +1064,7 @@ function initVerificationSubmit() {
   });
 }
 
-/* ============================================================
-   VERIFICATION NAVIGATION (SUCCESS / FAILURE)
-   ============================================================ */
+/* SUCCESS / FAILURE NAVIGATION */
 function showVerificationSuccess() {
   document.getElementById("template-verification").classList.add("hidden");
   document.getElementById("template-verification-failed").classList.add("hidden");
@@ -1100,7 +1073,7 @@ function showVerificationSuccess() {
   const backBtn = document.getElementById("backToAccount");
   if (backBtn) {
     backBtn.addEventListener("click", () => {
-      navigateTo("account");
+      loadPage("account");
     });
   }
 }
@@ -1113,48 +1086,13 @@ function showVerificationFailed() {
   const retryBtn = document.getElementById("retryVerification");
   if (retryBtn) {
     retryBtn.addEventListener("click", () => {
-      navigateTo("verification");
+      loadPage("verification");
     });
   }
 }
 
 /* ============================================================
-   PAYOUT VALIDATION HELPERS
-   ============================================================ */
-function validateCardFields() {
-  const name = document.getElementById("cardName").value.trim();
-  const number = document.getElementById("cardNumber").value.trim();
-  const expiry = document.getElementById("cardExpiry").value.trim();
-  const cvc = document.getElementById("cardCVC").value.trim();
-
-  if (!name) return "Please enter the name on the card.";
-  if (!/^\d{12,19}$/.test(number.replace(/\s+/g, ""))) return "Invalid card number.";
-  if (!/^\d{2}\/\d{2}$/.test(expiry)) return "Expiry must be in MM/YY format.";
-  if (!/^\d{3,4}$/.test(cvc)) return "Invalid CVC.";
-
-  return null;
-}
-
-function validateBankFields() {
-  const routing = document.getElementById("bankRoutingInput").value.trim();
-  const account = document.getElementById("bankAccountInput").value.trim();
-  const iban = document.getElementById("bankIbanInput").value.trim();
-
-  if (iban) {
-    if (!/^[A-Z0-9]{10,34}$/i.test(iban.replace(/\s+/g, ""))) {
-      return "Invalid IBAN format.";
-    }
-    return null;
-  }
-
-  if (!/^\d{9}$/.test(routing)) return "Routing number must be 9 digits.";
-  if (!/^\d{6,17}$/.test(account)) return "Account number must be 6–17 digits.";
-
-  return null;
-}
-
-/* ============================================================
-   PAYOUTS PAGE — FULL BACKEND VERSION
+   PAYOUTS — UPDATED URLS
    ============================================================ */
 function initPayoutsPage() {
   safe(loadPayoutMethod);
@@ -1182,11 +1120,11 @@ function initPayoutsPage() {
   document.querySelectorAll("input[name='payoutType']").forEach(radio => {
     radio.addEventListener("change", () => {
       if (radio.value === "card") {
-        if (cardFields) cardFields.classList.remove("hidden");
-        if (bankFields) bankFields.classList.add("hidden");
+        cardFields?.classList.remove("hidden");
+        bankFields?.classList.add("hidden");
       } else {
-        if (cardFields) cardFields.classList.add("hidden");
-        if (bankFields) bankFields.classList.remove("hidden");
+        cardFields?.classList.add("hidden");
+        bankFields?.classList.remove("hidden");
       }
     });
   });
@@ -1194,20 +1132,15 @@ function initPayoutsPage() {
 
 async function loadPayoutMethod() {
   try {
-    const res = await fetch("/api/traveler/payouts");
+    const res = await fetch(`${BASE_URL}/api/traveler/payouts`);
     if (!res.ok) return;
 
     const data = await res.json();
     const display = document.getElementById("payoutMethodDisplay");
     if (!display) return;
 
-    if (data.type === "card") {
-      display.textContent = `Card •••• ${data.last4}`;
-    }
-
-    if (data.type === "bank") {
-      display.textContent = `Bank Account •••• ${data.last4}`;
-    }
+    if (data.type === "card") display.textContent = `Card •••• ${data.last4}`;
+    if (data.type === "bank") display.textContent = `Bank Account •••• ${data.last4}`;
   } catch (err) {
     console.error("Failed to load payout method:", err);
   }
@@ -1219,16 +1152,10 @@ function initPayoutForm() {
 
   saveBtn.addEventListener("click", async () => {
     const type = document.querySelector("input[name='payoutType']:checked")?.value;
-    if (!type) {
-      alert("Please select a payout method.");
-      return;
-    }
+    if (!type) return alert("Please select a payout method.");
 
-    let error = type === "card" ? validateCardFields() : validateBankFields();
-    if (error) {
-      alert(error);
-      return;
-    }
+    const error = type === "card" ? validateCardFields() : validateBankFields();
+    if (error) return alert(error);
 
     let payload = { type };
 
@@ -1245,17 +1172,14 @@ function initPayoutForm() {
       const routing = valueOf("bankRoutingInput");
       const account = valueOf("bankAccountInput");
       const iban = valueOf("bankIbanInput");
-
-      payload.bank = iban
-        ? { iban }
-        : { routing, account };
+      payload.bank = iban ? { iban } : { routing, account };
     }
 
     saveBtn.disabled = true;
     saveBtn.textContent = "Saving...";
 
     try {
-      const res = await fetch("/api/traveler/payouts", {
+      const res = await fetch(`${BASE_URL}/api/traveler/payouts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -1266,7 +1190,6 @@ function initPayoutForm() {
       alert("Payout method saved.");
       await loadPayoutMethod();
     } catch (err) {
-      console.error("Payout save failed:", err);
       alert("Unable to save payout method.");
     } finally {
       saveBtn.disabled = false;
@@ -1274,67 +1197,180 @@ function initPayoutForm() {
     }
   });
 }
+function initJobDetailsModal() {
+  const modal = document.getElementById("jobDetailsModal");
+  const closeBtn = modal?.querySelector(".modal-close");
+
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => {
+      modal.classList.add("hidden");
+    });
+  }
+}
+// ===============================
+// JOB DETAILS MODAL FUNCTIONS
+// ===============================
+function openJobDetailsModal(job) {
+  const modal = document.getElementById("jobDetailsModal");
+
+  // Pickup / Dropoff
+  modal.querySelector(".pickup").textContent =
+    job.pickupAddress || job.pickup?.address || "—";
+
+  modal.querySelector(".dropoff").textContent =
+    job.dropoffAddress || job.dropoff?.address || "—";
+
+  // Travel Type
+  modal.querySelector(".travelType").textContent =
+    job.travelType || "Local";
+
+  // Miles
+  const miles =
+    job.distanceMiles ??
+    job.distance ??
+    ((job._distance?.pickupStartMiles || 0) +
+     (job._distance?.dropoffDestMiles || 0));
+
+  modal.querySelector(".miles").textContent = miles.toFixed(1) + " mi";
+
+  // Payout
+  modal.querySelector(".payout").textContent =
+    "$" + (job.payout != null ? Number(job.payout).toFixed(2) : "0.00");
+
+  // Sender
+  modal.querySelector(".senderName").textContent = job.sender?.name || "—";
+  modal.querySelector(".senderPhone").textContent = job.sender?.phone || "—";
+
+  // Receiver
+  modal.querySelector(".receiverName").textContent = job.receiver?.name || "—";
+  modal.querySelector(".receiverPhone").textContent = job.receiver?.phone || "—";
+
+  // Package
+  modal.querySelector(".itemDescription").textContent = job.itemDescription || "—";
+  modal.querySelector(".itemSize").textContent = job.size || "—";
+  modal.querySelector(".itemWeight").textContent = job.weight || "—";
+
+  // Photo
+  const photoEl = modal.querySelector(".itemPhoto");
+  if (job.photoUrl) {
+    photoEl.src = job.photoUrl;
+    photoEl.style.display = "block";
+  } else {
+    photoEl.style.display = "none";
+  }
+
+  // Accept / Decline
+  modal.querySelector(".modal-accept").onclick = () => acceptJob(job._id);
+  modal.querySelector(".modal-decline").onclick = () => declineJob(job._id);
+
+  modal.classList.remove("hidden");
+}
+
+function closeJobDetailsModal() {
+  document.getElementById("jobDetailsModal").classList.add("hidden");
+}
 
 /* ============================================================
-   SUPPORT PAGE (BASIC)
+   SUPPORT PAGE
    ============================================================ */
 function initSupportPage() {
-  // Placeholder for future expansion
+  // Placeholder
+}
+
+/* ============================================================
+   TRAVELER ID LOADING — FINAL VERSION
+   ============================================================ */
+async function loadTravelerIdentity() {
+  try {
+    if (!window.userId) {
+      console.warn("No userId on window — cannot load traveler");
+      return;
+    }
+
+    const res = await fetch(`${BASE_URL}/api/traveler/user/${window.userId}`);
+    if (!res.ok) {
+      console.warn("Failed to load traveler for user:", window.userId);
+      return;
+    }
+
+    const traveler = await res.json();
+    window.travelerId = traveler._id;
+    console.log("Traveler ID loaded:", window.travelerId);
+
+    /* ============================================================
+       LOAD TRAVELER PROFILE INTO UI (NO FALLBACK "T")
+       ============================================================ */
+
+    // Full name
+    const fullName = `${traveler.firstName || ""} ${traveler.lastName || ""}`.trim();
+    if (fullName.length > 0) {
+      document.getElementById("profileFullName").textContent = fullName;
+    }
+
+    // Inputs
+    document.getElementById("firstNameInput").value = traveler.firstName || "";
+    document.getElementById("lastNameInput").value = traveler.lastName || "";
+    document.getElementById("emailInput").value = traveler.email || "";
+    document.getElementById("phoneInput").value = traveler.phone || "";
+
+    // DOB
+    if (traveler.dob) {
+      document.getElementById("dobInput").value = traveler.dob.split("T")[0];
+    }
+
+    // Photo
+    if (traveler.photoUrl) {
+      document.getElementById("profilePhotoPreview").src = traveler.photoUrl;
+    }
+
+  } catch (err) {
+    console.error("Error loading traveler identity:", err);
+  }
 }
 /* ============================================================
-   PAGE SWITCHING (FINAL WIRING)
+   PAGE SWITCHING (FINAL)
    ============================================================ */
 function loadPage(view) {
   const main = document.getElementById("mainContentArea");
   const jobsLayout = document.getElementById("jobsLayout");
   if (!main || !jobsLayout) return;
 
-  function showJobsLayout() {
-    jobsLayout.style.display = "";
-    main.style.display = "none";
+if (view === "jobs") {
+  jobsLayout.style.display = "block";
+  main.style.display = "none";
 
-    setTimeout(() => {
-      if (typeof initTravelerMap === "function") initTravelerMap();
-      safe(initRoutePlanner);
-      safe(initJobsTabs);
-      loadAvailableJobs();
-    }, 50);
-  }
+  setTimeout(() => {
+    safe(initTravelerMap);
+    safe(initTravelerAutocomplete);   // ⭐ REQUIRED FIX
+    safe(initRoutePlanner);
+    safe(initJobsTabs);
+  }, 50);
 
-  function showMainLayout() {
-    jobsLayout.style.display = "none";
-    main.style.display = "";
-  }
+  return;
+}
 
-  if (view === "jobs") {
-    showJobsLayout();
-    return;
-  }
-
-  showMainLayout();
+  jobsLayout.style.display = "none";
+  main.style.display = "block";
 
   if (view === "account") {
     main.innerHTML = document.getElementById("template-account").innerHTML;
     setTimeout(() => initAccountPage(), 20);
-  }
-  else if (view === "verification") {
+  } else if (view === "verification") {
     main.innerHTML = document.getElementById("template-verification").innerHTML;
     setTimeout(() => initVerificationPage(), 20);
-  }
-  else if (view === "payments") {
+  } else if (view === "payments") {
     main.innerHTML = document.getElementById("template-payments").innerHTML;
     setTimeout(() => initPayoutsPage(), 20);
-  }
-  else if (view === "support") {
+  } else if (view === "support") {
     main.innerHTML = "";
     const panel = document.getElementById("supportPanel");
-    if (panel) panel.classList.remove("hidden");
+    panel?.classList.remove("hidden");
     setTimeout(() => initSupportPage(), 20);
   }
 }
 
 /* ============================================================
-   SIDEBAR NAVIGATION
+   SIDEBAR NAVIGATION (FINAL)
    ============================================================ */
 function initTravelerSidebar() {
   const items = document.querySelectorAll(".sidebar-item");
@@ -1351,52 +1387,46 @@ function initTravelerSidebar() {
     });
   });
 }
-
 /* ============================================================
-   TRAVELER ID LOADING
+   JOB SEARCH HANDLER
    ============================================================ */
-async function loadTravelerIdentity() {
-  try {
-    // assumes window.userId is already set from your auth flow
-    if (!window.userId) {
-      console.warn("No userId on window — cannot load traveler");
-      return;
+function initJobSearch() {
+  function attach() {
+    const btn = document.getElementById("searchJobsBtn");
+    if (!btn) {
+      console.warn("Search Jobs button not found — retrying...");
+      return setTimeout(attach, 300);
     }
 
-    const res = await fetch(`http://localhost:3000/api/traveler/user/${window.userId}`);
-    if (!res.ok) {
-      console.warn("Failed to load traveler for user:", window.userId);
-      return;
-    }
+    console.log("✅ Search button ready");
 
-    const traveler = await res.json();
-    // if your controller wraps in { data: traveler }, adjust accordingly:
-    // const traveler = (await res.json()).data;
+    btn.addEventListener("click", () => {
+      if (!currentTravelerStart || !currentTravelerDest) {
+        console.warn("Missing start or destination");
+        return;
+      }
 
-    window.travelerId = traveler._id;
-    console.log("Traveler ID loaded:", window.travelerId);
-  } catch (err) {
-    console.error("Error loading traveler identity:", err);
+      console.log("🔍 Searching for jobs...");
+      updateTravelerRoute();
+      loadAvailableJobs();
+    });
   }
+
+  attach();   // ⭐ THIS LINE WAS MISSING
 }
 
-
-
-
 /* ============================================================
-   FINAL DOM READY BOOTSTRAP
+   FINAL DOM READY BOOTSTRAP (FINAL)
    ============================================================ */
-document.getElementById("generate-matches-btn")?.addEventListener("click", (e) => {
-  e.preventDefault();
-  loadAvailableJobs();
-});
-
 document.addEventListener("DOMContentLoaded", () => {
+  safe(initTravelerMap);
   safe(initTravelerSidebar);
   safe(initChatWidget);
   safe(initJobSocket);
+  safe(loadTravelerIdentity);
+  safe(initJobDetailsModal);
+  safe(initRoutePlanner);
 
-  safe(loadTravelerIdentity);   // ⭐ REQUIRED — loads travelerId
-
-  loadPage("account");
+  loadPage("jobs");     // Load Jobs page first
+  safe(initJobSearch);  // THEN attach search handler
 });

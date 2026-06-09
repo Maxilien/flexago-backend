@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- Flexago + Traveler CSS -->
-  <link rel="stylesheet" href="css/flexago.css" />
+  <link rel="stylesheet" href="css/sender.css" />
   <link rel="stylesheet" href="css/traveler.css" />
 
   <!-- Lucide Icons -->
@@ -18,10 +18,7 @@
       --transition-fast: 250ms ease-in-out;
     }
 
-    .sidebar,
-    .sidebar * {
-      color: #1f2937 !important;
-    }
+ 
 
     select.input-shell,
     select.input-shell option {
@@ -129,7 +126,6 @@
     <!-- Filled dynamically by loadPage(view) -->
   </div>
 </main>
-
 <!-- ====== JOBS LAYOUT START ====== -->
 <div id="jobsLayout">
 
@@ -212,7 +208,8 @@
 
         <!-- ACTION ROW -->
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.4rem;">
-          <button class="primary-btn" id="generate-matches-btn">
+          <button class="primary-btn" id="searchJobsBtn"
+>
             <i data-lucide="sparkles" style="width:14px;height:14px;"></i>
             <span data-i18n="traveler.jobs.search_btn">Search Jobs</span>
           </button>
@@ -750,6 +747,7 @@
 
   </div>
 </div>
+
 <!-- ================= SUPPORT PANEL ================= -->
 <div id="supportPanel" class="hidden">
   <div class="support-box">
@@ -781,24 +779,57 @@
     </button>
   </div>
 </div>
-
 <!-- ================= JOB DETAILS MODAL ================= -->
 <div id="jobDetailsModal" class="modal hidden">
-  <div class="modal-content">
-    <button class="modal-close">×</button>
-    <h2 class="modal-title" data-i18n="traveler.jobs.details_title">Job Details</h2>
-    <div id="jobDetailsBody"></div>
+  <div class="modal-content job-details-modal">
+
+    <button class="modal-close" onclick="closeJobDetailsModal()">×</button>
+
+    <h2 class="modal-title">Delivery Details</h2>
+
+    <div class="modal-body">
+
+      <p><strong>Pickup:</strong> <span class="pickup"></span></p>
+      <p><strong>Dropoff:</strong> <span class="dropoff"></span></p>
+      <p><strong>Travel Type:</strong> <span class="travelType"></span></p>
+      <p><strong>Miles:</strong> <span class="miles"></span></p>
+      <p><strong>Payout:</strong> <span class="payout"></span></p>
+
+      <hr>
+
+      <h3>Sender</h3>
+      <p><strong>Name:</strong> <span class="senderName"></span></p>
+      <p><strong>Phone:</strong> <span class="senderPhone"></span></p>
+
+      <h3>Receiver</h3>
+      <p><strong>Name:</strong> <span class="receiverName"></span></p>
+      <p><strong>Phone:</strong> <span class="receiverPhone"></span></p>
+
+      <hr>
+
+      <h3>Package</h3>
+      <p><strong>Description:</strong> <span class="itemDescription"></span></p>
+      <p><strong>Size:</strong> <span class="itemSize"></span></p>
+      <p><strong>Weight:</strong> <span class="itemWeight"></span></p>
+
+      <img class="itemPhoto" src="" alt="Item Photo" style="display:none; margin-top:10px; max-width:100%; border-radius:8px;">
+
+      <hr>
+
+      <div class="modal-actions">
+        <button class="accept-btn modal-accept">Accept</button>
+        <button class="decline-btn modal-decline">Decline</button>
+      </div>
+
+    </div>
   </div>
 </div>
-
 <!-- ================= FINAL SCRIPT INCLUDES ================= -->
 
+<!-- ⭐ FIXED: Traveler.js import (case‑sensitive on Render) -->
+<script src="traveler.js"></script>
 
-<!-- Google Maps JS API (2025+ version) -->
-<!-- Traveler JS FIRST -->
-<script src="Traveler.js"></script>
-
-<!-- Google Maps LAST -->
+<!-- ⭐ FIXED: Google Maps API (unchanged, but validated) -->
 <script
   src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBhFXLfZHwpdaGkprcpKgKZiQDw2Vg_ArI&libraries=places,geometry&v=beta&callback=initMap"
   async defer>

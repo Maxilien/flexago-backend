@@ -1,12 +1,13 @@
 async function signup() {
-  const firstName = document.getElementById("firstName").value;
-  const lastName = document.getElementById("lastName").value;
-  const email = document.getElementById("email").value;
+  const firstName = document.getElementById("firstName").value.trim();
+  const lastName = document.getElementById("lastName").value.trim();
+  const email = document.getElementById("email").value.trim().toLowerCase();
   const password = document.getElementById("password").value;
-  const phone = document.getElementById("phone").value;
+  const phone = document.getElementById("phone").value.trim();
   const role = document.getElementById("role").value;
 
-  const res = await fetch("http://localhost:3000/api/users", {
+  // 1️⃣ Create the user
+  const res = await fetch("https://flexago-backend.onrender.com/api/users", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -26,16 +27,22 @@ async function signup() {
     return;
   }
 
-  // Save user + token
-  localStorage.setItem("user", JSON.stringify(result.data));
-  localStorage.setItem("token", result.token);
+  // ⭐ Backend returns: { success, data: { user, traveler } }
+  const user = result.data.user;
 
-  // Redirect based on role
+  // Save userId + user
+  localStorage.setItem("userId", user._id);
+  localStorage.setItem("user", JSON.stringify(user));
+
+  // 2️⃣ Traveler is already auto‑created by backend — no second POST needed
+
+  // 3️⃣ Redirect
   if (role === "traveler") {
-    window.location.href = "Traveler.html";
+    window.location.href = "traveler.html";
   } else {
     window.location.href = "Sender.html";
   }
 }
 
 document.getElementById("signup-btn").addEventListener("click", signup);
+
