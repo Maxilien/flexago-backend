@@ -38,7 +38,7 @@ async function signup() {
 
   // 3️⃣ Redirect
   if (role === "traveler") {
-    window.location.href = "traveler.html";
+    window.location.href = "Traveler.html";
   } else {
     window.location.href = "Sender.html";
   }
