@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Flexago Traveler</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Flexago + Traveler CSS -->
+  <link rel="stylesheet" href="css/sender.css" />
+  <link rel="stylesheet" href="css/traveler.css" />
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+  <style>
+    :root {
+      --sidebar-width: 260px;
+      --transition-fast: 250ms ease-in-out;
+    }
+
+ 
+
+    select.input-shell,
+    select.input-shell option {
+      color: #111 !important;
+      background-color: #fff !important;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-shell">
+
+    <!-- ====== TOP NAVBAR ====== -->
+    <header class="top-nav">
+      <div class="top-nav-left">
+        <button class="hamburger-btn" id="hamburgerBtn">
+          <i data-lucide="menu"></i>
+        </button>
+
+        <div class="logo-mark"><div class="logo-mark-inner"></div></div>
+
+        <div class="top-nav-title">
+          <div class="top-nav-title-main" data-i18n="traveler.nav.title">
+            Flexago Traveler
+          </div>
+          <div class="top-nav-title-sub" data-i18n="traveler.nav.subtitle">
+            Logistics marketplace for travelers
+          </div>
+        </div>
+      </div>
+
+      <div class="top-nav-center">
+        <div class="top-nav-search">
+          <i data-lucide="search" style="width:14px;height:14px;color:#9ca3af;"></i>
+          <input
+            type="text"
+            placeholder="Search jobs, routes, earnings..."
+            data-i18n-placeholder="traveler.nav.searchPlaceholder"
+          />
+        </div>
+      </div>
+
+      <div class="top-nav-right">
+        <div class="env-pill" data-i18n="traveler.nav.env">SANDBOX</div>
+        <div class="version-pill" data-i18n="traveler.nav.version">v1.0.0</div>
+
+        <select class="lang-select" id="languageSelector">
+          <option value="en">EN</option>
+          <option value="es">ES</option>
+          <option value="fr">FR</option>
+          <option value="ht">HT</option>
+          <option value="zh">ZH</option>
+          <option value="pt">PT</option>
+        </select>
+      </div>
+    </header>
+
+    <!-- ====== MAIN LAYOUT ====== -->
+    <div class="main-layout">
+
+      <!-- ====== SIDEBAR ====== -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header" data-i18n="traveler.sidebar.section">
+          Traveler Workspace
+        </div>
+
+        <nav class="sidebar-nav">
+          <button class="sidebar-item active" data-view="account">
+            <span class="sidebar-item-icon"><i data-lucide="user"></i></span>
+            <span data-i18n="traveler.sidebar.profile">Account & Identity</span>
+          </button>
+
+          <button class="sidebar-item" data-view="jobs">
+            <span class="sidebar-item-icon"><i data-lucide="briefcase"></i></span>
+            <span data-i18n="traveler.sidebar.jobs">Jobs / Requests</span>
+          </button>
+
+          <button class="sidebar-item" data-view="payments">
+            <span class="sidebar-item-icon"><i data-lucide="wallet"></i></span>
+            <span data-i18n="traveler.sidebar.payments">Payouts</span>
+          </button>
+
+          <button class="sidebar-item" data-view="verification">
+            <span class="sidebar-item-icon"><i data-lucide="shield-check"></i></span>
+            <span data-i18n="traveler.sidebar.verification">Verification</span>
+          </button>
+
+          <button class="sidebar-item" data-view="support">
+            <span class="sidebar-item-icon"><i data-lucide="life-buoy"></i></span>
+            <span data-i18n="traveler.sidebar.support">Support</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div data-i18n="traveler.sidebar.footer">
+            Connected to the Flexago logistics network.
+          </div>
+        </div>
+      </aside>
+
+  
+<!-- ====== CONTENT AREA ====== -->
+<main class="content-area">
+  <div id="mainContentArea" class="main-content">
+    <!-- Filled dynamically by loadPage(view) -->
+  </div>
+</main>
+<!-- ====== JOBS LAYOUT START ====== -->
+<div id="jobsLayout">
+
+  <!-- ====== TOP COLUMNS ====== -->
+  <section class="top-columns">
+
+    <!-- ====== ROUTE PANEL ====== -->
+    <section class="panel" id="routePanel">
+      <header class="panel-header">
+        <div>
+          <div class="panel-title" data-i18n="traveler.jobs.find_title">Find Jobs</div>
+          <div class="panel-subtitle" data-i18n="traveler.jobs.find_subtitle">
+            Set your route and we’ll match you with available deliveries.
+          </div>
+        </div>
+      </header>
+
+      <div class="panel-body">
+        <div class="form-grid">
+
+          <!-- Start Location -->
+          <div class="form-field">
+            <label class="form-label">
+              <span data-i18n="traveler.route.start_label">Start Location</span>
+              <span class="required">*</span>
+            </label>
+
+            <div class="input-shell" style="position:relative;">
+              <i data-lucide="navigation" style="width:14px;height:14px;color:#9ca3af;"></i>
+
+              <input
+                type="text"
+                id="pickupInput"
+                placeholder="Enter Start Location"
+                data-i18n-placeholder="traveler.route.start_placeholder"
+              />
+
+              <input type="hidden" id="pickup-lat">
+              <input type="hidden" id="pickup-lng">
+            </div>
+          </div>
+
+          <!-- Destination -->
+          <div class="form-field">
+            <label class="form-label">
+              <span data-i18n="traveler.route.end_label">Destination</span>
+              <span class="required">*</span>
+            </label>
+
+            <div class="input-shell" style="position:relative;">
+              <i data-lucide="flag" style="width:14px;height:14px;color:#9ca3af;"></i>
+
+              <input
+                type="text"
+                id="dropoffInput"
+                placeholder="Enter Destination Address"
+                data-i18n-placeholder="traveler.route.end_placeholder"
+              />
+
+              <input type="hidden" id="dropoff-lat">
+              <input type="hidden" id="dropoff-lng">
+            </div>
+          </div>
+
+          <!-- Travel Type -->
+          <div class="form-field">
+            <label class="form-label">
+              <span data-i18n="traveler.route.type_label">Travel Type</span>
+              <span class="required">*</span>
+            </label>
+
+            <select id="deliveryType" class="input-shell">
+              <option value="local" data-i18n="traveler.route.type_local">Local (same state)</option>
+              <option value="nationwide" data-i18n="traveler.route.type_nationwide">Nationwide (different state)</option>
+              <option value="international" data-i18n="traveler.route.type_international">International (different country)</option>
+            </select>
+          </div>
+
+        </div> <!-- end .form-grid -->
+
+        <!-- ACTION ROW -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.4rem;">
+          <button class="primary-btn" id="searchJobsBtn"
+>
+            <i data-lucide="sparkles" style="width:14px;height:14px;"></i>
+            <span data-i18n="traveler.jobs.search_btn">Search Jobs</span>
+          </button>
+
+          <div style="font-size:0.7rem;color:rgba(148,163,184,0.9);" data-i18n="traveler.jobs.powered_by">
+            Powered by Flexago matching engine.
+          </div>
+        </div>
+ <!-- ====== TRAVELER MAP (ONLY ONE) ====== -->
+    <div id="travelerMap"
+        style="
+          width:100%;
+          height:260px;
+          margin-top:1rem;
+          border-radius:8px;
+          overflow:hidden;
+        ">
+    </div>
+      </div> <!-- end .panel-body -->
+    </section>
+
+    <!-- ====== JOBS PANEL (SUMMARY + TABS + LISTS) ====== -->
+    <section class="panel" id="jobsPanel">
+
+      <header class="panel-header">
+        <div>
+          <div class="panel-title" data-i18n="traveler.jobs.panel_title">Jobs & Requests</div>
+          <div class="panel-subtitle" data-i18n="traveler.jobs.panel_subtitle">
+            Available, accepted, and completed deliveries.
+          </div>
+        </div>
+        <div id="jobsCount" style="font-size:0.7rem;color:rgba(148,163,184,0.9);">
+          0 jobs
+        </div>
+      </header>
+
+      <div class="panel-body">
+
+        <!-- KPI SUMMARY -->
+        <div id="earningsSummary" class="earnings-summary">
+          <div class="summary-row">
+            <span data-i18n="traveler.payout.today">Today</span>
+            <strong id="todayEarnings">$0.00</strong>
+          </div>
+
+          <div class="summary-row">
+            <span data-i18n="traveler.payout.week">This Week</span>
+            <strong id="weekEarnings">$0.00</strong>
+          </div>
+
+          <div class="summary-row">
+            <span data-i18n="traveler.payout.pending">Pending Payout</span>
+            <strong id="pendingPayout">$0.00</strong>
+          </div>
+
+          <div class="summary-row">
+            <span data-i18n="traveler.payout.pipeline">Pipeline</span>
+            <strong id="pipelineValue">$0.00</strong>
+          </div>
+
+          <div class="summary-row">
+            <span data-i18n="traveler.payout.completed">Completed Jobs</span>
+            <strong id="completedCount">0</strong>
+          </div>
+
+          <div class="summary-row">
+            <span data-i18n="traveler.payout.method">Payout Method</span>
+            <strong id="payoutMethodDisplay">—</strong>
+          </div>
+        </div>
+
+        <!-- JOBS TABS -->
+        <div class="jobs-tabs">
+          <button class="jobs-tab active" data-tab="available" data-i18n="traveler.jobs.tab_available">Available</button>
+          <button class="jobs-tab" data-tab="accepted" data-i18n="traveler.jobs.tab_accepted">Accepted</button>
+          <button class="jobs-tab" data-tab="completed" data-i18n="traveler.jobs.tab_completed">Completed</button>
+        </div>
+
+        <!-- JOB LISTS -->
+        <div id="jobsAvailableList" class="jobs-list">
+          <div class="empty-state" data-i18n="traveler.jobs.empty_available">
+            No matching jobs yet — adjust your route or refresh.
+          </div>
+        </div>
+
+        <div id="jobsAcceptedList" class="jobs-list hidden">
+          <div class="empty-state" data-i18n="traveler.jobs.empty_accepted">
+            You haven’t accepted any jobs yet.
+          </div>
+        </div>
+
+        <div id="jobsCompletedList" class="jobs-list hidden">
+          <div class="empty-state" data-i18n="traveler.jobs.empty_completed">
+            Completed jobs will appear here.
+          </div>
+        </div>
+
+      </div> <!-- end .panel-body -->
+    </section> <!-- end #jobsPanel -->
+
+<!-- ============================================
+     JOB CARD TEMPLATE (NO MAP, NO CHAT HERE)
+=============================================== -->
+<template id="jobCardTemplate">
+  <div class="job-card">
+
+    <!-- ===== MAIN ROUTE ROW ===== -->
+    <div class="job-main">
+      <div class="job-route">
+        <div class="job-pickup"></div>
+        <div class="job-dropoff"></div>
+      </div>
+
+      <div class="job-meta">
+        <div class="job-distance"></div>
+        <div class="job-price"></div>
+        <div class="job-size"></div>
+      </div>
+    </div>
+
+    <!-- ⭐ ACTION BUTTONS -->
+    <div class="job-actions">
+      <button class="accept-btn">Accept</button>
+      <button class="decline-btn">Decline</button>
+    </div>
+
+  </div>
+</template>
+
+        <!-- ===== VEHICLE COMPATIBILITY ===== -->
+        <div class="vehicle-compatibility hidden">
+          <i data-lucide="alert-triangle" style="width:14px;height:14px;color:#f87171;"></i>
+          <span class="vehicle-warning-text">
+            This package requires a larger vehicle.
+          </span>
+        </div>
+
+        <!-- ===== ACCEPTED JOB EXPANDED VIEW ===== -->
+        <div class="accepted-expanded hidden">
+
+          <!-- SENDER DETAILS -->
+          <div class="detail-block">
+            <h4 class="detail-title">Sender Details</h4>
+            <div class="detail-row"><strong>Name:</strong> <span class="sender-name"></span></div>
+            <div class="detail-row"><strong>Phone:</strong> <span class="sender-phone"></span></div>
+            <div class="detail-row"><strong>Email:</strong> <span class="sender-email"></span></div>
+            <div class="detail-row"><strong>Pickup Instructions:</strong> <span class="sender-instructions"></span></div>
+
+            <button class="secondary-btn contact-sender-btn">
+              <i data-lucide="phone"></i> Contact Sender
+            </button>
+          </div>
+
+          <!-- RECEIVER DETAILS -->
+          <div class="detail-block">
+            <h4 class="detail-title">Receiver Details</h4>
+            <div class="detail-row"><strong>Name:</strong> <span class="receiver-name"></span></div>
+            <div class="detail-row"><strong>Phone:</strong> <span class="receiver-phone"></span></div>
+            <div class="detail-row"><strong>Email:</strong> <span class="receiver-email"></span></div>
+            <div class="detail-row"><strong>Dropoff Instructions:</strong> <span class="receiver-instructions"></span></div>
+
+            <button class="secondary-btn contact-receiver-btn">
+              <i data-lucide="phone"></i> Contact Receiver
+            </button>
+          </div>
+
+          <!-- ITEM DETAILS -->
+          <div class="detail-block">
+            <h4 class="detail-title">Item Details</h4>
+            <img class="item-photo" style="max-width:120px;border-radius:6px;display:none;" />
+            <div class="detail-row"><strong>Description:</strong> <span class="item-description"></span></div>
+            <div class="detail-row"><strong>Size:</strong> <span class="item-size"></span></div>
+            <div class="detail-row"><strong>Weight:</strong> <span class="item-weight"></span></div>
+            <div class="detail-row"><strong>Fragility:</strong> <span class="item-fragility"></span></div>
+          </div>
+
+          <!-- ===== TRAVELER STATUS BUTTONS ===== -->
+          <div class="traveler-status-buttons">
+            <button class="status-btn on-my-way-pickup-btn primary-btn">On My Way to Pickup</button>
+            <button class="status-btn picked-up-btn primary-btn">Picked Up</button>
+            <button class="status-btn on-my-way-dropoff-btn primary-btn">On My Way to Dropoff</button>
+            <button class="status-btn delivered-btn primary-btn">Delivered</button>
+          </div>
+
+          <!-- ===== DELIVERY PHOTO + SIGNATURE WORKFLOW ===== -->
+          <div class="delivery-photo-section hidden">
+            <label class="form-label">Upload Delivery Photo</label>
+
+            <div class="input-shell" style="justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:0.4rem;">
+                <i data-lucide="image" style="width:14px;height:14px;color:#9ca3af;"></i>
+                <span style="font-size:0.75rem;color:#9ca3af;">
+                  Take or upload a photo
+                </span>
+              </div>
+
+              <button type="button" class="primary-btn upload-delivery-photo-btn" style="padding:0.25rem 0.6rem;font-size:0.7rem;">
+                <i data-lucide="upload" style="width:14px;height:14px;"></i>
+                Upload
+              </button>
+            </div>
+
+            <input type="file" class="delivery-photo-input" accept="image/*" style="display:none;" />
+            <img class="delivery-photo-preview" style="margin-top:0.4rem;max-width:120px;border-radius:6px;display:none;" />
+
+            <div class="signature-section" style="margin-top:1rem;">
+              <label class="form-label">Recipient Signature</label>
+
+              <canvas class="signature-pad"
+                      width="300"
+                      height="150"
+                      style="background:#fff;border-radius:6px;border:1px solid #ccc;">
+              </canvas>
+
+              <div style="display:flex;gap:0.5rem;margin-top:0.4rem;">
+                <button type="button" class="secondary-btn clear-signature-btn">Clear</button>
+                <button type="button" class="primary-btn submit-signature-btn">Save Signature</button>
+              </div>
+
+              <label class="form-label" style="margin-top:0.6rem;">Signed By</label>
+              <input type="text" class="signed-by-input input-shell" placeholder="Recipient name" />
+            </div>
+
+            <button class="primary-btn complete-delivery-btn" style="margin-top:0.8rem;">
+              Complete Delivery
+            </button>
+          </div>
+        </div>
+      </div>
+    </template>
+<!-- ===== END #jobsLayout ===== -->
+</div>
+
+<!-- ============================================================
+     CHAT WIDGET (GLOBAL — OUTSIDE JOBS LAYOUT)
+============================================================ -->
+<div class="chat-widget">
+  <div class="chat-bubble" id="chatBubble">
+    <div class="chat-header">
+      <span data-i18n="traveler.chat.title">Support chat</span>
+      <button id="chatCloseBtn" style="border:none;background:transparent;color:#9ca3af;">
+        <i data-lucide="x" style="width:14px;height:14px;"></i>
+      </button>
+    </div>
+
+    <div class="chat-body" id="chatBody">
+      <div style="margin-bottom:0.4rem;" data-i18n="traveler.chat.welcome">
+        Hi! Tell us about your delivery and we’ll help you choose the best traveler.
+      </div>
+    </div>
+
+    <div class="chat-footer">
+      <input id="chatInput" placeholder="Type a message..." data-i18n-placeholder="traveler.chat.placeholder" />
+      <button class="primary-btn" id="chatSendBtn" style="padding:0.25rem 0.6rem;font-size:0.7rem;">
+        <i data-lucide="send" style="width:14px;height:14px;"></i>
+        <span data-i18n="traveler.chat.send">Send</span>
+      </button>
+    </div>
+  </div>
+
+  <button class="chat-toggle-btn" id="chatToggleBtn">
+    <i data-lucide="message-circle"></i>
+  </button>
+</div>
+
+<!-- ============================================================
+     ACCOUNT TEMPLATE (NO DUPLICATE IDs)
+============================================================ -->
+<div id="template-account" class="page-template hidden">
+  <div class="account-page">
+
+    <section class="section-block profile-header">
+      <div class="profile-photo-wrapper" style="text-align:center;">
+        <img id="profilePhotoPreview" class="profile-photo-large" src="" alt="Profile Photo" />
+        <button id="profilePhotoUploadBtn" class="upload-btn small-btn" data-i18n="traveler.account.change_photo">
+          Change Photo
+        </button>
+        <input id="profilePhotoInput" type="file" accept="image/*" style="display:none;" />
+      </div>
+
+      <div class="profile-header-text" style="text-align:center;margin-top:0.8rem;">
+        <h2 id="profileFullName" class="profile-name">Traveler Name</h2>
+
+        <div class="profile-stats">
+          <span><span id="tripsCount">0</span> <span data-i18n="traveler.account.trips">trips</span></span>
+          <span>•</span>
+          <span data-i18n="traveler.account.joined">Joined</span>
+          <span id="joinedYear">2026</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-block">
+      <h2 class="section-title" data-i18n="traveler.account.personal_title">Personal Information</h2>
+
+      <input id="firstNameInput" class="input-field" placeholder="First Name" />
+      <input id="lastNameInput" class="input-field" placeholder="Last Name" />
+      <input id="dobInput" type="date" class="input-field" />
+
+      <input id="phoneInput" class="input-field" placeholder="Phone Number" />
+      <input id="emailInput" class="input-field" placeholder="Email Address" />
+    </section>
+
+    <section class="section-block">
+      <button id="saveAccountBtn" class="primary-btn disabled" disabled>
+        Save Changes
+      </button>
+    </section>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     VERIFICATION TEMPLATE (ALIGNED WITH Traveler.js)
+============================================================ -->
+<div id="template-verification" class="page-template hidden">
+
+  <header class="panel-header">
+    <div>
+      <div class="panel-title">Identity Verification</div>
+      <div class="panel-subtitle">Complete all 4 steps to verify your identity.</div>
+    </div>
+
+    <div id="verificationStatusBadge" class="status-badge pending">
+      Pending
+    </div>
+  </header>
+
+  <div class="panel-body">
+
+    <div class="verification-progress">
+      <div id="verificationProgressFill"></div>
+    </div>
+
+    <div class="verification-step">
+      <div class="step-title">1. Upload ID (Front)</div>
+      <div class="upload-box" id="uploadBox1">
+        <span>Click to upload</span>
+        <input type="file" id="fileInput1" class="hidden" accept="image/*" />
+      </div>
+      <img id="preview1" class="upload-preview hidden" />
+    </div>
+
+    <div class="verification-step">
+      <div class="step-title">2. Upload ID (Back)</div>
+      <div class="upload-box" id="uploadBox2">
+        <span>Click to upload</span>
+        <input type="file" id="fileInput2" class="hidden" accept="image/*" />
+      </div>
+      <img id="preview2" class="upload-preview hidden" />
+    </div>
+
+    <div class="verification-step">
+      <div class="step-title">3. Upload Selfie</div>
+      <div class="upload-box" id="uploadBox3">
+        <span>Click to upload</span>
+        <input type="file" id="fileInput3" class="hidden" accept="image/*" />
+      </div>
+      <img id="preview3" class="upload-preview hidden" />
+    </div>
+
+    <div class="verification-step">
+      <div class="step-title">4. Upload Address Proof</div>
+      <div class="upload-box" id="uploadBox4">
+        <span>Click to upload</span>
+        <input type="file" id="fileInput4" class="hidden" accept="image/*" />
+      </div>
+      <img id="preview4" class="upload-preview hidden" />
+    </div>
+
+    <button class="primary-btn" id="submitVerificationBtn">
+      Submit Verification
+    </button>
+
+  </div>
+</div>
+<!-- ================= VERIFICATION SUCCESS SCREEN ================= -->
+<div id="template-verification-success" class="page-template hidden">
+  <header class="panel-header">
+    <div>
+      <div class="panel-title" data-i18n="traveler.verification.success_title">Verification Submitted</div>
+      <div class="panel-subtitle" data-i18n="traveler.verification.success_subtitle">
+        We’re reviewing your documents.
+      </div>
+    </div>
+  </header>
+
+  <div class="panel-body">
+    <div class="success-icon">✔</div>
+
+    <p class="success-message" data-i18n="traveler.verification.success_message">
+      Your verification has been successfully submitted.  
+      You will be notified once the review is complete.
+    </p>
+
+    <button id="backToAccount" class="primary-btn" data-i18n="traveler.verification.back">
+      Back to Account
+    </button>
+  </div>
+</div>
+
+<!-- ================= VERIFICATION FAILURE SCREEN ================= -->
+<div id="template-verification-failed" class="page-template hidden">
+  <header class="panel-header">
+    <div>
+      <div class="panel-title" data-i18n="traveler.verification.failed_title">Verification Failed</div>
+      <div class="panel-subtitle" data-i18n="traveler.verification.failed_subtitle">
+        We couldn’t verify your identity.
+      </div>
+    </div>
+  </header>
+
+  <div class="panel-body">
+    <div class="error-icon">⚠</div>
+
+    <p class="error-message" data-i18n="traveler.verification.failed_message">
+      Your verification attempt was not successful.  
+      Please review your documents and try again.
+    </p>
+
+    <button id="retryVerification" class="primary-btn" data-i18n="traveler.verification.retry">
+      Retry Verification
+    </button>
+  </div>
+</div>
+
+<!-- ================= PAYMENTS TEMPLATE (ALIGNED WITH Traveler.js) ================= -->
+<div id="template-payments" class="page-template hidden">
+
+  <header class="panel-header">
+    <div>
+      <div class="panel-title" data-i18n="traveler.payments.title">Payout Methods</div>
+      <div class="panel-subtitle" data-i18n="traveler.payments.subtitle">
+        Manage how you receive your earnings.
+      </div>
+    </div>
+  </header>
+
+  <div class="panel-body">
+
+    <!-- ADD PAYMENT METHOD -->
+    <div class="payout-method-card add-payment-card" id="openAddPaymentModal">
+      <div class="payout-method-icon">+</div>
+      <div class="payout-method-info">
+        <strong data-i18n="traveler.payments.add_title">Add Payment Method</strong>
+        <span data-i18n="traveler.payments.add_subtitle">Debit card or bank account</span>
+      </div>
+    </div>
+
+    <!-- SAVED PAYMENT METHOD -->
+    <div id="savedPaymentMethod" class="payout-method-card hidden">
+      <div class="payout-method-icon">💳</div>
+      <div class="payout-method-info">
+        <strong id="savedMethodLabel">Visa •••• 1234</strong>
+        <span id="savedMethodType">Debit Card</span>
+      </div>
+      <button class="secondary-btn" id="editPaymentMethod" data-i18n="traveler.payments.edit">
+        Edit
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================= ADD PAYMENT MODAL (MATCHES Traveler.js) ================= -->
+<div id="addPaymentModal" class="modal hidden">
+  <div class="modal-content">
+
+    <button class="modal-close" id="closeAddPaymentModal">&times;</button>
+    <h3 class="modal-title" data-i18n="traveler.payments.modal_title">Add Payment Method</h3>
+
+    <!-- PAYOUT TYPE TOGGLE -->
+    <div class="input-shell">
+      <label class="input-label" data-i18n="traveler.payments.type_label">Payout Type</label>
+
+      <div class="radio-row">
+        <label>
+          <input type="radio" name="payoutType" value="card" checked>
+          <span data-i18n="traveler.payments.type_card">Debit / Credit Card</span>
+        </label>
+
+        <label>
+          <input type="radio" name="payoutType" value="bank">
+          <span data-i18n="traveler.payments.type_bank">Bank Account</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- CARD FIELDS -->
+    <div id="cardFields">
+      <div class="input-shell">
+        <label class="input-label" data-i18n="traveler.payments.card_name">Name on Card</label>
+        <input type="text" id="cardName" class="input-field" />
+      </div>
+
+      <div class="input-shell">
+        <label class="input-label" data-i18n="traveler.payments.card_number">Card Number</label>
+        <input type="text" id="cardNumber" class="input-field" />
+      </div>
+
+      <div class="input-row">
+        <div class="input-shell">
+          <label class="input-label" data-i18n="traveler.payments.card_expiry">MM/YY</label>
+          <input type="text" id="cardExpiry" class="input-field" />
+        </div>
+
+        <div class="input-shell">
+          <label class="input-label" data-i18n="traveler.payments.card_cvc">CVC</label>
+          <input type="text" id="cardCVC" class="input-field" />
+        </div>
+      </div>
+    </div>
+
+    <!-- BANK FIELDS -->
+    <div id="bankFields" class="hidden">
+      <div class="input-shell">
+        <label class="input-label" data-i18n="traveler.payments.routing">Routing Number</label>
+        <input type="text" id="bankRoutingInput" class="input-field" />
+      </div>
+
+      <div class="input-shell">
+        <label class="input-label" data-i18n="traveler.payments.account">Account Number</label>
+        <input type="text" id="bankAccountInput" class="input-field" />
+      </div>
+
+      <div class="input-shell">
+        <label class="input-label" data-i18n="traveler.payments.iban">IBAN (optional)</label>
+        <input type="text" id="bankIbanInput" class="input-field" />
+      </div>
+    </div>
+
+    <button class="primary-btn" id="savePaymentMethod" data-i18n="traveler.payments.save_btn">
+      Save
+    </button>
+
+  </div>
+</div>
+
+<!-- ================= SUPPORT PANEL ================= -->
+<div id="supportPanel" class="hidden">
+  <div class="support-box">
+    <strong data-i18n="traveler.support.need_help">Need help?</strong>
+    <ul>
+      <li data-i18n="traveler.support.account">Account issues</li>
+      <li data-i18n="traveler.support.verification">Verification problems</li>
+      <li data-i18n="traveler.support.payouts">Payout questions</li>
+      <li data-i18n="traveler.support.delivery">Trip or delivery concerns</li>
+    </ul>
+  </div>
+
+  <button id="openSupportTicket" class="primary-btn" data-i18n="traveler.support.open_ticket">
+    Open Support Ticket
+  </button>
+</div>
+
+<!-- ================= SUPPORT TICKET MODAL ================= -->
+<div id="supportModal" class="modal hidden">
+  <div class="modal-content">
+    <button id="closeSupportModal" class="modal-close">&times;</button>
+
+    <h2 class="modal-title" data-i18n="traveler.support.submit_title">Submit a Support Ticket</h2>
+
+    <textarea id="supportMessage" class="input-field" placeholder="Describe your issue..." data-i18n-placeholder="traveler.support.placeholder" rows="5"></textarea>
+
+    <button id="submitSupportTicket" class="primary-btn" style="margin-top:15px;" data-i18n="traveler.support.submit">
+      Submit Ticket
+    </button>
+  </div>
+</div>
+<!-- ================= JOB DETAILS MODAL ================= -->
+<div id="jobDetailsModal" class="modal hidden">
+  <div class="modal-content job-details-modal">
+
+    <button class="modal-close" onclick="closeJobDetailsModal()">×</button>
+
+    <h2 class="modal-title">Delivery Details</h2>
+
+    <div class="modal-body">
+
+      <p><strong>Pickup:</strong> <span class="pickup"></span></p>
+      <p><strong>Dropoff:</strong> <span class="dropoff"></span></p>
+      <p><strong>Travel Type:</strong> <span class="travelType"></span></p>
+      <p><strong>Miles:</strong> <span class="miles"></span></p>
+      <p><strong>Payout:</strong> <span class="payout"></span></p>
+
+      <hr>
+
+      <h3>Sender</h3>
+      <p><strong>Name:</strong> <span class="senderName"></span></p>
+      <p><strong>Phone:</strong> <span class="senderPhone"></span></p>
+
+      <h3>Receiver</h3>
+      <p><strong>Name:</strong> <span class="receiverName"></span></p>
+      <p><strong>Phone:</strong> <span class="receiverPhone"></span></p>
+
+      <hr>
+
+      <h3>Package</h3>
+      <p><strong>Description:</strong> <span class="itemDescription"></span></p>
+      <p><strong>Size:</strong> <span class="itemSize"></span></p>
+      <p><strong>Weight:</strong> <span class="itemWeight"></span></p>
+
+      <img class="itemPhoto" src="" alt="Item Photo" style="display:none; margin-top:10px; max-width:100%; border-radius:8px;">
+
+      <hr>
+
+      <div class="modal-actions">
+        <button class="accept-btn modal-accept">Accept</button>
+        <button class="decline-btn modal-decline">Decline</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+<!-- ================= FINAL SCRIPT INCLUDES ================= -->
+
+<!-- ⭐ FIXED: Traveler.js import (case‑sensitive on Render) -->
+<script src="traveler.js"></script>
+
+<!-- ⭐ FIXED: Google Maps API (unchanged, but validated) -->
+<script
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBhFXLfZHwpdaGkprcpKgKZiQDw2Vg_ArI&libraries=places,geometry&v=beta&callback=initMap"
+  async defer>
+</script>
+
+</body>
+</html>
