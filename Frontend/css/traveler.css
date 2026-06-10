@@ -1280,7 +1280,7 @@ select {
 #jobsAcceptedList,
 #jobsCompletedList {
   position: relative;
-  z-index: 99999;
+  z-index: 1; /* lower than modal */
   pointer-events: auto;
 }
 
