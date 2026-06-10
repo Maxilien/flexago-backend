@@ -135,7 +135,19 @@ async function createDelivery(req, res) {
       receiver,
       pickup,
       dropoff,
-      package: pkg,
+
+      // FIXED PACKAGE MAPPING
+      package: {
+        type: pkg?.type || "",
+        weight: pkg?.weight || null,
+        size: pkg?.size || "",
+        insurance: pkg?.insurance || false,
+        deliveryType: pkg?.deliveryType || "",
+        description: pkg?.description || "",
+        declaredValue: pkg?.declaredValue || null,
+        photoUrl: pkg?.photoUrl || ""
+      },
+
       notes,
       price: numericPrice,
       payoutAmount,
@@ -148,7 +160,6 @@ async function createDelivery(req, res) {
     res.status(500).json({ success: false, error: err.message });
   }
 }
-
 /* ============================================================
    SEARCH TRAVELER JOBS
    ============================================================ */
