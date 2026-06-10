@@ -1276,42 +1276,30 @@ function openJobDetailsModal(job) {
     job.receiverPhone ||
     "—";
 
-  // -------------------------------
-  // PACKAGE DETAILS
-  // -------------------------------
-  modal.querySelector(".itemDescription").textContent =
-    job.itemDescription ||
-    job.item?.description ||
-    "—";
+// -------------------------------
+// PACKAGE DETAILS
+// -------------------------------
+modal.querySelector(".itemDescription").textContent =
+  job.package?.description || "—";
 
-  modal.querySelector(".itemSize").textContent =
-    job.size ||
-    job.item?.size ||
-    "—";
+modal.querySelector(".itemSize").textContent =
+  job.package?.size || "—";
 
-  modal.querySelector(".itemWeight").textContent =
-    job.weight ||
-    job.item?.weight ||
-    "—";
+modal.querySelector(".itemWeight").textContent =
+  job.package?.weight || "—";
 
-  // -------------------------------
-  // PHOTO
-  // -------------------------------
-  const photoEl = modal.querySelector(".itemPhoto");
+// -------------------------------
+// PHOTO
+// -------------------------------
+const photoEl = modal.querySelector(".itemPhoto");
+const photoUrl = job.package?.photoUrl;
 
-  const photoUrl =
-    job.photoUrl ||
-    job.itemPhotoUrl ||
-    job.item?.photoUrl ||
-    job.item?.photo ||
-    null;
-
-  if (photoUrl) {
-    photoEl.src = photoUrl;
-    photoEl.style.display = "block";
-  } else {
-    photoEl.style.display = "none";
-  }
+if (photoUrl) {
+  photoEl.src = photoUrl;
+  photoEl.style.display = "block";
+} else {
+  photoEl.style.display = "none";
+}
 
   // -------------------------------
   // ACCEPT / DECLINE BUTTONS
