@@ -1283,4 +1283,10 @@ select {
   z-index: 1; /* lower than modal */
   pointer-events: auto;
 }
+/* Force all route panel elements behind modal */
+#routePanel,
+#routePanel * {
+  position: relative !important;
+  z-index: 1 !important;
+}
 
