@@ -1213,56 +1213,115 @@ function initJobDetailsModal() {
 function openJobDetailsModal(job) {
   const modal = document.getElementById("jobDetailsModal");
 
-  // Pickup / Dropoff
+  // -------------------------------
+  // PICKUP / DROPOFF
+  // -------------------------------
   modal.querySelector(".pickup").textContent =
-    job.pickupAddress || job.pickup?.address || "—";
+    job.pickupAddress ||
+    job.pickup?.address ||
+    "—";
 
   modal.querySelector(".dropoff").textContent =
-    job.dropoffAddress || job.dropoff?.address || "—";
+    job.dropoffAddress ||
+    job.dropoff?.address ||
+    "—";
 
-  // Travel Type
+  // -------------------------------
+  // TRAVEL TYPE
+  // -------------------------------
   modal.querySelector(".travelType").textContent =
     job.travelType || "Local";
 
-  // Miles
+  // -------------------------------
+  // MILES
+  // -------------------------------
   const miles =
     job.distanceMiles ??
     job.distance ??
     ((job._distance?.pickupStartMiles || 0) +
      (job._distance?.dropoffDestMiles || 0));
 
-  modal.querySelector(".miles").textContent = miles.toFixed(1) + " mi";
+  modal.querySelector(".miles").textContent =
+    miles ? miles.toFixed(1) + " mi" : "—";
 
-  // Payout
+  // -------------------------------
+  // PAYOUT
+  // -------------------------------
   modal.querySelector(".payout").textContent =
     "$" + (job.payout != null ? Number(job.payout).toFixed(2) : "0.00");
 
-  // Sender
-  modal.querySelector(".senderName").textContent = job.sender?.name || "—";
-  modal.querySelector(".senderPhone").textContent = job.sender?.phone || "—";
+  // -------------------------------
+  // SENDER
+  // -------------------------------
+  modal.querySelector(".senderName").textContent =
+    job.sender?.name ||
+    job.senderName ||
+    "—";
 
-  // Receiver
-  modal.querySelector(".receiverName").textContent = job.receiver?.name || "—";
-  modal.querySelector(".receiverPhone").textContent = job.receiver?.phone || "—";
+  modal.querySelector(".senderPhone").textContent =
+    job.sender?.phone ||
+    job.senderPhone ||
+    "—";
 
-  // Package
-  modal.querySelector(".itemDescription").textContent = job.itemDescription || "—";
-  modal.querySelector(".itemSize").textContent = job.size || "—";
-  modal.querySelector(".itemWeight").textContent = job.weight || "—";
+  // -------------------------------
+  // RECEIVER
+  // -------------------------------
+  modal.querySelector(".receiverName").textContent =
+    job.receiver?.name ||
+    job.receiverName ||
+    "—";
 
-  // Photo
+  modal.querySelector(".receiverPhone").textContent =
+    job.receiver?.phone ||
+    job.receiverPhone ||
+    "—";
+
+  // -------------------------------
+  // PACKAGE DETAILS
+  // -------------------------------
+  modal.querySelector(".itemDescription").textContent =
+    job.itemDescription ||
+    job.item?.description ||
+    "—";
+
+  modal.querySelector(".itemSize").textContent =
+    job.size ||
+    job.item?.size ||
+    "—";
+
+  modal.querySelector(".itemWeight").textContent =
+    job.weight ||
+    job.item?.weight ||
+    "—";
+
+  // -------------------------------
+  // PHOTO
+  // -------------------------------
   const photoEl = modal.querySelector(".itemPhoto");
-  if (job.photoUrl) {
-    photoEl.src = job.photoUrl;
+
+  const photoUrl =
+    job.photoUrl ||
+    job.itemPhotoUrl ||
+    job.item?.photoUrl ||
+    job.item?.photo ||
+    null;
+
+  if (photoUrl) {
+    photoEl.src = photoUrl;
     photoEl.style.display = "block";
   } else {
     photoEl.style.display = "none";
   }
 
-  // Accept / Decline
+  // -------------------------------
+  // ACCEPT / DECLINE BUTTONS
+  // -------------------------------
   modal.querySelector(".modal-accept").onclick = () => acceptJob(job._id);
   modal.querySelector(".modal-decline").onclick = () => declineJob(job._id);
 
+  // -------------------------------
+  // SHOW MODAL
+  // -------------------------------
   modal.classList.remove("hidden");
 }
 
