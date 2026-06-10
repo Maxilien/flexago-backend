@@ -1306,7 +1306,4 @@ select {
   display: flex;
   gap: 10px;
 }
-.content-area {
-  padding-top: 70px !important; /* below top navbar */
-}
 
