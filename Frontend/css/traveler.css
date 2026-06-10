@@ -1283,10 +1283,20 @@ select {
   z-index: 1; /* lower than modal */
   pointer-events: auto;
 }
-/* Force all route panel elements behind modal */
-#routePanel,
-#routePanel * {
+/* Push ONLY the form fields behind the modal */
+#routePanel .form-field,
+#routePanel .form-field * {
   position: relative !important;
   z-index: 1 !important;
 }
 
+/* Restore map above form fields but below modal */
+#travelerMap {
+  position: relative !important;
+  z-index: 5 !important;
+}
+
+/* Modal stays on top */
+.modal {
+  z-index: 99999 !important;
+}
