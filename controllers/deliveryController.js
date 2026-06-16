@@ -249,6 +249,13 @@ async function acceptTravelerJob(req, res) {
     const { jobId } = req.params;
     const { travelerId } = req.body;
 
+    if (!travelerId) {
+      return res.status(400).json({
+        success: false,
+        error: "Missing travelerId"
+      });
+    }
+
     const job = await Delivery.findById(jobId);
     if (!job) {
       return res.status(404).json({ success: false, error: "Job not found" });
@@ -259,7 +266,7 @@ async function acceptTravelerJob(req, res) {
     }
 
     job.status = "accepted";
-    job.traveler = travelerId;   // ⭐ FIXED FIELD NAME
+    job.travelerId = travelerId;   // ⭐ FIXED
     job.acceptedAt = new Date();
 
     await job.save();
@@ -270,6 +277,7 @@ async function acceptTravelerJob(req, res) {
     res.status(500).json({ success: false, error: "Server error" });
   }
 }
+
 /* ============================================================
    PICKUP JOB
    ============================================================ */
