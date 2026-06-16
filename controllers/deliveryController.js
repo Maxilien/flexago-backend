@@ -266,7 +266,7 @@ async function acceptTravelerJob(req, res) {
     }
 
     job.status = "accepted";
-    job.travelerId = travelerId;   // ⭐ FIXED
+    job.traveler = travelerId;   // ⭐ FIXED
     job.acceptedAt = new Date();
 
     await job.save();
