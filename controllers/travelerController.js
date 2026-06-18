@@ -31,6 +31,20 @@ async function getTravelerByUser(req, res) {
   }
 }
 
+// ⭐ NEW — Get traveler by Traveler ID (used by Sender app)
+async function getTravelerById(req, res) {
+  try {
+    const traveler = await Traveler.findById(req.params.id).populate("user");
+    if (!traveler) {
+      return res.status(404).json({ success: false, error: "Traveler not found" });
+    }
+
+    res.json({ success: true, data: traveler });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+}
+
 // Update traveler location (real-time)
 async function updateTravelerLocation(req, res) {
   try {
@@ -57,5 +71,6 @@ async function updateTravelerLocation(req, res) {
 module.exports = {
   createTraveler,
   getTravelerByUser,
+  getTravelerById,     // ⭐ Exported
   updateTravelerLocation
 };
