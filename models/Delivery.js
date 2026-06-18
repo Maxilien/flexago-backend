@@ -50,7 +50,12 @@ const DeliverySchema = new mongoose.Schema(
     price: { type: Number, required: true },
     payoutAmount: { type: Number, required: true },
 
-    travelerId: { type: String, default: null },
+    // ⭐ FIXED — use traveler, not travelerId
+    traveler: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Traveler",
+      default: null
+    },
 
     status: {
       type: String,
