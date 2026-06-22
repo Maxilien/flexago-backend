@@ -242,7 +242,7 @@ async function searchTravelerJobs(req, res) {
 }
 
 /* ============================================================
-   ACCEPT JOB — FIXED VERSION
+   ACCEPT JOB — FIXED VERSION WITH travelerDetail
    ============================================================ */
 async function acceptTravelerJob(req, res) {
   try {
@@ -265,8 +265,19 @@ async function acceptTravelerJob(req, res) {
       return res.status(400).json({ success: false, error: "Job already taken" });
     }
 
+    // ⭐ LOAD TRAVELER USER FROM USERS COLLECTION
+    const User = require("../models/User");
+    const travelerUser = await User.findById(travelerId);
+
+    // ⭐ ATTACH TRAVELER DETAILS DIRECTLY INTO DELIVERY
+    job.traveler = travelerId;
+    job.travelerDetail = {
+      firstName: travelerUser.firstName,
+      lastName: travelerUser.lastName,
+      email: travelerUser.email
+    };
+
     job.status = "accepted";
-    job.traveler = travelerId;   // ⭐ FIXED
     job.acceptedAt = new Date();
 
     await job.save();
