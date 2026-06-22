@@ -50,11 +50,18 @@ const DeliverySchema = new mongoose.Schema(
     price: { type: Number, required: true },
     payoutAmount: { type: Number, required: true },
 
-    // ⭐ FIXED — use traveler, not travelerId
+    // ⭐ Traveler reference (ObjectId)
     traveler: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Traveler",
       default: null
+    },
+
+    // ⭐ NEW — Traveler details stored directly in delivery
+    travelerDetail: {
+      firstName: { type: String },
+      lastName: { type: String },
+      email: { type: String }
     },
 
     status: {
