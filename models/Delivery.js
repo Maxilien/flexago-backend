@@ -70,6 +70,7 @@ const DeliverySchema = new mongoose.Schema(
         "created",
         "available",
         "accepted",
+        "picked_up",
         "in_transit",
         "delivered",
         "payout_pending",
