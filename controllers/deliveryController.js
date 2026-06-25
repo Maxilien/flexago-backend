@@ -290,16 +290,18 @@ async function acceptTravelerJob(req, res) {
 }
 
 /* ============================================================
-   PICKUP JOB
+   PICKUP JOB — FIXED FOR TRAVELER WORKFLOW
    ============================================================ */
 async function pickupTravelerJob(req, res) {
   try {
     const { jobId } = req.params;
 
     const job = await Delivery.findById(jobId);
-    if (!job) return res.status(404).json({ success: false, error: "Job not found" });
+    if (!job) {
+      return res.status(404).json({ success: false, error: "Job not found" });
+    }
 
-    job.status = "in_transit";
+    job.status = "picked_up";   // ⭐ REQUIRED FIX
     job.pickedUpAt = new Date();
 
     await job.save();
