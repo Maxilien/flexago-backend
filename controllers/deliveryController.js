@@ -346,8 +346,9 @@ async function completeTravelerJob(req, res) {
     const job = await Delivery.findById(jobId);
     if (!job) return res.status(404).json({ success: false, error: "Job not found" });
 
-    job.status = "payout_pending";
+    job.status = "delivered";        // ⭐ FIXED
     job.proofPhoto = proofPhoto || null;
+    job.deliveredAt = new Date();    // ⭐ optional but recommended
 
     await job.save();
 
