@@ -57,7 +57,7 @@ const DeliverySchema = new mongoose.Schema(
       default: null
     },
 
-    // ⭐ NEW — Traveler details stored directly in delivery
+    // ⭐ Traveler details stored directly in delivery
     travelerDetail: {
       firstName: { type: String },
       lastName: { type: String },
@@ -86,11 +86,13 @@ const DeliverySchema = new mongoose.Schema(
 
     proofPhoto: String,
 
+    // ⭐ NEW — Proof of Delivery (Step 1)
+    receiverName: { type: String, default: null },
+
     notes: String
   },
   { timestamps: true }
 );
-
 DeliverySchema.index({ "pickup.location": "2dsphere" });
 DeliverySchema.index({ "dropoff.location": "2dsphere" });
 

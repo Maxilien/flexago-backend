@@ -336,19 +336,23 @@ async function deliverTravelerJob(req, res) {
 }
 
 /* ============================================================
-   COMPLETE JOB (moves to payout_pending)
+   COMPLETE JOB (Proof of Delivery: Receiver Name + Timestamp)
    ============================================================ */
 async function completeTravelerJob(req, res) {
   try {
     const { jobId } = req.params;
-    const { proofPhoto } = req.body;
+    const { proofPhoto, receiverName } = req.body;   // ⭐ NEW: receiverName
 
     const job = await Delivery.findById(jobId);
     if (!job) return res.status(404).json({ success: false, error: "Job not found" });
 
-    job.status = "delivered";        // ⭐ FIXED
+    job.status = "delivered";        
     job.proofPhoto = proofPhoto || null;
-    job.deliveredAt = new Date();    // ⭐ optional but recommended
+
+    // ⭐ NEW — Save receiver name
+    job.receiverName = receiverName || null;
+
+    job.deliveredAt = new Date();    
 
     await job.save();
 
