@@ -3,7 +3,6 @@
 // Flexago Delivery model (CommonJS)
 // ------------------------------------------------------
 
-
 const mongoose = require("mongoose");
 
 const GeoPointSchema = new mongoose.Schema({
@@ -36,16 +35,25 @@ const PackageSchema = new mongoose.Schema({
 
 const DeliverySchema = new mongoose.Schema(
   {
-    sender: { ... },
-    receiver: { ... },
+    sender: {
+      name: String,
+      phone: String,
+      email: String
+    },
+
+    receiver: {
+      name: String,
+      phone: String,
+      instructions: String
+    },
 
     pickup: GeoPointSchema,
     dropoff: GeoPointSchema,
 
     package: PackageSchema,
 
-    price: Number,
-    payoutAmount: Number,
+    price: { type: Number, required: true },
+    payoutAmount: { type: Number, required: true },
 
     traveler: {
       type: mongoose.Schema.Types.ObjectId,
@@ -101,3 +109,4 @@ DeliverySchema.index({ "pickup.location": "2dsphere" });
 DeliverySchema.index({ "dropoff.location": "2dsphere" });
 
 module.exports = mongoose.model("Delivery", DeliverySchema);
+
