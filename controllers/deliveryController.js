@@ -336,23 +336,37 @@ async function deliverTravelerJob(req, res) {
 }
 
 /* ============================================================
-   COMPLETE JOB (Proof of Delivery: Receiver Name + Timestamp)
-   ============================================================ */
+   COMPLETE JOB (Proof of Delivery: Receiver Name + Photo + Signature)
+============================================================ */
 async function completeTravelerJob(req, res) {
   try {
     const { jobId } = req.params;
-    const { proofPhoto, receiverName } = req.body;   // ⭐ NEW: receiverName
+    const { receiverName } = req.body;
 
     const job = await Delivery.findById(jobId);
-    if (!job) return res.status(404).json({ success: false, error: "Job not found" });
+    if (!job) {
+      return res.status(404).json({ success: false, error: "Job not found" });
+    }
 
-    job.status = "delivered";        
-    job.proofPhoto = proofPhoto || null;
+    // ⭐ Extract uploaded files from multer
+    const photoFile = req.files?.photo?.[0] || null;
+    const signatureFile = req.files?.signature?.[0] || null;
 
-    // ⭐ NEW — Save receiver name
-    job.receiverName = receiverName || null;
+    // ⭐ Build public URLs for local uploads
+    const photoUrl = photoFile ? `/uploads/${photoFile.filename}` : null;
+    const signatureUrl = signatureFile ? `/uploads/${signatureFile.filename}` : null;
 
-    job.deliveredAt = new Date();    
+    // ⭐ Update delivery status
+    job.status = "delivered";
+
+    // ⭐ Save nested proofOfDelivery object (Option B)
+    job.proofOfDelivery = {
+      receiverName: receiverName || null,
+      photoUrl,
+      signatureUrl,
+      deliveredAt: new Date(),
+      deliveredBy: job.traveler
+    };
 
     await job.save();
 

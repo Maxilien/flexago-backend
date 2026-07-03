@@ -1,3 +1,9 @@
+// model/modeldelivery.js
+// ------------------------------------------------------
+// Flexago Delivery Routes (CommonJS)
+// ------------------------------------------------------
+
+
 const mongoose = require("mongoose");
 
 const GeoPointSchema = new mongoose.Schema({
@@ -30,38 +36,27 @@ const PackageSchema = new mongoose.Schema({
 
 const DeliverySchema = new mongoose.Schema(
   {
-    sender: {
-      name: String,
-      phone: String,
-      email: String
-    },
-
-    receiver: {
-      name: String,
-      phone: String,
-      instructions: String
-    },
+    sender: { ... },
+    receiver: { ... },
 
     pickup: GeoPointSchema,
     dropoff: GeoPointSchema,
 
     package: PackageSchema,
 
-    price: { type: Number, required: true },
-    payoutAmount: { type: Number, required: true },
+    price: Number,
+    payoutAmount: Number,
 
-    // ⭐ Traveler reference (ObjectId)
     traveler: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Traveler",
       default: null
     },
 
-    // ⭐ Traveler details stored directly in delivery
     travelerDetail: {
-      firstName: { type: String },
-      lastName: { type: String },
-      email: { type: String }
+      firstName: String,
+      lastName: String,
+      email: String
     },
 
     status: {
@@ -84,15 +79,24 @@ const DeliverySchema = new mongoose.Schema(
     deliveredAt: Date,
     payoutCompletedAt: Date,
 
-    proofPhoto: String,
-
-    // ⭐ NEW — Proof of Delivery (Step 1)
-    receiverName: { type: String, default: null },
+    // ⭐ NEW — Nested Proof of Delivery object
+    proofOfDelivery: {
+      receiverName: { type: String, default: null },
+      photoUrl: { type: String, default: null },
+      signatureUrl: { type: String, default: null },
+      deliveredAt: { type: Date, default: null },
+      deliveredBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Traveler",
+        default: null
+      }
+    },
 
     notes: String
   },
   { timestamps: true }
 );
+
 DeliverySchema.index({ "pickup.location": "2dsphere" });
 DeliverySchema.index({ "dropoff.location": "2dsphere" });
 
