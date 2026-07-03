@@ -1,6 +1,6 @@
 // model/modeldelivery.js
 // ------------------------------------------------------
-// Flexago Delivery Routes (CommonJS)
+// Flexago Delivery model (CommonJS)
 // ------------------------------------------------------
 
 
