@@ -336,12 +336,12 @@ async function deliverTravelerJob(req, res) {
 }
 
 /* ============================================================
-   COMPLETE JOB (Proof of Delivery: Receiver Name + Photo + Signature)
+   COMPLETE JOB (Proof of Delivery: Signed By + Photo + Signature)
 ============================================================ */
 async function completeTravelerJob(req, res) {
   try {
     const { jobId } = req.params;
-    const { receiverName } = req.body;
+    const { signedBy } = req.body;   // ⭐ UPDATED
 
     const job = await Delivery.findById(jobId);
     if (!job) {
@@ -359,9 +359,9 @@ async function completeTravelerJob(req, res) {
     // ⭐ Update delivery status
     job.status = "delivered";
 
-    // ⭐ Save nested proofOfDelivery object (Option B)
+    // ⭐ Save nested proofOfDelivery object
     job.proofOfDelivery = {
-      receiverName: receiverName || null,
+      signedBy: signedBy || null,   // ⭐ UPDATED
       photoUrl,
       signatureUrl,
       deliveredAt: new Date(),

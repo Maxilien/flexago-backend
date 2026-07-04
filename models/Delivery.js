@@ -88,17 +88,17 @@ const DeliverySchema = new mongoose.Schema(
     payoutCompletedAt: Date,
 
     // ⭐ NEW — Nested Proof of Delivery object
-    proofOfDelivery: {
-      receiverName: { type: String, default: null },
-      photoUrl: { type: String, default: null },
-      signatureUrl: { type: String, default: null },
-      deliveredAt: { type: Date, default: null },
-      deliveredBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Traveler",
-        default: null
-      }
-    },
+proofOfDelivery: {
+  receiverName: { type: String, default: null },
+  photoUrl: { type: String, default: null },
+  signatureUrl: { type: String, default: null },
+  deliveredAt: { type: Date, default: null },
+  deliveredBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Traveler",
+    default: null
+  }
+},
 
     notes: String
   },
