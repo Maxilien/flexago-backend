@@ -89,7 +89,7 @@ const DeliverySchema = new mongoose.Schema(
 
     // ⭐ NEW — Nested Proof of Delivery object
 proofOfDelivery: {
-  receiverName: { type: String, default: null },
+  signedBy: { type: String, default: null },   // ⭐ UPDATED
   photoUrl: { type: String, default: null },
   signatureUrl: { type: String, default: null },
   deliveredAt: { type: Date, default: null },
@@ -99,6 +99,7 @@ proofOfDelivery: {
     default: null
   }
 },
+
 
     notes: String
   },

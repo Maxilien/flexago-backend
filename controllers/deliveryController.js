@@ -376,7 +376,6 @@ async function completeTravelerJob(req, res) {
     res.status(500).json({ success: false, error: "Server error" });
   }
 }
-
 /* ============================================================
    PAYOUT JOB (final step)
    ============================================================ */
