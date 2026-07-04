@@ -353,8 +353,9 @@ async function completeTravelerJob(req, res) {
     const signatureFile = req.files?.signature?.[0] || null;
 
     // ⭐ Build public URLs for local uploads
-    const photoUrl = photoFile ? `/uploads/${photoFile.filename}` : null;
-    const signatureUrl = signatureFile ? `/uploads/${signatureFile.filename}` : null;
+    const photoUrl = photoFile ? `/tmp/${photoFile.filename}` : null;
+const signatureUrl = signatureFile ? `/tmp/${signatureFile.filename}` : null;
+
 
     // ⭐ Update delivery status
     job.status = "delivered";

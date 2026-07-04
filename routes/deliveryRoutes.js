@@ -26,9 +26,9 @@ const router = express.Router();
    ⭐ MULTER STORAGE — LOCAL UPLOADS
 ============================================================ */
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "public/uploads");
-  },
+destination: function (req, file, cb) {
+  cb(null, "/tmp");   // Render-safe writable directory
+}
   filename: function (req, file, cb) {
     const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
     cb(null, unique + "-" + file.originalname);
