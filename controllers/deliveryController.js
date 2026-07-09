@@ -117,6 +117,15 @@ async function createDelivery(req, res) {
       price
     } = req.body;
 
+    // ⭐ Extract Sender photo from multer
+    const senderPhotoUrl = req.file ? `/tmp/${req.file.filename}` : null;
+
+    // ⭐ Inject photo into package object
+    if (senderPhotoUrl) {
+      if (!pkg) pkg = {};
+      pkg.photoUrl = senderPhotoUrl;
+    }
+
     const pickup = normalizeGeoPoint(rawPickup);
     const dropoff = normalizeGeoPoint(rawDropoff);
 

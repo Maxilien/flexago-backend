@@ -42,10 +42,16 @@ const upload = multer({ storage });
 ============================================================ */
 
 // Sender creates a delivery
-router.post("/", (req, res, next) => {
-  console.log("🔥 DELIVERY ROUTE HIT");
-  next();
-}, createDelivery);
+router.post(
+  "/",
+  upload.single("photo"),   // ⭐ accept Sender photo
+  (req, res, next) => {
+    console.log("🔥 DELIVERY ROUTE HIT");
+    next();
+  },
+  createDelivery
+);
+
 
 // Traveler job search
 router.post("/search", searchTravelerJobs);
