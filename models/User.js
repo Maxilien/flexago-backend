@@ -29,6 +29,20 @@ const UserSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // ⭐ NEW — Email Verification Fields
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+
+    emailVerificationCode: {
+      type: String,
+    },
+
+    emailVerificationExpires: {
+      type: Date,
+    },
+
     password: {
       type: String,
       required: true,
@@ -89,4 +103,3 @@ UserSchema.methods.matchPassword = async function (enteredPassword) {
 };
 
 module.exports = mongoose.model("User", UserSchema);
-

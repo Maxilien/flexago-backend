@@ -23,6 +23,9 @@ const deliveryRoutes = require("./routes/deliveryRoutes");
 // Upload routes
 const uploadRoutes = require("./routes/uploadRoutes");
 
+// ⭐ NEW — Email Verification Routes (Step 5)
+const verifyEmailRoutes = require("./routes/verifyEmailRoutes");
+
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
@@ -71,6 +74,9 @@ app.use("/api/traveler", travelerRoutes);
 // User routes
 app.use("/api/users", userRoutes);
 
+// ⭐ NEW — Email Verification Routes (Step 5)
+app.use("/api/verify", verifyEmailRoutes);
+
 /* ============================================================
    ERROR HANDLER
    ============================================================ */
@@ -82,3 +88,4 @@ app.use(errorHandler);
    ============================================================ */
 
 module.exports = app;
+
