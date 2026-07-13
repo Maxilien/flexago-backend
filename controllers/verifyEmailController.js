@@ -1,21 +1,28 @@
-const User = require("../models/User");
+const TempEmail = require("../models/TempEmail");
 const { sendVerificationEmail } = require("../utils/emailService");
 
-// SEND CODE
+// SEND CODE (no userId required)
 exports.sendEmailCode = async (req, res) => {
   try {
-    const { userId, email } = req.body;
+    const { email } = req.body;
 
-    const user = await User.findById(userId);
-    if (!user) return res.json({ success: false, error: "User not found" });
+    if (!email) {
+      return res.json({ success: false, error: "Email is required" });
+    }
 
     // Generate 6-digit OTP
     const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-    user.email = email;
-    user.emailVerificationCode = code;
-    user.emailVerificationExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-    await user.save();
+    // Save or update temporary email record
+    await TempEmail.findOneAndUpdate(
+      { email },
+      {
+        email,
+        code,
+        expires: Date.now() + 10 * 60 * 1000 // 10 minutes
+      },
+      { upsert: true }
+    );
 
     await sendVerificationEmail(email, code);
 
@@ -26,29 +33,23 @@ exports.sendEmailCode = async (req, res) => {
   }
 };
 
-// VERIFY CODE
+// VERIFY CODE (no userId required)
 exports.verifyEmailCode = async (req, res) => {
   try {
-    const { userId, code } = req.body;
+    const { email, code } = req.body;
 
-    const user = await User.findById(userId);
-    if (!user) return res.json({ success: false, error: "User not found" });
-
-    if (!user.emailVerificationCode) {
+    const record = await TempEmail.findOne({ email });
+    if (!record) {
       return res.json({ success: false, error: "No code generated" });
     }
 
-    if (user.emailVerificationCode !== code) {
+    if (record.code !== code) {
       return res.json({ success: false, error: "Invalid code" });
     }
 
-    if (Date.now() > user.emailVerificationExpires) {
+    if (Date.now() > record.expires) {
       return res.json({ success: false, error: "Code expired" });
     }
-
-    user.emailVerified = true;
-    user.emailVerificationCode = null;
-    await user.save();
 
     res.json({ success: true });
   } catch (err) {
