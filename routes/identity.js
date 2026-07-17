@@ -1,9 +1,19 @@
 const express = require("express");
 const router = express.Router();
 const Stripe = require("stripe");
+
+// Ensure Stripe key exists
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.error("❌ Missing STRIPE_SECRET_KEY in Render Environment");
+}
+
+if (!process.env.STRIPE_IDENTITY_FLOW_ID) {
+  console.error("❌ Missing STRIPE_IDENTITY_FLOW_ID in Render Environment");
+}
+
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Create Stripe Identity Verification Session
+// POST /api/verify/create-session
 router.post("/create-session", async (req, res) => {
   try {
     const { userId } = req.body;
@@ -12,13 +22,14 @@ router.post("/create-session", async (req, res) => {
       return res.json({ success: false, message: "Missing userId" });
     }
 
-    // Create verification session using your Flow ID
+    // Create Stripe Identity Verification Session
     const session = await stripe.identity.verificationSessions.create({
       type: "document",
       verification_flow: process.env.STRIPE_IDENTITY_FLOW_ID,
-      metadata: {
-        userId: userId
-      }
+      metadata: { userId },
+
+      // Stripe redirects user back to your frontend after verification
+      return_url: "https://flexago-frontend.onrender.com/verify-stripe.html"
     });
 
     return res.json({
@@ -27,8 +38,11 @@ router.post("/create-session", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("Stripe Identity Error:", err);
-    return res.json({ success: false, message: "Unable to create session" });
+    console.error("❌ Stripe Identity Error:", err);
+    return res.json({
+      success: false,
+      message: "Unable to create verification session"
+    });
   }
 });
 

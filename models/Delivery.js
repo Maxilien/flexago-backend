@@ -1,8 +1,3 @@
-// model/modeldelivery.js
-// ------------------------------------------------------
-// Flexago Delivery model (CommonJS)
-// ------------------------------------------------------
-
 const mongoose = require("mongoose");
 
 const GeoPointSchema = new mongoose.Schema({
@@ -55,17 +50,7 @@ const DeliverySchema = new mongoose.Schema(
     price: { type: Number, required: true },
     payoutAmount: { type: Number, required: true },
 
-    traveler: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Traveler",
-      default: null
-    },
-
-    travelerDetail: {
-      firstName: String,
-      lastName: String,
-      email: String
-    },
+    travelerId: { type: String, default: null },
 
     status: {
       type: String,
@@ -73,7 +58,6 @@ const DeliverySchema = new mongoose.Schema(
         "created",
         "available",
         "accepted",
-        "picked_up",
         "in_transit",
         "delivered",
         "payout_pending",
@@ -87,19 +71,7 @@ const DeliverySchema = new mongoose.Schema(
     deliveredAt: Date,
     payoutCompletedAt: Date,
 
-    // ⭐ NEW — Nested Proof of Delivery object
-proofOfDelivery: {
-  signedBy: { type: String, default: null },   // ⭐ UPDATED
-  photoUrl: { type: String, default: null },
-  signatureUrl: { type: String, default: null },
-  deliveredAt: { type: Date, default: null },
-  deliveredBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Traveler",
-    default: null
-  }
-},
-
+    proofPhoto: String,
 
     notes: String
   },
@@ -110,4 +82,3 @@ DeliverySchema.index({ "pickup.location": "2dsphere" });
 DeliverySchema.index({ "dropoff.location": "2dsphere" });
 
 module.exports = mongoose.model("Delivery", DeliverySchema);
-

@@ -117,15 +117,6 @@ async function createDelivery(req, res) {
       price
     } = req.body;
 
-    // ⭐ Extract Sender photo from multer
-    const senderPhotoUrl = req.file ? `/tmp/${req.file.filename}` : null;
-
-    // ⭐ Inject photo into package object
-    if (senderPhotoUrl) {
-      if (!pkg) pkg = {};
-      pkg.photoUrl = senderPhotoUrl;
-    }
-
     const pickup = normalizeGeoPoint(rawPickup);
     const dropoff = normalizeGeoPoint(rawDropoff);
 
@@ -251,7 +242,7 @@ async function searchTravelerJobs(req, res) {
 }
 
 /* ============================================================
-   ACCEPT JOB — FIXED VERSION WITH travelerDetail
+   ACCEPT JOB — FIXED VERSION
    ============================================================ */
 async function acceptTravelerJob(req, res) {
   try {
@@ -274,19 +265,8 @@ async function acceptTravelerJob(req, res) {
       return res.status(400).json({ success: false, error: "Job already taken" });
     }
 
-    // ⭐ LOAD TRAVELER USER FROM USERS COLLECTION
-    const User = require("../models/User");
-    const travelerUser = await User.findById(travelerId);
-
-    // ⭐ ATTACH TRAVELER DETAILS DIRECTLY INTO DELIVERY
-    job.traveler = travelerId;
-    job.travelerDetail = {
-      firstName: travelerUser.firstName,
-      lastName: travelerUser.lastName,
-      email: travelerUser.email
-    };
-
     job.status = "accepted";
+    job.traveler = travelerId;   // ⭐ FIXED
     job.acceptedAt = new Date();
 
     await job.save();
@@ -299,18 +279,16 @@ async function acceptTravelerJob(req, res) {
 }
 
 /* ============================================================
-   PICKUP JOB — FIXED FOR TRAVELER WORKFLOW
+   PICKUP JOB
    ============================================================ */
 async function pickupTravelerJob(req, res) {
   try {
     const { jobId } = req.params;
 
     const job = await Delivery.findById(jobId);
-    if (!job) {
-      return res.status(404).json({ success: false, error: "Job not found" });
-    }
+    if (!job) return res.status(404).json({ success: false, error: "Job not found" });
 
-    job.status = "picked_up";   // ⭐ REQUIRED FIX
+    job.status = "in_transit";
     job.pickedUpAt = new Date();
 
     await job.save();
@@ -345,38 +323,18 @@ async function deliverTravelerJob(req, res) {
 }
 
 /* ============================================================
-   COMPLETE JOB (Proof of Delivery: Signed By + Photo + Signature)
-============================================================ */
+   COMPLETE JOB (moves to payout_pending)
+   ============================================================ */
 async function completeTravelerJob(req, res) {
   try {
     const { jobId } = req.params;
-    const { signedBy } = req.body;   // ⭐ UPDATED
+    const { proofPhoto } = req.body;
 
     const job = await Delivery.findById(jobId);
-    if (!job) {
-      return res.status(404).json({ success: false, error: "Job not found" });
-    }
+    if (!job) return res.status(404).json({ success: false, error: "Job not found" });
 
-    // ⭐ Extract uploaded files from multer
-    const photoFile = req.files?.photo?.[0] || null;
-    const signatureFile = req.files?.signature?.[0] || null;
-
-    // ⭐ Build public URLs for local uploads
-    const photoUrl = photoFile ? `/tmp/${photoFile.filename}` : null;
-const signatureUrl = signatureFile ? `/tmp/${signatureFile.filename}` : null;
-
-
-    // ⭐ Update delivery status
-    job.status = "delivered";
-
-    // ⭐ Save nested proofOfDelivery object
-    job.proofOfDelivery = {
-      signedBy: signedBy || null,   // ⭐ UPDATED
-      photoUrl,
-      signatureUrl,
-      deliveredAt: new Date(),
-      deliveredBy: job.traveler
-    };
+    job.status = "payout_pending";
+    job.proofPhoto = proofPhoto || null;
 
     await job.save();
 
@@ -386,6 +344,7 @@ const signatureUrl = signatureFile ? `/tmp/${signatureFile.filename}` : null;
     res.status(500).json({ success: false, error: "Server error" });
   }
 }
+
 /* ============================================================
    PAYOUT JOB (final step)
    ============================================================ */

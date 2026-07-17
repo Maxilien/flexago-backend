@@ -1,3 +1,8 @@
+// backend/server.js (CommonJS VERSION)
+// ------------------------------------------------------
+// Flexagoo API + WebSocket Server
+// ------------------------------------------------------
+
 console.log("🟢 server.js LOADED");
 
 const http = require("http");
@@ -10,16 +15,6 @@ require("./config/env");
 // Connect to MongoDB
 const connectDB = require("./config/db");
 connectDB();
-
-// ⭐ Add identity routes BEFORE creating server
-const identityRoutes = require("./routes/identity");
-const identityWebhook = require("./routes/identityWebhook");
-
-// Normal JSON routes
-app.use("/api/identity", identityRoutes);
-
-// Webhook MUST use raw body — keep separate
-app.use("/api/identity", identityWebhook);
 
 // Create HTTP server
 const server = http.createServer(app);
@@ -38,10 +33,35 @@ const io = new Server(server, {
   transports: ["websocket"]
 });
 
-// WebSocket logic...
+// WebSocket logic (delivery rooms + updates)
 io.on("connection", socket => {
   console.log("WS connected:", socket.id);
-  // your socket logic...
+
+  // Join delivery room
+  socket.on("join_delivery", deliveryId => {
+    socket.join(deliveryId);
+    console.log(`Socket ${socket.id} joined room ${deliveryId}`);
+  });
+
+  // Traveler GPS updates
+  socket.on("location_update", data => {
+    io.to(data.deliveryId).emit("location_update", data);
+  });
+
+  // Delivery status updates
+  socket.on("status_update", data => {
+    io.to(data.deliveryId).emit("status_update", data);
+  });
+
+  // Delivery photo
+  socket.on("delivery_photo", data => {
+    io.to(data.deliveryId).emit("delivery_photo", data);
+  });
+
+  // Signature submitted
+  socket.on("signature_submitted", data => {
+    io.to(data.deliveryId).emit("signature_submitted", data);
+  });
 });
 
 // Start server
@@ -52,4 +72,3 @@ server.listen(PORT, () => {
 });
 
 module.exports = server;
-

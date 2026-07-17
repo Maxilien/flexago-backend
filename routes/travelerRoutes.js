@@ -9,8 +9,7 @@ const express = require("express");
 const {
   createTraveler,
   getTravelerByUser,
-  updateTravelerLocation,
-  getTravelerById   // ⭐ NEW IMPORT
+  updateTravelerLocation
 } = require("../controllers/travelerController");
 
 const {
@@ -22,19 +21,11 @@ const router = express.Router();
 
 // Traveler profile
 router.post("/", createTraveler);
-
-// Get traveler by USER ID
 router.get("/user/:userId", getTravelerByUser);
-
-// ⭐ NEW — Get traveler by TRAVELER ID (used by Sender app)
-router.get("/:id", getTravelerById);
-
-// Update traveler location
 router.put("/location/:userId", updateTravelerLocation);
 
-// Traveler job actions
+// Traveler job actions (ONLY the ones that exist)
 router.post("/jobs/:jobId/accept", acceptTravelerJob);
 router.post("/jobs/:jobId/complete", completeTravelerJob);
 
 module.exports = router;
-
