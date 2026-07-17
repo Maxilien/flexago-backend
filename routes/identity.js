@@ -24,7 +24,6 @@ router.post("/create-session", async (req, res) => {
 
     // Create Stripe Identity Verification Session
     const session = await stripe.identity.verificationSessions.create({
-      type: "document",
       verification_flow: process.env.STRIPE_IDENTITY_FLOW_ID,
       metadata: { userId },
 
