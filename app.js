@@ -23,6 +23,9 @@ const deliveryRoutes = require("./routes/deliveryRoutes");
 // Upload routes
 const uploadRoutes = require("./routes/uploadRoutes");
 
+// ⭐ ADD THIS — Identity Verification Route
+const identityRoutes = require("./routes/identity");
+
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
@@ -70,6 +73,9 @@ app.use("/api/traveler", travelerRoutes);
 
 // User routes
 app.use("/api/users", userRoutes);
+
+// ⭐ ADD THIS — THIS FIXES YOUR 404
+app.use("/api/verify", identityRoutes);
 
 /* ============================================================
    ERROR HANDLER
