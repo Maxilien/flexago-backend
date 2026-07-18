@@ -7,10 +7,6 @@ if (!process.env.STRIPE_SECRET_KEY) {
   console.error("❌ Missing STRIPE_SECRET_KEY in Render Environment");
 }
 
-if (!process.env.STRIPE_IDENTITY_FLOW_ID) {
-  console.error("❌ Missing STRIPE_IDENTITY_FLOW_ID in Render Environment");
-}
-
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 /* ============================================================
@@ -18,9 +14,9 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
    ============================================================ */
 router.post("/create-session", async (req, res) => {
   try {
-    // Create Stripe Identity Verification Session
+    // Create Stripe Identity Verification Session (correct mode)
     const session = await stripe.identity.verificationSessions.create({
-      verification_flow: process.env.STRIPE_IDENTITY_FLOW_ID,
+      type: "document",
 
       // Stripe redirects user back to your frontend after verification
       return_url: "https://flexago-frontend.onrender.com/verify-stripe.html"
@@ -41,7 +37,7 @@ router.post("/create-session", async (req, res) => {
 });
 
 /* ============================================================
-   2. CHECK VERIFICATION STATUS (NO MONGODB REQUIRED)
+   2. CHECK VERIFICATION STATUS
    ============================================================ */
 router.get("/check-session", async (req, res) => {
   try {
@@ -67,3 +63,4 @@ router.get("/check-session", async (req, res) => {
 });
 
 module.exports = router;
+
