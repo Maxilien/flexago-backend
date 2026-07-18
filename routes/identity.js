@@ -13,19 +13,14 @@ if (!process.env.STRIPE_IDENTITY_FLOW_ID) {
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
-// POST /api/verify/create-session
+/* ============================================================
+   1. CREATE STRIPE IDENTITY VERIFICATION SESSION
+   ============================================================ */
 router.post("/create-session", async (req, res) => {
   try {
-    const { userId } = req.body;
-
-    if (!userId) {
-      return res.json({ success: false, message: "Missing userId" });
-    }
-
     // Create Stripe Identity Verification Session
     const session = await stripe.identity.verificationSessions.create({
       verification_flow: process.env.STRIPE_IDENTITY_FLOW_ID,
-      metadata: { userId },
 
       // Stripe redirects user back to your frontend after verification
       return_url: "https://flexago-frontend.onrender.com/verify-stripe.html"
@@ -41,6 +36,32 @@ router.post("/create-session", async (req, res) => {
     return res.json({
       success: false,
       message: "Unable to create verification session"
+    });
+  }
+});
+
+/* ============================================================
+   2. CHECK VERIFICATION STATUS (NO MONGODB REQUIRED)
+   ============================================================ */
+router.get("/check-session", async (req, res) => {
+  try {
+    const { sessionId } = req.query;
+
+    if (!sessionId) {
+      return res.json({ verified: false, message: "Missing sessionId" });
+    }
+
+    const session = await stripe.identity.verificationSessions.retrieve(sessionId);
+
+    return res.json({
+      verified: session.status === "verified"
+    });
+
+  } catch (err) {
+    console.error("❌ Stripe Session Check Error:", err);
+    return res.json({
+      verified: false,
+      message: "Unable to check verification status"
     });
   }
 });
