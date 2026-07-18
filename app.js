@@ -23,8 +23,10 @@ const deliveryRoutes = require("./routes/deliveryRoutes");
 // Upload routes
 const uploadRoutes = require("./routes/uploadRoutes");
 
-// ⭐ ADD THIS — Identity Verification Route
+// Identity Verification Routes
 const identityRoutes = require("./routes/identity");
+const verifyStatusRoutes = require("./routes/verifyStatus");
+const identityWebhook = require("./routes/identityWebhook");
 
 const errorHandler = require("./middleware/errorHandler");
 
@@ -49,7 +51,14 @@ app.use(cors({
 }));
 
 app.options("*", cors());
+
+// IMPORTANT: Stripe Webhooks require RAW body BEFORE express.json()
+app.use("/webhook", express.raw({ type: "application/json" }));
+
+// JSON parser for all other routes
 app.use(express.json());
+
+// Static uploads
 app.use("/uploads", express.static("uploads"));
 
 /* ============================================================
@@ -74,8 +83,14 @@ app.use("/api/traveler", travelerRoutes);
 // User routes
 app.use("/api/users", userRoutes);
 
-// ⭐ ADD THIS — THIS FIXES YOUR 404
+// Identity Verification (create session)
 app.use("/api/verify", identityRoutes);
+
+// Identity Verification Status (check if verified)
+app.use("/api/verify", verifyStatusRoutes);
+
+// Stripe Identity Webhook (verification events)
+app.use("/webhook", identityWebhook);
 
 /* ============================================================
    ERROR HANDLER
