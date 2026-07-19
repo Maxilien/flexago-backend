@@ -28,6 +28,9 @@ const identityRoutes = require("./routes/identity");
 const verifyStatusRoutes = require("./routes/verifyStatus");
 const identityWebhook = require("./routes/identityWebhook");
 
+// ⭐ NEW — Create Account Route
+const createAccountRoutes = require("./routes/create-account");
+
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
@@ -91,6 +94,9 @@ app.use("/api/verify", verifyStatusRoutes);
 
 // Stripe Identity Webhook (verification events)
 app.use("/webhook", identityWebhook);
+
+// ⭐ NEW — Create Account (Traveler/Sender)
+app.use("/api/account", createAccountRoutes);
 
 /* ============================================================
    ERROR HANDLER
