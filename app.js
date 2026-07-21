@@ -23,13 +23,16 @@ const deliveryRoutes = require("./routes/deliveryRoutes");
 // Upload routes
 const uploadRoutes = require("./routes/uploadRoutes");
 
-// Identity Verification Routes
+// Identity Verification Routes (Stripe Identity)
 const identityRoutes = require("./routes/identity");
 const verifyStatusRoutes = require("./routes/verifyStatus");
 const identityWebhook = require("./routes/identityWebhook");
 
 // ⭐ NEW — Create Account Route
 const createAccountRoutes = require("./routes/create-account");
+
+// ⭐ NEW — Twilio Phone Verification Route
+const verifyPhoneRoutes = require("./routes/verify");   // <── THIS IS THE FIX
 
 const errorHandler = require("./middleware/errorHandler");
 
@@ -92,6 +95,9 @@ app.use("/api/verify", identityRoutes);
 // Identity Verification Status (check if verified)
 app.use("/api/verify", verifyStatusRoutes);
 
+// ⭐ NEW — Twilio Phone Verification (THIS FIXES YOUR 404)
+app.use("/api/verify", verifyPhoneRoutes);
+
 // Stripe Identity Webhook (verification events)
 app.use("/webhook", identityWebhook);
 
@@ -109,3 +115,4 @@ app.use(errorHandler);
    ============================================================ */
 
 module.exports = app;
+
