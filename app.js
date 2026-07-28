@@ -28,11 +28,14 @@ const identityRoutes = require("./routes/identity");
 const verifyStatusRoutes = require("./routes/verifyStatus");
 const identityWebhook = require("./routes/identityWebhook");
 
+// ⭐ NEW — Email Verification Route (MISSING BEFORE)
+const verifyEmailRoutes = require("./routes/verifyEmail");
+
 // ⭐ NEW — Create Account Route
 const createAccountRoutes = require("./routes/create-account");
 
 // ⭐ NEW — Twilio Phone Verification Route
-const verifyPhoneRoutes = require("./routes/verify");   // <── THIS IS THE FIX
+const verifyPhoneRoutes = require("./routes/verify");
 
 const errorHandler = require("./middleware/errorHandler");
 
@@ -50,7 +53,7 @@ app.use(cors({
     "http://localhost",
     "https://flexago-frontend.onrender.com",
     "https://flexago-backend.onrender.com",
-    "https://app.flexagoo.com"   // ⭐ NEW — REQUIRED
+    "https://app.flexagoo.com"   // ⭐ REQUIRED FOR CUSTOM DOMAIN
   ],
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
@@ -96,7 +99,10 @@ app.use("/api/verify", identityRoutes);
 // Identity Verification Status (check if verified)
 app.use("/api/verify", verifyStatusRoutes);
 
-// ⭐ NEW — Twilio Phone Verification (THIS FIXES YOUR 404)
+// ⭐ NEW — Email Verification (THIS FIXES YOUR 404)
+app.use("/api/verify", verifyEmailRoutes);
+
+// ⭐ NEW — Twilio Phone Verification
 app.use("/api/verify", verifyPhoneRoutes);
 
 // Stripe Identity Webhook (verification events)
@@ -116,4 +122,3 @@ app.use(errorHandler);
    ============================================================ */
 
 module.exports = app;
-
