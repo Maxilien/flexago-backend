@@ -49,7 +49,8 @@ app.use(cors({
     "http://127.0.0.1",
     "http://localhost",
     "https://flexago-frontend.onrender.com",
-    "https://flexago-backend.onrender.com"
+    "https://flexago-backend.onrender.com",
+    "https://app.flexagoo.com"   // ⭐ NEW — REQUIRED
   ],
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
