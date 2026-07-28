@@ -29,7 +29,7 @@ const verifyStatusRoutes = require("./routes/verifyStatus");
 const identityWebhook = require("./routes/identityWebhook");
 
 // ⭐ NEW — Email Verification Route (MISSING BEFORE)
-const verifyEmailRoutes = require("./routes/verifyEmail");
+const verifyEmailRoutes = require("./routes/verifyEmailRoutes");
 
 // ⭐ NEW — Create Account Route
 const createAccountRoutes = require("./routes/create-account");
