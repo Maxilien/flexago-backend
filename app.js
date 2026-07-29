@@ -28,7 +28,7 @@ const identityRoutes = require("./routes/identity");
 const verifyStatusRoutes = require("./routes/verifyStatus");
 const identityWebhook = require("./routes/identityWebhook");
 
-// ⭐ NEW — Email Verification Route (MISSING BEFORE)
+// ⭐ NEW — Email Verification Route
 const verifyEmailRoutes = require("./routes/verifyEmailRoutes");
 
 // ⭐ NEW — Create Account Route
@@ -36,6 +36,15 @@ const createAccountRoutes = require("./routes/create-account");
 
 // ⭐ NEW — Twilio Phone Verification Route
 const verifyPhoneRoutes = require("./routes/verify");
+
+// ⭐ NEW — ADMIN ROUTES
+const adminAuthRoutes = require("./routes/adminAuth");
+const adminUsersRoutes = require("./routes/adminUsers");
+const adminOrdersRoutes = require("./routes/adminOrders");
+const adminEscrowRoutes = require("./routes/adminEscrow");
+const adminPayoutsRoutes = require("./routes/adminPayouts");
+const adminRevenueRoutes = require("./routes/adminRevenue");
+const adminAnalyticsRoutes = require("./routes/adminAnalytics");
 
 const errorHandler = require("./middleware/errorHandler");
 
@@ -99,7 +108,7 @@ app.use("/api/verify", identityRoutes);
 // Identity Verification Status (check if verified)
 app.use("/api/verify", verifyStatusRoutes);
 
-// ⭐ NEW — Email Verification (THIS FIXES YOUR 404)
+// ⭐ NEW — Email Verification
 app.use("/api/verify", verifyEmailRoutes);
 
 // ⭐ NEW — Twilio Phone Verification
@@ -110,6 +119,18 @@ app.use("/webhook", identityWebhook);
 
 // ⭐ NEW — Create Account (Traveler/Sender)
 app.use("/api/account", createAccountRoutes);
+
+/* ============================================================
+   ⭐ ADMIN ROUTES (JWT PROTECTED)
+   ============================================================ */
+
+app.use("/api/admin", adminAuthRoutes);          // login + 2FA
+app.use("/api/admin/users", adminUsersRoutes);   // users tab
+app.use("/api/admin/orders", adminOrdersRoutes); // orders tab
+app.use("/api/admin/escrow", adminEscrowRoutes); // escrow tab
+app.use("/api/admin/payouts", adminPayoutsRoutes); // payouts tab
+app.use("/api/admin/revenue", adminRevenueRoutes); // revenue tab
+app.use("/api/admin/analytics", adminAnalyticsRoutes); // analytics tab
 
 /* ============================================================
    ERROR HANDLER
