@@ -3,13 +3,15 @@ const mongoose = require("mongoose");
 
 const adminSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
-  passwordHash: { type: String, required: true },
 
-  phone: { type: String, required: true }, // employee personal number
-  twoFACode: String,
-  twoFAExpires: Date,
+  // Your DB uses "password", not "passwordHash"
+  password: { type: String, required: true },
 
-  role: { type: String, default: "admin" },
+  // 2FA fields (optional, no Twilio required)
+  twoFACode: { type: String, default: null },
+  twoFAExpires: { type: Number, default: null },
+
+  role: { type: String, default: "superadmin" },
   createdAt: { type: Date, default: Date.now }
 });
 
