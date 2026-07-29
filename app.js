@@ -56,18 +56,36 @@ const app = express();
 
 app.use(cors({
   origin: [
+    // Local development
     "http://127.0.0.1:5500",
     "http://localhost:5500",
     "http://127.0.0.1",
     "http://localhost",
+
+    // Render frontend
     "https://flexago-frontend.onrender.com",
+
+    // Render backend
     "https://flexago-backend.onrender.com",
-    "https://app.flexagoo.com"   // ⭐ REQUIRED FOR CUSTOM DOMAIN
+
+    // ⭐ Your real production domain
+    "https://www.flexagoo.com",
+    "https://flexagoo.com",
+
+    // App subdomain
+    "https://app.flexagoo.com"
   ],
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
+
+// ⭐ Render sometimes strips CORS headers — enforce them manually
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "https://www.flexagoo.com");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  next();
+});
 
 app.options("*", cors());
 
