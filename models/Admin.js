@@ -7,7 +7,7 @@ const adminSchema = new mongoose.Schema({
   // Your DB uses "password", not "passwordHash"
   password: { type: String, required: true },
 
-  // 2FA fields (optional, no Twilio required)
+  // 2FA fields
   twoFACode: { type: String, default: null },
   twoFAExpires: { type: Number, default: null },
 
