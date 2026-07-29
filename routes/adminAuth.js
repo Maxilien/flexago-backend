@@ -2,11 +2,10 @@
 const express = require("express");
 const router = express.Router();
 const Admin = require("../models/Admin");
-const bcrypt = require("bcryptjs");   // ⭐ FIXED
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const twilio = require("twilio")(process.env.TWILIO_SID, process.env.TWILIO_AUTH);
 
-// STEP 1 — Login (email + password → send SMS 2FA)
+// STEP 1 — Login (email + password → generate 2FA)
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -14,7 +13,8 @@ router.post("/login", async (req, res) => {
     const admin = await Admin.findOne({ email });
     if (!admin) return res.status(400).json({ error: "Invalid credentials" });
 
-    const valid = await bcrypt.compare(password, admin.passwordHash);
+    // FIX: use admin.password (your DB field)
+    const valid = await bcrypt.compare(password, admin.password);
     if (!valid) return res.status(400).json({ error: "Invalid credentials" });
 
     // Generate 6-digit 2FA code
@@ -24,12 +24,8 @@ router.post("/login", async (req, res) => {
     admin.twoFAExpires = Date.now() + 5 * 60 * 1000; // 5 minutes
     await admin.save();
 
-    // Send SMS via Twilio
-    await twilio.messages.create({
-      body: `Your Flexago Admin 2FA code is: ${code}`,
-      to: admin.phone,
-      from: process.env.TWILIO_PHONE
-    });
+    // ⭐ TEMP: Log code instead of sending SMS
+    console.log("🔐 Admin 2FA code:", code);
 
     res.json({ status: "2fa_required" });
   } catch (err) {
