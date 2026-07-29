@@ -2,7 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const Admin = require("../models/Admin");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");   // ⭐ FIXED
 const jwt = require("jsonwebtoken");
 const twilio = require("twilio")(process.env.TWILIO_SID, process.env.TWILIO_AUTH);
 
