@@ -23,8 +23,9 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: [
-      "https://flexago-frontend.onrender.com",
-      "https://flexago-backend.onrender.com"
+      "https://app.flexagoo.com",                 // ⭐ NEW — your custom domain
+      "https://flexago-frontend.onrender.com",    // ⭐ KEEP — your Render static site
+      "https://flexago-backend.onrender.com"      // ⭐ KEEP — your backend domain
     ],
     methods: ["GET", "POST"],
     credentials: true
