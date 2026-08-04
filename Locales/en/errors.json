@@ -1,0 +1,9 @@
+{
+  "generic": "Something went wrong. Please try again.",
+  "unauthorized": "You are not authorized to perform this action.",
+  "not_found": "Resource not found.",
+  "invalid_email": "Please enter a valid email address.",
+  "invalid_code": "Invalid or expired verification code.",
+  "email_failed": "Failed to send verification email.",
+  "server_error": "Internal server error."
+}

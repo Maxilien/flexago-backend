@@ -5,6 +5,28 @@
 
 console.log("🟢 app.js LOADED");
 
+const fs = require("fs");
+
+// ============================================================
+// ⭐ GOOGLE CLOUD CREDENTIAL LOADER (Render + Local)
+// ============================================================
+//
+// If GOOGLE_APPLICATION_CREDENTIALS_JSON exists (Render),
+// write it to service-account.json so Google SDK can load it.
+// Locally, you already have service-account.json in the backend folder.
+//
+if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+  try {
+    fs.writeFileSync(
+      "service-account.json",
+      process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON
+    );
+    console.log("🔐 Google credentials loaded from Render env variable.");
+  } catch (err) {
+    console.error("❌ Failed to write service-account.json:", err);
+  }
+}
+
 const express = require("express");
 const cors = require("cors");
 
@@ -46,8 +68,14 @@ const adminPayoutsRoutes = require("./routes/adminPayouts");
 const adminRevenueRoutes = require("./routes/adminRevenue");
 const adminAnalyticsRoutes = require("./routes/adminAnalytics");
 
+// ⭐ NEW — Admin Background Check Dashboard
+const adminBackgroundRoutes = require("./routes/adminBackground");
+
 // ⭐ NEW — Support Chat Route
 const supportChatRoute = require("./support/chat");
+
+// ⭐ NEW — Checkr Background Check Webhook
+const checkrWebhookRoute = require("./routes/checkrWebhook");
 
 const errorHandler = require("./middleware/errorHandler");
 
@@ -149,6 +177,9 @@ app.use("/api/account", createAccountRoutes);
 // ⭐ NEW — Support Chat API
 app.use("/api/support/chat", supportChatRoute);
 
+// ⭐ NEW — Checkr Background Check Webhook
+app.use("/api/checkr/webhook", checkrWebhookRoute);
+
 /* ============================================================
    ⭐ ADMIN ROUTES (JWT PROTECTED)
    ============================================================ */
@@ -160,6 +191,9 @@ app.use("/api/admin/escrow", adminEscrowRoutes);
 app.use("/api/admin/payouts", adminPayoutsRoutes);
 app.use("/api/admin/revenue", adminRevenueRoutes);
 app.use("/api/admin/analytics", adminAnalyticsRoutes);
+
+// ⭐ NEW — Admin Background Check Dashboard
+app.use("/api/admin/background", adminBackgroundRoutes);
 
 /* ============================================================
    ERROR HANDLER

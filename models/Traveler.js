@@ -71,10 +71,39 @@ const TravelerSchema = new mongoose.Schema(
       default: 0,
     },
 
-    // Verification
+    // ------------------------------------------------------
+    // Verification (Stripe Identity + Checkr Background Check)
+    // ------------------------------------------------------
+
+    // Stripe Identity verification
     verified: {
       type: Boolean,
       default: false,
+    },
+
+    // Checkr Candidate ID
+    checkr_candidate_id: {
+      type: String,
+      default: null,
+    },
+
+    // Checkr Report ID
+    checkr_report_id: {
+      type: String,
+      default: null,
+    },
+
+    // Background check status
+    background_status: {
+      type: String,
+      enum: ["pending", "clear", "consider", "suspended"],
+      default: "pending",
+    },
+
+    // When background check completed
+    background_completed_at: {
+      type: Date,
+      default: null,
     },
   },
   { timestamps: true }

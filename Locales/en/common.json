@@ -1,0 +1,23 @@
+{
+  "welcome": "Welcome to FlexaGo",
+  "app_name": "FlexaGo",
+  "loading": "Loading...",
+  "submit": "Submit",
+  "cancel": "Cancel",
+  "save": "Save",
+  "logout": "Logout",
+  "login": "Login",
+  "signup": "Sign Up",
+  "delivery": {
+    "track": "Track Delivery",
+    "status": "Delivery Status",
+    "estimated": "Estimated Arrival",
+    "confirm": "Confirm Delivery"
+  },
+  "driver": {
+    "accept": "Accept Job",
+    "decline": "Decline Job",
+    "pickup": "Pick Up Package",
+    "dropoff": "Drop Off Package"
+  }
+}

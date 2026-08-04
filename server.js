@@ -5,14 +5,38 @@
 
 console.log("🟢 server.js LOADED");
 
+// ✅ STEP 1 — Load .env FIRST, before ANY other require()
+require("./config/env");
+
+const fs = require("fs");
+
+// ============================================================
+// ⭐ GOOGLE CLOUD CREDENTIAL LOADER (Render + Local)
+// ============================================================
+//
+// If GOOGLE_APPLICATION_CREDENTIALS_JSON exists (Render),
+// write it to service-account.json so Google SDK can load it.
+// Locally, your service-account.json already exists.
+//
+if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+  try {
+    fs.writeFileSync(
+      "service-account.json",
+      process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON
+    );
+    console.log("🔐 Google credentials loaded from Render env variable.");
+  } catch (err) {
+    console.error("❌ Failed to write service-account.json:", err);
+  }
+}
+
 const http = require("http");
+
+// ✅ STEP 2 — Now app.js and all routes can safely read process.env
 const app = require("./app");
 const { Server } = require("socket.io");
 
-// Load environment variables
-require("./config/env");
-
-// Connect to MongoDB
+// ✅ STEP 3 — Connect to MongoDB after env is loaded
 const connectDB = require("./config/db");
 connectDB();
 
@@ -23,45 +47,45 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: [
-      "https://app.flexagoo.com",                 // ⭐ NEW — your custom domain
-      "https://flexago-frontend.onrender.com",    // ⭐ KEEP — your Render static site
-      "https://flexago-backend.onrender.com"      // ⭐ KEEP — your backend domain
+      "https://app.flexagoo.com",
+      "https://flexago-frontend.onrender.com",
+      "https://flexago-backend.onrender.com",
     ],
     methods: ["GET", "POST"],
-    credentials: true
+    credentials: true,
   },
   path: "/socket.io",
-  transports: ["websocket"]
+  transports: ["websocket"],
 });
 
 // WebSocket logic (delivery rooms + updates)
-io.on("connection", socket => {
-  console.log("WS connected:", socket.id);
+io.on("connection", (socket) => {
+  console.log("🔌 WS connected:", socket.id);
 
-  // Join delivery room
-  socket.on("join_delivery", deliveryId => {
+  socket.on("join_delivery", (deliveryId) => {
     socket.join(deliveryId);
-    console.log(`Socket ${socket.id} joined room ${deliveryId}`);
+    console.log(`📦 Socket ${socket.id} joined room ${deliveryId}`);
   });
 
-  // Traveler GPS updates
-  socket.on("location_update", data => {
+  socket.on("location_update", (data) => {
     io.to(data.deliveryId).emit("location_update", data);
   });
 
-  // Delivery status updates
-  socket.on("status_update", data => {
+  socket.on("status_update", (data) => {
     io.to(data.deliveryId).emit("status_update", data);
   });
 
-  // Delivery photo
-  socket.on("delivery_photo", data => {
+  socket.on("delivery_photo", (data) => {
     io.to(data.deliveryId).emit("delivery_photo", data);
   });
 
-  // Signature submitted
-  socket.on("signature_submitted", data => {
+  socket.on("signature_submitted", (data) => {
     io.to(data.deliveryId).emit("signature_submitted", data);
+  });
+
+  // ✅ ADDED — handle disconnects for cleaner logs
+  socket.on("disconnect", () => {
+    console.log("🔴 WS disconnected:", socket.id);
   });
 });
 

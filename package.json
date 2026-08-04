@@ -1,16 +1,48 @@
 {
-  "name": "logistics-backend",
+  "name": "flexago-backend",
+  "version": "1.0.0",
+  "description": "FlexaGo logistics backend API with multilanguage support",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "start:ws": "node server-ws.js",
+    "i18n:extract": "i18next-cli",
+    "i18n:translate": "node scripts/auto-translate.js",
+    "i18n:full": "npm run i18n:extract && npm run i18n:translate",
+    "audit:fix": "npm audit fix"
+  },
   "dependencies": {
+    "@google-cloud/translate": "^9.4.2",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.0",
+    "i18next": "^23.11.5",
+    "i18next-fs-backend": "^2.3.1",
+    "i18next-http-middleware": "^3.6.0",
     "mongoose": "^8.3.1",
     "multer": "^2.1.1",
+    "nodemailer": "^9.0.4",
     "socket.io": "^4.8.3",
     "stripe": "^22.3.2",
     "twilio": "^6.0.2",
-    "ws": "^8.16.0",
-    "nodemailer": "^6.9.0"
-  }
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "i18next-cli": "^1.67.4",
+    "nodemon": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "flexago",
+    "logistics",
+    "delivery",
+    "i18n",
+    "api"
+  ],
+  "author": "FlexaGo",
+  "license": "PRIVATE"
 }
