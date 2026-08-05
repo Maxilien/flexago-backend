@@ -36,7 +36,95 @@ const http = require("http");
 const app = require("./app");
 const { Server } = require("socket.io");
 
-// ✅ STEP 3 — Connect to MongoDB after env is loaded
+// ============================================================
+// ⭐ GOOGLE TRANSLATION CLIENT (for /translate + /detect-language)
+// ============================================================
+const { TranslationServiceClient } = require("@google-cloud/translate").v3;
+
+const translationClient = new TranslationServiceClient({
+  keyFilename: "service-account.json",
+});
+
+const projectId = process.env.GOOGLE_PROJECT_ID || "logistics-marketplace-491214";
+const location = "global";
+
+// ============================================================
+// ⭐ LANGUAGE DETECTION ENDPOINT
+// ============================================================
+//
+// This detects the language of ANY text sent by the client.
+// Useful for chat, job descriptions, traveler instructions,
+// or auto-detecting user language like Uber.
+//
+app.post("/detect-language", async (req, res) => {
+  try {
+    const { text } = req.body;
+
+    if (!text) {
+      return res.status(400).json({ error: "Text is required." });
+    }
+
+    const request = {
+      parent: `projects/${projectId}/locations/${location}`,
+      content: text,
+      mimeType: "text/plain",
+    };
+
+    const [response] = await translationClient.detectLanguage(request);
+    const detected = response.languages[0];
+
+    res.json({
+      languageCode: detected.languageCode,
+      confidence: detected.confidence,
+    });
+  } catch (err) {
+    console.error("❌ Language detection failed:", err);
+    res.status(500).json({ error: "Language detection failed." });
+  }
+});
+
+// ============================================================
+// ⭐ TRANSLATION ENDPOINT (Dynamic Translation)
+// ============================================================
+//
+// This translates ANY text dynamically — job descriptions,
+// traveler instructions, payout messages, notifications, etc.
+//
+app.post("/translate", async (req, res) => {
+  try {
+    const { text, targetLanguage, sourceLanguage } = req.body;
+
+    if (!text || !targetLanguage) {
+      return res.status(400).json({
+        error: "text and targetLanguage are required",
+      });
+    }
+
+    const request = {
+      parent: `projects/${projectId}/locations/${location}`,
+      contents: [text],
+      mimeType: "text/plain",
+      targetLanguageCode: targetLanguage,
+    };
+
+    if (sourceLanguage) {
+      request.sourceLanguageCode = sourceLanguage;
+    }
+
+    const [response] = await translationClient.translateText(request);
+
+    res.json({
+      translatedText: response.translations[0].translatedText,
+    });
+  } catch (err) {
+    console.error("❌ Translation failed:", err);
+    res.status(500).json({ error: "Translation failed." });
+  }
+});
+
+// ============================================================
+// ⭐ DATABASE CONNECTION
+// ============================================================
 const connectDB = require("./config/db");
 connectDB();
 
@@ -83,7 +171,6 @@ io.on("connection", (socket) => {
     io.to(data.deliveryId).emit("signature_submitted", data);
   });
 
-  // ✅ ADDED — handle disconnects for cleaner logs
   socket.on("disconnect", () => {
     console.log("🔴 WS disconnected:", socket.id);
   });

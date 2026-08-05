@@ -1,0 +1,9 @@
+{
+  "generic": "Algo salió mal. Por favor, inténtalo de nuevo.",
+  "unauthorized": "Usted no está autorizado a realizar esta acción.",
+  "not_found": "Recurso no encontrado.",
+  "invalid_email": "Por favor, introduce una dirección de correo electrónico válida.",
+  "invalid_code": "Código de verificación no válido o caducado.",
+  "email_failed": "No se pudo enviar el correo electrónico de verificación.",
+  "server_error": "Error Interno del Servidor."
+}

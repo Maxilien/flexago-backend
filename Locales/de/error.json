@@ -1,0 +1,9 @@
+{
+  "generic": "Es ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.",
+  "unauthorized": "Sie sind nicht befugt, diese Aktion durchzuführen.",
+  "not_found": "Ressource nicht gefunden.",
+  "invalid_email": "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
+  "invalid_code": "Ungültiger oder abgelaufener Bestätigungscode.",
+  "email_failed": "Die Bestätigungs-E-Mail konnte nicht versendet werden.",
+  "server_error": "Interner Serverfehler."
+}

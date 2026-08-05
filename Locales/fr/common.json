@@ -1,0 +1,13 @@
+{
+  "welcome": "Bienvenue sur FlexaGo",
+  "app_name": "FlexaGo",
+  "loading": "Chargement...",
+  "submit": "Soumettre",
+  "cancel": "Annuler",
+  "save": "Sauvegarder",
+  "logout": "Déconnexion",
+  "login": "Se connecter",
+  "signup": "S'inscrire",
+  "delivery": "[objet Objet]",
+  "driver": "[objet Objet]"
+}

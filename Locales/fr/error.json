@@ -1,0 +1,9 @@
+{
+  "generic": "Une erreur s'est produite. Veuillez réessayer.",
+  "unauthorized": "Vous n'êtes pas autorisé à effectuer cette action.",
+  "not_found": "Ressource introuvable.",
+  "invalid_email": "S'il vous plaît, mettez une adresse email valide.",
+  "invalid_code": "Code de vérification invalide ou expiré.",
+  "email_failed": "Échec de l'envoi de l'e-mail de vérification.",
+  "server_error": "Erreur interne du serveur."
+}
