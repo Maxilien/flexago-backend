@@ -19,10 +19,15 @@ const {
 const router = express.Router();
 
 // Sender creates a delivery
-router.post("/", (req, res, next) => {
-  console.log("🔥 DELIVERY ROUTE HIT");
-  next();
-}, createDelivery);
+router.post(
+  "/",
+  (req, res, next) => {
+    console.log("🔥 DELIVERY ROUTE HIT");
+    next();
+  },
+  createDelivery   // ✅ multer removed — photo comes in as base64 JSON
+);
+
 
 // Traveler job search (POST because it requires JSON body)
 router.post("/search", searchTravelerJobs);

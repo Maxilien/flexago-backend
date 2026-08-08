@@ -1,3 +1,8 @@
+// Models/delivery.js
+// ------------------------------------------------------
+// Flexago Delivery Model (CommonJS)
+// ------------------------------------------------------
+
 const mongoose = require("mongoose");
 
 const GeoPointSchema = new mongoose.Schema({
@@ -18,6 +23,7 @@ const GeoPointSchema = new mongoose.Schema({
   instructions: String
 });
 
+// REPLACE with:
 const PackageSchema = new mongoose.Schema({
   type: String,
   weight: Number,
@@ -25,7 +31,8 @@ const PackageSchema = new mongoose.Schema({
   insurance: Boolean,
   deliveryType: String,
   description: String,
-  declaredValue: Number
+  declaredValue: Number,
+  photoUrl: { type: String, default: null }  // ✅ NEW — stores Cloudinary photo URL
 });
 
 const DeliverySchema = new mongoose.Schema(

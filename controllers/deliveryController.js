@@ -129,6 +129,23 @@ async function createDelivery(req, res) {
 
     const numericPrice = Number(price) || 25;
     const payoutAmount = numericPrice * 0.8;
+// ✅ Upload base64 photo to Cloudinary if present
+let resolvedPhotoUrl = null;
+
+if (pkg?.photoUrl && pkg.photoUrl.startsWith("data:")) {
+  try {
+    const cloudinary = require("cloudinary").v2;
+    const uploaded = await cloudinary.uploader.upload(pkg.photoUrl, {
+      folder: "flexago/deliveries",
+      transformation: [{ width: 800, quality: "auto" }]
+    });
+    resolvedPhotoUrl = uploaded.secure_url;
+    console.log("✅ Photo uploaded to Cloudinary:", resolvedPhotoUrl);
+  } catch (uploadErr) {
+    console.error("❌ Cloudinary upload failed:", uploadErr.message);
+    resolvedPhotoUrl = null;
+  }
+}
 
     const delivery = await Delivery.create({
       sender,
@@ -137,16 +154,17 @@ async function createDelivery(req, res) {
       dropoff,
 
       // FIXED PACKAGE MAPPING
-      package: {
-        type: pkg?.type || "",
-        weight: pkg?.weight || null,
-        size: pkg?.size || "",
-        insurance: pkg?.insurance || false,
-        deliveryType: pkg?.deliveryType || "",
-        description: pkg?.description || "",
-        declaredValue: pkg?.declaredValue || null,
-        photoUrl: pkg?.photoUrl || ""
-      },
+ package: {
+  type: pkg?.type || "",
+  weight: pkg?.weight || null,
+  size: pkg?.size || "",
+  insurance: pkg?.insurance || false,
+  deliveryType: pkg?.deliveryType || "",
+  description: pkg?.description || "",
+  declaredValue: pkg?.declaredValue || null,
+  photoUrl: resolvedPhotoUrl   // ✅ Cloudinary URL or null
+},
+
 
       notes,
       price: numericPrice,
