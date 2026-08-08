@@ -135,6 +135,11 @@ let resolvedPhotoUrl = null;
 if (pkg?.photoUrl && pkg.photoUrl.startsWith("data:")) {
   try {
     const cloudinary = require("cloudinary").v2;
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key:    process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
+    });
     const uploaded = await cloudinary.uploader.upload(pkg.photoUrl, {
       folder: "flexago/deliveries",
       transformation: [{ width: 800, quality: "auto" }]
