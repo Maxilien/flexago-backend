@@ -4,7 +4,7 @@ const Delivery = require("../models/Delivery");
 console.log("🟢 Flexago Marketplace Delivery Controller Loaded");
 
 /* ============================================================
-   GEO HELPERS
+   GEO HELPERS FOR LOCATION
    ============================================================ */
 const EARTH_RADIUS_MILES = 3958.8;
 
