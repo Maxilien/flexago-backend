@@ -37,11 +37,14 @@ const PackageSchema = new mongoose.Schema({
 
 const DeliverySchema = new mongoose.Schema(
   {
-    sender: {
-      name: String,
-      phone: String,
-      email: String
-    },
+   sender: {
+  name: String,
+  phone: String,
+  email: String
+},
+
+senderId: { type: String, required: true },   // ⭐ REQUIRED FOR SENDER.JS
+
 
     receiver: {
       name: String,
