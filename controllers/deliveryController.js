@@ -152,30 +152,29 @@ if (pkg?.photoUrl && pkg.photoUrl.startsWith("data:")) {
   }
 }
 
-    const delivery = await Delivery.create({
-      sender,
-      receiver,
-      pickup,
-      dropoff,
+const delivery = await Delivery.create({
+  senderId: req.body.senderId,   // ⭐ REQUIRED FIX
+  sender,
+  receiver,
+  pickup,
+  dropoff,
 
-      // FIXED PACKAGE MAPPING
- package: {
-  type: pkg?.type || "",
-  weight: pkg?.weight || null,
-  size: pkg?.size || "",
-  insurance: pkg?.insurance || false,
-  deliveryType: pkg?.deliveryType || "",
-  description: pkg?.description || "",
-  declaredValue: pkg?.declaredValue || null,
-  photoUrl: resolvedPhotoUrl   // ✅ Cloudinary URL or null
-},
+  package: {
+    type: pkg?.type || "",
+    weight: pkg?.weight || null,
+    size: pkg?.size || "",
+    insurance: pkg?.insurance || false,
+    deliveryType: pkg?.deliveryType || "",
+    description: pkg?.description || "",
+    declaredValue: pkg?.declaredValue || null,
+    photoUrl: resolvedPhotoUrl
+  },
 
-
-      notes,
-      price: numericPrice,
-      payoutAmount,
-      status: "available"
-    });
+  notes,
+  price: numericPrice,
+  payoutAmount,
+  status: "available"
+});
 
     res.status(201).json({ success: true, data: delivery });
   } catch (err) {
