@@ -46,5 +46,17 @@ router.post("/:jobId/complete", completeTravelerJob);
 
 // Traveler payout
 router.post("/:jobId/payout", payoutTravelerJob);
+const Delivery = require("../models/Delivery");
+
+router.get("/", async (req, res) => {
+  try {
+    const deliveries = await Delivery.find().lean();
+    res.json({ success: true, data: deliveries });
+  } catch (err) {
+    console.error("Error fetching deliveries:", err);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+});
+
 
 module.exports = router;
