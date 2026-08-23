@@ -23,7 +23,6 @@ const GeoPointSchema = new mongoose.Schema({
   instructions: String
 });
 
-// REPLACE with:
 const PackageSchema = new mongoose.Schema({
   type: String,
   weight: Number,
@@ -32,19 +31,18 @@ const PackageSchema = new mongoose.Schema({
   deliveryType: String,
   description: String,
   declaredValue: Number,
-  photoUrl: { type: String, default: null }  // ✅ NEW — stores Cloudinary photo URL
+  photoUrl: { type: String, default: null }
 });
 
 const DeliverySchema = new mongoose.Schema(
   {
-   sender: {
-  name: String,
-  phone: String,
-  email: String
-},
+    sender: {
+      name: String,
+      phone: String,
+      email: String
+    },
 
-senderId: { type: String, required: true },   // ⭐ REQUIRED FOR SENDER.JS
-
+    senderId: { type: String, required: true },
 
     receiver: {
       name: String,
@@ -60,16 +58,17 @@ senderId: { type: String, required: true },   // ⭐ REQUIRED FOR SENDER.JS
     price: { type: Number, required: true },
     payoutAmount: { type: Number, required: true },
 
-travelerId: {
-  type: mongoose.Schema.Types.ObjectId,
-  ref: "Traveler",
-  default: null
-},
+    travelerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Traveler",
+      default: null
+    },
 
-// ⭐ REQUIRED FOR TRAVELER NAME
-travelerFirstName: String,
-travelerLastName: String,
-
+    // ⭐ NEW — matches Traveler.js + controller
+    travelerDetails: {
+      firstName: String,
+      lastName: String
+    },
 
     status: {
       type: String,
@@ -91,7 +90,6 @@ travelerLastName: String,
     payoutCompletedAt: Date,
 
     proofPhoto: String,
-
     notes: String
   },
   { timestamps: true }
@@ -101,3 +99,4 @@ DeliverySchema.index({ "pickup.location": "2dsphere" });
 DeliverySchema.index({ "dropoff.location": "2dsphere" });
 
 module.exports = mongoose.model("Delivery", DeliverySchema);
+

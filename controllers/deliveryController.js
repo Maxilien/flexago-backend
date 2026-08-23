@@ -268,12 +268,12 @@ async function searchTravelerJobs(req, res) {
 }
 
 /* ============================================================
-   ACCEPT JOB — FINAL FIX
+   ACCEPT JOB — FINAL FIX (SAVES travelerDetails)
 ============================================================ */
 async function acceptTravelerJob(req, res) {
   try {
     const { jobId } = req.params;
-    const { travelerId } = req.body;
+    const { travelerId, travelerDetails } = req.body;
 
     if (!travelerId) {
       return res.status(400).json({
@@ -291,16 +291,25 @@ async function acceptTravelerJob(req, res) {
       return res.status(400).json({ success: false, error: "Job already taken" });
     }
 
-    // ⭐ Correct field
+    // ⭐ Save travelerId
     job.travelerId = travelerId;
+
+    // ⭐ Save travelerDetails (firstName + lastName only)
+    if (travelerDetails) {
+      job.travelerDetails = {
+        firstName: travelerDetails.firstName || "",
+        lastName: travelerDetails.lastName || ""
+      };
+    }
+
     job.status = "accepted";
     job.acceptedAt = new Date();
 
     await job.save();
 
-    // ⭐ THIS IS THE MAGIC — populate traveler details
+    // ⭐ Populate travelerId fields (optional)
     const populated = await Delivery.findById(job._id)
-      .populate("travelerId", "firstName lastName email phone rating photoUrl");
+      .populate("travelerId", "firstName lastName");
 
     res.json({ success: true, data: populated });
   } catch (err) {
