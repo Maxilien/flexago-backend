@@ -268,7 +268,7 @@ async function searchTravelerJobs(req, res) {
 }
 
 /* ============================================================
-   ACCEPT JOB — ADD TRAVELER NAME
+   ACCEPT JOB — FINAL FIX
 ============================================================ */
 async function acceptTravelerJob(req, res) {
   try {
@@ -291,20 +291,18 @@ async function acceptTravelerJob(req, res) {
       return res.status(400).json({ success: false, error: "Job already taken" });
     }
 
-    // ⭐ Fetch traveler from your users collection
-    const traveler = await User.findById(travelerId);
-
-    // ⭐ Save traveler ID + name into delivery
+    // ⭐ Correct field
     job.travelerId = travelerId;
-    job.travelerFirstName = traveler.firstName;
-    job.travelerLastName = traveler.lastName;
-
     job.status = "accepted";
     job.acceptedAt = new Date();
 
     await job.save();
 
-    res.json({ success: true, data: job });
+    // ⭐ THIS IS THE MAGIC — populate traveler details
+    const populated = await Delivery.findById(job._id)
+      .populate("travelerId", "firstName lastName email phone rating photoUrl");
+
+    res.json({ success: true, data: populated });
   } catch (err) {
     console.error("Accept Job Error:", err);
     res.status(500).json({ success: false, error: "Server error" });
