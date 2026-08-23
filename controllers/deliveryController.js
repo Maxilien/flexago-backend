@@ -102,7 +102,7 @@ function normalizeGeoPoint(raw) {
 
 /* ============================================================
    CREATE DELIVERY (Marketplace)
-============================================================ */
+   ============================================================ */
 async function createDelivery(req, res) {
   console.log("🔥 USING NEW CREATE DELIVERY CONTROLLER");
 
@@ -113,7 +113,8 @@ async function createDelivery(req, res) {
       package: pkg,
       sender,
       receiver,
-      notes
+      notes,
+      price
     } = req.body;
 
     const pickup = normalizeGeoPoint(rawPickup);
@@ -126,108 +127,61 @@ async function createDelivery(req, res) {
       });
     }
 
-    /* ============================================================
-       ⭐ NEW: Compute real miles using Google Maps
-    ============================================================ */
-    const miles = await computeMiles(
-      rawPickup.address || rawPickup.formattedAddress,
-      rawDropoff.address || rawDropoff.formattedAddress
-    );
-
-    /* ============================================================
-       ⭐ NEW: Unified pricing formula (same as estimated cost)
-    ============================================================ */
-    function calculatePrice(pkg, miles) {
-      let price = 0;
-
-      // Delivery type base rate
-      if (pkg.deliveryType === "local") {
-        price = 5 + (miles * 0.8);
-      }
-
-      if (pkg.deliveryType === "national") {
-        price = 10 + (miles * 1.2);
-      }
-
-      if (pkg.deliveryType === "international") {
-        price = 150;
-      }
-
-      // Declared value surcharge
-      if (pkg.declaredValue > 500) {
-        price += pkg.declaredValue + 75;
-      }
-
-      // Insurance
-      if (pkg.insurance === "basic") price += 10;
-      if (pkg.insurance === "premium") price += 25;
-
-      return price;
-    }
-
-    const numericPrice = calculatePrice(pkg, miles);
+    const numericPrice = Number(price) || 25;
     const payoutAmount = numericPrice * 0.8;
+// ✅ Upload base64 photo to Cloudinary if present
+let resolvedPhotoUrl = null;
 
-    /* ============================================================
-       CLOUDINARY UPLOAD (UNCHANGED)
-    ============================================================ */
-    let resolvedPhotoUrl = null;
-
-    if (pkg?.photoUrl && pkg.photoUrl.startsWith("data:")) {
-      try {
-        const cloudinary = require("cloudinary").v2;
-        cloudinary.config({
-          cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-          api_key:    process.env.CLOUDINARY_API_KEY,
-          api_secret: process.env.CLOUDINARY_API_SECRET,
-        });
-        const uploaded = await cloudinary.uploader.upload(pkg.photoUrl, {
-          folder: "flexago/deliveries",
-          transformation: [{ width: 800, quality: "auto" }]
-        });
-        resolvedPhotoUrl = uploaded.secure_url;
-        console.log("✅ Photo uploaded to Cloudinary:", resolvedPhotoUrl);
-      } catch (uploadErr) {
-        console.error("❌ Cloudinary upload failed:", uploadErr.message);
-        resolvedPhotoUrl = null;
-      }
-    }
-
-    /* ============================================================
-       DELIVERY CREATE (UNCHANGED except price/payout)
-    ============================================================ */
-    const delivery = await Delivery.create({
-      senderId: req.body.senderId,
-      sender,
-      receiver,
-      pickup,
-      dropoff,
-
-      package: {
-        type: pkg?.type || "",
-        weight: pkg?.weight || null,
-        size: pkg?.size || "",
-        insurance: pkg?.insurance || false,
-        deliveryType: pkg?.deliveryType || "",
-        description: pkg?.description || "",
-        declaredValue: pkg?.declaredValue || null,
-        photoUrl: resolvedPhotoUrl
-      },
-
-      notes,
-      price: numericPrice,        // ⭐ UPDATED
-      payoutAmount,               // ⭐ UPDATED
-      status: "available"
+if (pkg?.photoUrl && pkg.photoUrl.startsWith("data:")) {
+  try {
+    const cloudinary = require("cloudinary").v2;
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key:    process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
     });
+    const uploaded = await cloudinary.uploader.upload(pkg.photoUrl, {
+      folder: "flexago/deliveries",
+      transformation: [{ width: 800, quality: "auto" }]
+    });
+    resolvedPhotoUrl = uploaded.secure_url;
+    console.log("✅ Photo uploaded to Cloudinary:", resolvedPhotoUrl);
+  } catch (uploadErr) {
+    console.error("❌ Cloudinary upload failed:", uploadErr.message);
+    resolvedPhotoUrl = null;
+  }
+}
+
+const delivery = await Delivery.create({
+  senderId: req.body.senderId,   // ⭐ REQUIRED FIX
+  sender,
+  receiver,
+  pickup,
+  dropoff,
+
+  package: {
+    type: pkg?.type || "",
+    weight: pkg?.weight || null,
+    size: pkg?.size || "",
+    insurance: pkg?.insurance || false,
+    deliveryType: pkg?.deliveryType || "",
+    description: pkg?.description || "",
+    declaredValue: pkg?.declaredValue || null,
+    photoUrl: resolvedPhotoUrl
+  },
+
+  notes,
+  price: numericPrice,
+  payoutAmount,
+  status: "available"
+});
 
     res.status(201).json({ success: true, data: delivery });
-
   } catch (err) {
     console.error("Create Delivery Error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 }
-
 /* ============================================================
    SEARCH TRAVELER JOBS
    ============================================================ */
