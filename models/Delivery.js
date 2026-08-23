@@ -60,12 +60,16 @@ senderId: { type: String, required: true },   // ⭐ REQUIRED FOR SENDER.JS
     price: { type: Number, required: true },
     payoutAmount: { type: Number, required: true },
 
-    travelerId: {
+travelerId: {
   type: mongoose.Schema.Types.ObjectId,
   ref: "Traveler",
   default: null
-}
-,
+},
+
+// ⭐ REQUIRED FOR TRAVELER NAME
+travelerFirstName: String,
+travelerLastName: String,
+
 
     status: {
       type: String,

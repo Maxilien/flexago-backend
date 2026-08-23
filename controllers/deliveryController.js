@@ -291,8 +291,8 @@ async function acceptTravelerJob(req, res) {
       return res.status(400).json({ success: false, error: "Job already taken" });
     }
 
-    // ⭐ Fetch traveler profile
-    const traveler = await User.findById(travelerId);   // your Traveler/User model
+    // ⭐ Fetch traveler from your users collection
+    const traveler = await User.findById(travelerId);
 
     // ⭐ Save traveler ID + name into delivery
     job.travelerId = travelerId;
