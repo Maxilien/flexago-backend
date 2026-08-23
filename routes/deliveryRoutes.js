@@ -16,38 +16,39 @@ const {
   payoutTravelerJob
 } = require("../controllers/deliveryController");
 
+const Delivery = require("../models/Delivery");
+
 const router = express.Router();
 
-// Sender creates a delivery
+/* ============================================================
+   CREATE DELIVERY (Sender)
+============================================================ */
 router.post(
   "/",
   (req, res, next) => {
     console.log("🔥 DELIVERY ROUTE HIT");
     next();
   },
-  createDelivery   // ✅ multer removed — photo comes in as base64 JSON
+  createDelivery   // photo comes in base64 JSON
 );
 
-
-// Traveler job search (POST because it requires JSON body)
+/* ============================================================
+   TRAVELER JOB SEARCH
+============================================================ */
 router.post("/search", searchTravelerJobs);
 
-// Traveler accepts a job
+/* ============================================================
+   TRAVELER ACTIONS
+============================================================ */
 router.post("/:jobId/accept", acceptTravelerJob);
-
-// Traveler picks up a job
 router.post("/:jobId/pickup", pickupTravelerJob);
-
-// Traveler delivers a job
 router.post("/:jobId/deliver", deliverTravelerJob);
-
-// Traveler completes a job
 router.post("/:jobId/complete", completeTravelerJob);
-
-// Traveler payout
 router.post("/:jobId/payout", payoutTravelerJob);
-const Delivery = require("../models/Delivery");
 
+/* ============================================================
+   GET ALL DELIVERIES (Admin / Debug)
+============================================================ */
 router.get("/", async (req, res) => {
   try {
     const deliveries = await Delivery.find().lean();
@@ -58,5 +59,24 @@ router.get("/", async (req, res) => {
   }
 });
 
+/* ============================================================
+   ⭐ GET DELIVERIES FOR A SPECIFIC SENDER (Sender Workspace)
+   THIS IS THE ROUTE YOUR SENDER APP USES
+============================================================ */
+router.get("/sender/:senderId", async (req, res) => {
+  try {
+    const deliveries = await Delivery.find({ senderId: req.params.senderId })
+      .select(
+        "itemDescription status pickupAddress dropoffAddress price payout type insurance createdAt travelerId"
+      )
+      .lean();
+
+    res.json({ success: true, data: deliveries });
+  } catch (err) {
+    console.error("Error fetching sender deliveries:", err);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+});
 
 module.exports = router;
+
