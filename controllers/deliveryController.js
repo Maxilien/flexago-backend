@@ -127,8 +127,12 @@ async function createDelivery(req, res) {
       });
     }
 
-    const numericPrice = Number(price) || 25;
-    const payoutAmount = numericPrice * 0.8;
+// ⭐ Price must equal Estimated Cost from sender.js
+const numericPrice = Number(price);
+
+// ⭐ Payout stays the same %
+const payoutAmount = numericPrice * 0.8;
+
 // ✅ Upload base64 photo to Cloudinary if present
 let resolvedPhotoUrl = null;
 
