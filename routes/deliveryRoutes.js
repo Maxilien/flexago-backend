@@ -14,7 +14,7 @@ const {
   deliverTravelerJob,
   completeTravelerJob,
   payoutTravelerJob,
-  verifyPickupCode   // ⭐ STEP 3 — NEW IMPORT
+  verifyPickupCode   // ⭐ NEW — pickup verification controller
 } = require("../controllers/deliveryController");
 
 const Delivery = require("../models/Delivery");
@@ -44,7 +44,7 @@ router.post("/search", searchTravelerJobs);
 router.post("/:jobId/accept", acceptTravelerJob);
 router.post("/:jobId/pickup", pickupTravelerJob);
 
-// ⭐ STEP 3 — NEW PICKUP VERIFICATION ROUTE
+// ⭐ NEW — Pickup Verification Route
 router.post("/:jobId/verifyPickup", verifyPickupCode);
 
 router.post("/:jobId/deliver", deliverTravelerJob);
