@@ -268,7 +268,7 @@ async function searchTravelerJobs(req, res) {
 }
 
 /* ============================================================
-   ACCEPT JOB — FINAL FIX (SAVES travelerDetails)
+   ACCEPT JOB — FINAL FIX (SAVES travelerDetails + pickup security)
 ============================================================ */
 async function acceptTravelerJob(req, res) {
   try {
@@ -302,6 +302,15 @@ async function acceptTravelerJob(req, res) {
       };
     }
 
+    // ⭐ Generate pickup security code (6 digits)
+    job.pickupCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // ⭐ Generate QR token (optional, for future use)
+    job.pickupQR = require("crypto").randomBytes(16).toString("hex");
+
+    // ⭐ Pickup not yet verified
+    job.pickupVerified = false;
+
     job.status = "accepted";
     job.acceptedAt = new Date();
 
@@ -317,7 +326,6 @@ async function acceptTravelerJob(req, res) {
     res.status(500).json({ success: false, error: "Server error" });
   }
 }
-
 /* ============================================================
    PICKUP JOB
    ============================================================ */
@@ -406,6 +414,44 @@ async function payoutTravelerJob(req, res) {
     res.status(500).json({ success: false, error: "Server error" });
   }
 }
+/* ============================================================
+   VERIFY PICKUP — Traveler enters code or scans QR
+============================================================ */
+async function verifyPickupCode(req, res) {
+  try {
+    const { jobId } = req.params;
+    const { code, qr } = req.body;
+
+    const job = await Delivery.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ success: false, error: "Job not found" });
+    }
+
+    // Must match either code or QR
+    const codeMatches = code && job.pickupCode === code;
+    const qrMatches = qr && job.pickupQR === qr;
+
+    if (!codeMatches && !qrMatches) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid pickup verification"
+      });
+    }
+
+    // Mark pickup verified
+    job.pickupVerified = true;
+    job.status = "in_transit";
+    job.pickedUpAt = new Date();
+
+    await job.save();
+
+    res.json({ success: true, data: job });
+  } catch (err) {
+    console.error("Verify Pickup Error:", err);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+}
+
 
 /* ============================================================
    EXPORT CONTROLLER

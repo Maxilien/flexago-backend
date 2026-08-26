@@ -64,11 +64,16 @@ const DeliverySchema = new mongoose.Schema(
       default: null
     },
 
-    // ⭐ NEW — matches Traveler.js + controller
+    // ⭐ Traveler details (first + last name)
     travelerDetails: {
       firstName: String,
       lastName: String
     },
+
+    // ⭐ NEW — Pickup security fields
+    pickupCode: String,                     // 6-digit pickup verification code
+    pickupQR: String,                       // optional QR token
+    pickupVerified: { type: Boolean, default: false }, // traveler must verify pickup
 
     status: {
       type: String,
@@ -99,4 +104,3 @@ DeliverySchema.index({ "pickup.location": "2dsphere" });
 DeliverySchema.index({ "dropoff.location": "2dsphere" });
 
 module.exports = mongoose.model("Delivery", DeliverySchema);
-

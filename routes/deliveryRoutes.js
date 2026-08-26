@@ -13,7 +13,8 @@ const {
   pickupTravelerJob,
   deliverTravelerJob,
   completeTravelerJob,
-  payoutTravelerJob
+  payoutTravelerJob,
+  verifyPickupCode   // ⭐ STEP 3 — NEW IMPORT
 } = require("../controllers/deliveryController");
 
 const Delivery = require("../models/Delivery");
@@ -29,7 +30,7 @@ router.post(
     console.log("🔥 DELIVERY ROUTE HIT");
     next();
   },
-  createDelivery   // photo comes in base64 JSON
+  createDelivery
 );
 
 /* ============================================================
@@ -42,6 +43,10 @@ router.post("/search", searchTravelerJobs);
 ============================================================ */
 router.post("/:jobId/accept", acceptTravelerJob);
 router.post("/:jobId/pickup", pickupTravelerJob);
+
+// ⭐ STEP 3 — NEW PICKUP VERIFICATION ROUTE
+router.post("/:jobId/verifyPickup", verifyPickupCode);
+
 router.post("/:jobId/deliver", deliverTravelerJob);
 router.post("/:jobId/complete", completeTravelerJob);
 router.post("/:jobId/payout", payoutTravelerJob);
@@ -61,7 +66,6 @@ router.get("/", async (req, res) => {
 
 /* ============================================================
    ⭐ GET DELIVERIES FOR A SPECIFIC SENDER (Sender Workspace)
-   THIS IS THE ROUTE YOUR SENDER APP USES
 ============================================================ */
 router.get("/sender/:senderId", async (req, res) => {
   try {
