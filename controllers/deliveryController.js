@@ -463,5 +463,6 @@ module.exports = {
   pickupTravelerJob,
   deliverTravelerJob,
   completeTravelerJob,
-  payoutTravelerJob
+  payoutTravelerJob,
+  verifyPickupCode   // ⭐ FIXED
 };
