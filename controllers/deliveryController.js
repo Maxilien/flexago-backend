@@ -268,7 +268,7 @@ async function searchTravelerJobs(req, res) {
 }
 
 /* ============================================================
-   ACCEPT JOB — FINAL FIX (SAVES travelerDetails + pickup security)
+   ACCEPT JOB — FINAL FIX (FULL DELIVERY DOCUMENT RETURNED)
 ============================================================ */
 async function acceptTravelerJob(req, res) {
   try {
@@ -282,7 +282,7 @@ async function acceptTravelerJob(req, res) {
       });
     }
 
-    const job = await Delivery.findById(jobId);
+    let job = await Delivery.findById(jobId);
     if (!job) {
       return res.status(404).json({ success: false, error: "Job not found" });
     }
@@ -291,10 +291,10 @@ async function acceptTravelerJob(req, res) {
       return res.status(400).json({ success: false, error: "Job already taken" });
     }
 
-    // ⭐ Save travelerId
+    // Save travelerId
     job.travelerId = travelerId;
 
-    // ⭐ Save travelerDetails (firstName + lastName only)
+    // Save travelerDetails
     if (travelerDetails) {
       job.travelerDetails = {
         firstName: travelerDetails.firstName || "",
@@ -302,13 +302,12 @@ async function acceptTravelerJob(req, res) {
       };
     }
 
-    // ⭐ Generate pickup security code (6 digits)
+    // Generate pickup security code
     job.pickupCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // ⭐ Generate QR token (optional, for future use)
+    // Generate QR token
     job.pickupQR = require("crypto").randomBytes(16).toString("hex");
 
-    // ⭐ Pickup not yet verified
     job.pickupVerified = false;
 
     job.status = "accepted";
@@ -316,16 +315,23 @@ async function acceptTravelerJob(req, res) {
 
     await job.save();
 
-    // ⭐ Populate travelerId fields (optional)
-    const populated = await Delivery.findById(job._id)
-      .populate("travelerId", "firstName lastName");
+    // ⭐ CRITICAL FIX — return FULL job including coordinates
+    const fullJob = await Delivery.findById(job._id).lean();
 
-    res.json({ success: true, data: populated });
+    return res.json({
+      success: true,
+      data: fullJob
+    });
+
   } catch (err) {
     console.error("Accept Job Error:", err);
-    res.status(500).json({ success: false, error: "Server error" });
+    return res.status(500).json({
+      success: false,
+      error: "Server error"
+    });
   }
 }
+
 /* ============================================================
    PICKUP JOB
    ============================================================ */
