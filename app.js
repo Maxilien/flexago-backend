@@ -10,11 +10,7 @@ const fs = require("fs");
 // ============================================================
 // ⭐ GOOGLE CLOUD CREDENTIAL LOADER (Render + Local)
 // ============================================================
-//
-// If GOOGLE_APPLICATION_CREDENTIALS_JSON exists (Render),
-// write it to service-account.json so Google SDK can load it.
-// Locally, you already have service-account.json in the backend folder.
-//
+
 if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
   try {
     fs.writeFileSync(
@@ -62,7 +58,10 @@ const verifyPhoneRoutes = require("./routes/verify");
 // ⭐ NEW — ADMIN ROUTES
 const adminAuthRoutes = require("./routes/adminAuth");
 const adminUsersRoutes = require("./routes/adminUsers");
-const adminOrdersRoutes = require("./routes/adminOrders");
+
+// ⭐ UPDATED — Deliveries replaces Orders
+const adminDeliveriesRoutes = require("./routes/adminDeliveries");
+
 const adminEscrowRoutes = require("./routes/adminEscrow");
 const adminPayoutsRoutes = require("./routes/adminPayouts");
 const adminRevenueRoutes = require("./routes/adminRevenue");
@@ -86,23 +85,14 @@ const app = express();
    ============================================================ */
 
 const allowedOrigins = [
-  // Local development
   "http://127.0.0.1:5500",
   "http://localhost:5500",
   "http://127.0.0.1",
   "http://localhost",
-
-  // Render frontend
   "https://flexago-frontend.onrender.com",
-
-  // Render backend
   "https://flexago-backend.onrender.com",
-
-  // Production domains
   "https://www.flexagoo.com",
   "https://flexagoo.com",
-
-  // App subdomain
   "https://app.flexagoo.com"
 ];
 
@@ -113,7 +103,6 @@ app.use(cors({
   credentials: true
 }));
 
-// ⭐ Dynamic fallback (Render sometimes strips CORS headers)
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
@@ -125,7 +114,7 @@ app.use((req, res, next) => {
 
 app.options("*", cors());
 
-// IMPORTANT: Stripe Webhooks require RAW body BEFORE express.json()
+// Stripe Webhooks require RAW body BEFORE express.json()
 app.use("/webhook", express.raw({ type: "application/json" }));
 
 // JSON parser for all other routes
@@ -168,7 +157,7 @@ app.use("/api/verify", verifyEmailRoutes);
 // ⭐ NEW — Twilio Phone Verification
 app.use("/api/verify", verifyPhoneRoutes);
 
-// Stripe Identity Webhook (verification events)
+// Stripe Identity Webhook
 app.use("/webhook", identityWebhook);
 
 // ⭐ NEW — Create Account (Traveler/Sender)
@@ -186,7 +175,10 @@ app.use("/api/checkr/webhook", checkrWebhookRoute);
 
 app.use("/api/admin", adminAuthRoutes);
 app.use("/api/admin/users", adminUsersRoutes);
-app.use("/api/admin/orders", adminOrdersRoutes);
+
+// ⭐ UPDATED — Deliveries replaces Orders
+app.use("/api/admin/deliveries", adminDeliveriesRoutes);
+
 app.use("/api/admin/escrow", adminEscrowRoutes);
 app.use("/api/admin/payouts", adminPayoutsRoutes);
 app.use("/api/admin/revenue", adminRevenueRoutes);
