@@ -7,7 +7,12 @@ module.exports = function (req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (decoded.role !== "admin") throw new Error();
+
+    // Allow both admin and superadmin
+    if (!["admin", "superadmin"].includes(decoded.role)) {
+      throw new Error();
+    }
+
     req.admin = decoded;
     next();
   } catch {
