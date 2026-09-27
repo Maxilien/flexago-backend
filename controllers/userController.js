@@ -14,16 +14,52 @@ const bcrypt = require("bcryptjs");
 // ------------------------------------------------------
 async function createUser(req, res) {
   try {
-    // 1. Create the user (password is auto‑hashed by User model)
-    const user = await User.create(req.body);
+    const {
+      firstName,
+      lastName,
+      email,
+      password,
+      role,
+      phone,
+      dob,
+      address,
+      city,
+      state,
+      zipcode,
+      country
+    } = req.body;
 
-    // 2. Check if Traveler already exists (safety)
+    // ⭐ Validate required fields
+    if (!firstName || !lastName || !email || !password || !role) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields."
+      });
+    }
+
+    // ⭐ Create user (password auto‑hashed by User model)
+    const user = await User.create({
+      firstName,
+      lastName,
+      email,
+      password,
+      role,
+      phone,
+      dob,
+      address,
+      city,
+      state,
+      zipcode,
+      country,
+      kyc: { verified: true } // optional: mark verified
+    });
+
+    // ⭐ Auto‑create Traveler profile
     let traveler = await Traveler.findOne({ user: user._id });
 
-    // 3. If not, create Traveler profile automatically
     if (!traveler) {
       traveler = await Traveler.create({
-        user: user._id,                     // ⭐ FIXED FIELD NAME
+        user: user._id,
         vehicleType: "car",
         yearJoined: new Date().getFullYear(),
         totalTrips: 0,
@@ -31,16 +67,33 @@ async function createUser(req, res) {
       });
     }
 
-    // 4. Return both
+    // ⭐ Return clean user object (no password)
+    const safeUser = {
+      _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      dob: user.dob,
+      address: user.address,
+      city: user.city,
+      state: user.state,
+      zipcode: user.zipcode,
+      country: user.country,
+      kycVerified: user.kyc?.verified || false
+    };
+
     res.status(201).json({
       success: true,
       data: {
-        user,
+        user: safeUser,
         traveler
       }
     });
 
   } catch (err) {
+    console.error("❌ Create User Error:", err);
     res.status(400).json({
       success: false,
       error: err.message
@@ -86,21 +139,17 @@ async function updateUser(req, res) {
 // ------------------------------------------------------
 async function loginUser(req, res) {
   try {
-    // ⭐ Always lowercase email before searching
     const email = req.body.email.toLowerCase();
     const password = req.body.password;
 
-    // 1. Find user and explicitly include password
     const user = await User.findOne({ email }).select("+password");
     if (!user)
       return res.status(404).json({ success: false, error: "User not found" });
 
-    // 2. Compare hashed password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch)
       return res.status(401).json({ success: false, error: "Invalid password" });
 
-    // 3. Remove password before sending
     const safeUser = user.toObject();
     delete safeUser.password;
 

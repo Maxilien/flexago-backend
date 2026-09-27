@@ -2,9 +2,11 @@
 const express = require("express");
 const router = express.Router();
 const adminAuth = require("../middleware/adminAuth");
-const Sender = require("../models/Sender");
+
+const User = require("../models/User");
 const Traveler = require("../models/Traveler");
 
+// ADMIN — USERS + TRAVELERS
 router.get("/", adminAuth, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -13,28 +15,26 @@ router.get("/", adminAuth, async (req, res) => {
 
     const search = req.query.search || "";
 
-    const senderQuery = search
-      ? { $or: [
-          { firstName: { $regex: search, $options: "i" } },
-          { lastName: { $regex: search, $options: "i" } },
-          { email: { $regex: search, $options: "i" } }
-        ]}
+    const userSearchQuery = search
+      ? {
+          $or: [
+            { firstName: { $regex: search, $options: "i" } },
+            { lastName: { $regex: search, $options: "i" } },
+            { email: { $regex: search, $options: "i" } },
+            { phone: { $regex: search, $options: "i" } }
+          ]
+        }
       : {};
 
-    const travelerQuery = search
-      ? { $or: [
-          { firstName: { $regex: search, $options: "i" } },
-          { lastName: { $regex: search, $options: "i" } },
-          { email: { $regex: search, $options: "i" } }
-        ]}
-      : {};
-
-    const senders = await Sender.find(senderQuery)
+    // Senders from User model
+    const senders = await User.find({ role: "sender", ...userSearchQuery })
       .skip(skip)
       .limit(limit)
       .lean();
 
-    const travelers = await Traveler.find(travelerQuery)
+    // Travelers with populated user profile
+    const travelers = await Traveler.find()
+      .populate("user")
       .skip(skip)
       .limit(limit)
       .lean();
@@ -44,7 +44,6 @@ router.get("/", adminAuth, async (req, res) => {
       senders,
       travelers
     });
-
   } catch (err) {
     console.error("Admin users error:", err);
     res.status(500).json({ error: "Server error" });
@@ -52,3 +51,4 @@ router.get("/", adminAuth, async (req, res) => {
 });
 
 module.exports = router;
+

@@ -3,35 +3,38 @@ const express = require("express");
 const router = express.Router();
 const adminAuth = require("../middleware/adminAuth");
 const Delivery = require("../models/Delivery");
-const Sender = require("../models/Sender");
+const User = require("../models/User");
 const Traveler = require("../models/Traveler");
 
 // GET /api/admin/deliveries
 router.get("/", adminAuth, async (req, res) => {
   try {
-    // If ID is provided → return full delivery details
+    // Single delivery details
     if (req.query.id) {
       const d = await Delivery.findById(req.query.id).lean();
-
       if (!d) return res.status(404).json({ error: "Delivery not found" });
 
-      // Attach sender + traveler details
-      const sender = await Sender.findById(d.senderId).lean();
-      const traveler = d.travelerId
-        ? await Traveler.findById(d.travelerId).lean()
+      const sender = d.senderId
+        ? await User.findById(d.senderId).lean()
+        : null;
+
+      const travelerDoc = d.travelerId
+        ? await Traveler.findById(d.travelerId).populate("user").lean()
+        : null;
+
+      const travelerDetails = travelerDoc
+        ? {
+            firstName: travelerDoc.user?.firstName || travelerDoc.firstName,
+            lastName: travelerDoc.user?.lastName || travelerDoc.lastName,
+            phone: travelerDoc.user?.phone || travelerDoc.phone,
+            email: travelerDoc.user?.email || travelerDoc.email
+          }
         : null;
 
       return res.json({
         ...d,
         sender,
-        travelerDetails: traveler
-          ? {
-              firstName: traveler.firstName,
-              lastName: traveler.lastName,
-              phone: traveler.phone,
-              email: traveler.email
-            }
-          : null
+        travelerDetails
       });
     }
 
@@ -46,12 +49,10 @@ router.get("/", adminAuth, async (req, res) => {
 
     let query = {};
 
-    // Status filter
     if (status) {
       query.status = status;
     }
 
-    // Search filter
     if (search) {
       query.$or = [
         { "pickup.address": { $regex: search, $options: "i" } },
@@ -62,31 +63,34 @@ router.get("/", adminAuth, async (req, res) => {
       ];
     }
 
-    // Fetch deliveries
     const deliveries = await Delivery.find(query)
       .skip(skip)
       .limit(limit)
       .lean();
 
-    // Attach sender + traveler names
     const enriched = await Promise.all(
       deliveries.map(async d => {
-        const sender = await Sender.findById(d.senderId).lean();
-        const traveler = d.travelerId
-          ? await Traveler.findById(d.travelerId).lean()
+        const sender = d.senderId
+          ? await User.findById(d.senderId).lean()
+          : null;
+
+        const travelerDoc = d.travelerId
+          ? await Traveler.findById(d.travelerId).populate("user").lean()
+          : null;
+
+        const travelerDetails = travelerDoc
+          ? {
+              firstName: travelerDoc.user?.firstName || travelerDoc.firstName,
+              lastName: travelerDoc.user?.lastName || travelerDoc.lastName,
+              phone: travelerDoc.user?.phone || travelerDoc.phone,
+              email: travelerDoc.user?.email || travelerDoc.email
+            }
           : null;
 
         return {
           ...d,
           sender,
-          travelerDetails: traveler
-            ? {
-                firstName: traveler.firstName,
-                lastName: traveler.lastName,
-                phone: traveler.phone,
-                email: traveler.email
-              }
-            : null
+          travelerDetails
         };
       })
     );
@@ -95,7 +99,6 @@ router.get("/", adminAuth, async (req, res) => {
       page,
       deliveries: enriched
     });
-
   } catch (err) {
     console.error("Admin deliveries error:", err);
     res.status(500).json({ error: "Server error" });
