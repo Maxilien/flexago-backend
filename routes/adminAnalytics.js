@@ -2,7 +2,8 @@
 const express = require("express");
 const router = express.Router();
 const adminAuth = require("../middleware/adminAuth");
-const Sender = require("../models/Sender");
+
+const User = require("../models/User");        // ⭐ FIXED — replace Sender
 const Traveler = require("../models/Traveler");
 const Order = require("../models/Order");
 const mongoose = require("mongoose");
@@ -47,7 +48,9 @@ router.get("/", adminAuth, async (req, res) => {
       topTravelers,
       topSenders
     ] = await Promise.all([
-      Sender.countDocuments(),
+      // ⭐ FIXED — count senders using User model
+      User.countDocuments({ role: "sender" }),
+
       Traveler.countDocuments(),
       Order.countDocuments(dateFilter),
 
@@ -111,7 +114,7 @@ router.get("/", adminAuth, async (req, res) => {
         { $sort: { _id: 1 } }
       ]),
 
-      // Top travelers (with name population)
+      // Top travelers
       Order.aggregate([
         { $match: dateFilter },
         {
@@ -126,13 +129,13 @@ router.get("/", adminAuth, async (req, res) => {
       ]).then(async (results) => {
         return Promise.all(
           results.map(async (r) => {
-            const traveler = await Traveler.findById(r._id).select("name email");
+            const traveler = await Traveler.findById(r._id).select("firstName lastName email");
             return { ...r, traveler };
           })
         );
       }),
 
-      // Top senders (with name population)
+      // Top senders — ⭐ FIXED to use User model
       Order.aggregate([
         { $match: dateFilter },
         {
@@ -147,7 +150,7 @@ router.get("/", adminAuth, async (req, res) => {
       ]).then(async (results) => {
         return Promise.all(
           results.map(async (r) => {
-            const sender = await Sender.findById(r._id).select("name email");
+            const sender = await User.findById(r._id).select("firstName lastName email");
             return { ...r, sender };
           })
         );
