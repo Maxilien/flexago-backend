@@ -1,4 +1,3 @@
-// controllers/userController.js
 // ------------------------------------------------------
 // Flexagoo User Controller (CommonJS)
 // ------------------------------------------------------
@@ -10,7 +9,7 @@ const Traveler = require("../models/Traveler");
 const bcrypt = require("bcryptjs");
 
 // ------------------------------------------------------
-// CREATE USER + AUTO‑CREATE TRAVELER PROFILE
+// CREATE USER (Sender or Traveler)
 // ------------------------------------------------------
 async function createUser(req, res) {
   try {
@@ -37,11 +36,20 @@ async function createUser(req, res) {
       });
     }
 
+    // ⭐ Prevent duplicate accounts
+    const existing = await User.findOne({ email: email.toLowerCase() });
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: "Email already exists."
+      });
+    }
+
     // ⭐ Create user (password auto‑hashed by User model)
     const user = await User.create({
       firstName,
       lastName,
-      email,
+      email: email.toLowerCase(),
       password,
       role,
       phone,
@@ -51,18 +59,26 @@ async function createUser(req, res) {
       state,
       zipcode,
       country,
-      kyc: { verified: true } // optional: mark verified
+      kycVerified: false // ⭐ FIXED — matches your User model
     });
 
-    // ⭐ Auto‑create Traveler profile
-    let traveler = await Traveler.findOne({ user: user._id });
+    let traveler = null;
 
-    if (!traveler) {
+    // ⭐ Only create traveler profile if role === "traveler"
+    if (role === "traveler") {
       traveler = await Traveler.create({
         user: user._id,
         vehicleType: "car",
         yearJoined: new Date().getFullYear(),
         totalTrips: 0,
+        status: "offline",
+        verified: false,
+        rating: 5,
+        location: {
+          type: "Point",
+          coordinates: [0, 0],
+          updatedAt: new Date()
+        },
         createdAt: new Date()
       });
     }
@@ -81,7 +97,7 @@ async function createUser(req, res) {
       state: user.state,
       zipcode: user.zipcode,
       country: user.country,
-      kycVerified: user.kyc?.verified || false
+      kycVerified: user.kycVerified
     };
 
     res.status(201).json({
