@@ -1,4 +1,3 @@
-// models/User.js
 // ------------------------------------------------------
 // Flexagoo User Schema (CommonJS)
 // Secure, scalable, compliance‑ready + JWT + Hashing
@@ -47,18 +46,24 @@ const UserSchema = new mongoose.Schema(
       required: false,
     },
 
-    // ⭐ NEW FIELDS FOR ACCOUNT & IDENTITY AUTO‑FILL
-    dob: { type: String },          // mm/dd/yyyy or ISO string
+    // ⭐ Account identity fields
+    dob: { type: String },          
     address: { type: String },
     city: { type: String },
     state: { type: String },
     zipcode: { type: String },
     country: { type: String },
 
-    // ⭐ Existing KYC block (kept exactly as you had it)
+    // ⭐ KYC verification flag (used by controller)
+    kycVerified: {
+      type: Boolean,
+      default: false,
+    },
+
+    // ⭐ Full KYC block (unchanged)
     kyc: {
       ssnLast4: { type: String },
-      dob: { type: Date },          // KYC DOB (separate from user.dob)
+      dob: { type: Date },          
       idFrontUrl: { type: String },
       idBackUrl: { type: String },
       verified: { type: Boolean, default: false },
@@ -67,13 +72,6 @@ const UserSchema = new mongoose.Schema(
 
     resetToken: String,
     resetTokenExpire: Date,
-
-    travelerProfile: {
-      vehicleType: { type: String },
-      licensePlate: { type: String },
-      yearJoined: { type: Number },
-      totalTrips: { type: Number, default: 0 },
-    },
   },
   { timestamps: true }
 );
