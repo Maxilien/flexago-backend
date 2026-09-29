@@ -1,4 +1,3 @@
-// controllers/travelerController.js
 // ------------------------------------------------------
 // Flexagoo Traveler Controller (CommonJS)
 // ------------------------------------------------------
@@ -54,8 +53,41 @@ async function updateTravelerLocation(req, res) {
   }
 }
 
+/* ============================================================
+   ⭐ UPDATE TRAVELER (ADDRESS ONLY — IDENTITY LOCKED)
+============================================================ */
+async function updateTraveler(req, res) {
+  try {
+    const id = req.params.id;
+
+    const allowed = {
+      address: req.body.address,
+      city: req.body.city,
+      state: req.body.state,
+      zipcode: req.body.zipcode,
+      country: req.body.country,
+    };
+
+    const updated = await Traveler.findByIdAndUpdate(
+      id,
+      { $set: allowed },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.json({ success: false, error: "Traveler not found" });
+    }
+
+    res.json({ success: true, data: updated });
+  } catch (err) {
+    console.error("Traveler update error:", err);
+    res.json({ success: false, error: "Server error" });
+  }
+}
+
 module.exports = {
   createTraveler,
   getTravelerByUser,
-  updateTravelerLocation
+  updateTravelerLocation,
+  updateTraveler   // ⭐ REQUIRED EXPORT
 };
