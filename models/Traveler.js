@@ -105,6 +105,14 @@ const TravelerSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+
+    // ------------------------------------------------------
+    // Stripe Connect — Traveler Payout Account
+    // ------------------------------------------------------
+    stripeAccountId: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true }
 );
@@ -115,4 +123,3 @@ const TravelerSchema = new mongoose.Schema(
 TravelerSchema.index({ location: "2dsphere" });
 
 module.exports = mongoose.model("Traveler", TravelerSchema);
-

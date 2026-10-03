@@ -64,16 +64,14 @@ const DeliverySchema = new mongoose.Schema(
       default: null
     },
 
-    // ⭐ Traveler details (first + last name)
     travelerDetails: {
       firstName: String,
       lastName: String
     },
 
-    // ⭐ NEW — Pickup security fields
-    pickupCode: String,                     // 6-digit pickup verification code
-    pickupQR: String,                       // optional QR token
-    pickupVerified: { type: Boolean, default: false }, // traveler must verify pickup
+    pickupCode: String,
+    pickupQR: String,
+    pickupVerified: { type: Boolean, default: false },
 
     status: {
       type: String,
@@ -93,6 +91,9 @@ const DeliverySchema = new mongoose.Schema(
     pickedUpAt: Date,
     deliveredAt: Date,
     payoutCompletedAt: Date,
+
+    // ⭐ NEW — store Stripe transfer ID for payout tracking
+    stripeTransferId: { type: String, default: null },
 
     proofPhoto: String,
     notes: String

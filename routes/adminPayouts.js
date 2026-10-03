@@ -16,10 +16,7 @@ router.get("/", adminAuth, async (req, res) => {
     // Attach sender + traveler details
     const enriched = await Promise.all(
       deliveries.map(async d => {
-        // ⭐ Sender is now stored in User model
         const sender = await User.findById(d.senderId).lean();
-
-        // ⭐ Traveler stays the same
         const traveler = d.travelerId
           ? await Traveler.findById(d.travelerId).lean()
           : null;
@@ -27,7 +24,6 @@ router.get("/", adminAuth, async (req, res) => {
         return {
           ...d,
 
-          // ⭐ Clean sender object
           sender: sender
             ? {
                 firstName: sender.firstName,
@@ -42,7 +38,6 @@ router.get("/", adminAuth, async (req, res) => {
               }
             : null,
 
-          // ⭐ Clean traveler object
           travelerDetails: traveler
             ? {
                 firstName: traveler.firstName,
@@ -64,3 +59,4 @@ router.get("/", adminAuth, async (req, res) => {
 });
 
 module.exports = router;
+
