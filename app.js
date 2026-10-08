@@ -37,7 +37,7 @@ const explorerRoutes = require("./routes/explorerRoutes");
 const userRoutes = require("./routes/userRoutes");
 const travelerRoutes = require("./routes/travelerRoutes");
 const deliveryRoutes = require("./routes/deliveryRoutes");
-
+const paymentRoutes = require("./routes/paymentRoutes");
 // Upload routes
 const uploadRoutes = require("./routes/uploadRoutes");
 
@@ -135,6 +135,9 @@ app.use("/api", explorerRoutes);
 
 // Delivery routes
 app.use("/api/deliveries", deliveryRoutes);
+
+// Payment routes
+app.use("/api/payments", paymentRoutes);
 
 // Traveler DB routes
 app.use("/api/travelers-db", travelerRoutes);
