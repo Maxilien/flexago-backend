@@ -53,6 +53,29 @@ const UserSchema = new mongoose.Schema(
     state: { type: String },
     zipcode: { type: String },
     country: { type: String },
+   // ⭐ Payout Method
+payoutMethod: {
+  type: {
+    type: String,
+    enum: ["bank", "card"],
+    default: null,
+  },
+
+  accountName: {
+    type: String,
+    default: null,
+  },
+
+  last4: {
+    type: String,
+    default: null,
+  },
+
+  updatedAt: {
+    type: Date,
+    default: null,
+  }
+},
 
     // ⭐ KYC verification flag (used by controller)
     kycVerified: {

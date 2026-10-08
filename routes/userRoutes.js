@@ -58,5 +58,55 @@ router.put("/users/:id", async (req, res) => {
   }
 });
 
+// ============================================================
+// SAVE PAYOUT METHOD
+// ============================================================
+router.put("/payout-method/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    const {
+      type,
+      accountName,
+      last4
+    } = req.body;
+
+    const updated = await User.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          payoutMethod: {
+            type,
+            accountName,
+            last4,
+            updatedAt: new Date()
+          }
+        }
+      },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found"
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Payout method saved successfully",
+      payoutMethod: updated.payoutMethod
+    });
+
+  } catch (err) {
+    console.error("Payout save error:", err);
+
+    res.status(500).json({
+      success: false,
+      error: "Server error"
+    });
+  }
+});
 module.exports = router;
 
