@@ -38,6 +38,9 @@ const userRoutes = require("./routes/userRoutes");
 const travelerRoutes = require("./routes/travelerRoutes");
 const deliveryRoutes = require("./routes/deliveryRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
+const stripeWebhookRoutes = require("./routes/stripeWebhook");
+
+
 // Upload routes
 const uploadRoutes = require("./routes/uploadRoutes");
 
@@ -114,7 +117,10 @@ app.use((req, res, next) => {
 
 app.options("*", cors());
 
-// Stripe Webhooks require RAW body BEFORE express.json()
+// Stripe Payment webhook must run before express.json()
+app.use("/api/payments/webhook", stripeWebhookRoutes);
+
+// Stripe Identity webhook requires raw request body
 app.use("/webhook", express.raw({ type: "application/json" }));
 
 // JSON parser for all other routes

@@ -1,99 +1,67 @@
+
 // routes/paymentRoutes.js
+// ------------------------------------------------------
+// Flexago Payment Routes
+// ------------------------------------------------------
+
+console.log("🟢 paymentRoutes.js LOADED");
+
 const express = require("express");
+
+const {
+  createSetupIntent,
+  savePaymentMethod,
+  createDeliveryPayment,
+  getDeliveryPaymentStatus,
+  releaseTravelerPayment
+} = require("../controllers/paymentController");
+
 const router = express.Router();
-const Stripe = require("stripe");
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
-const Delivery = require("../models/Delivery");
-const Traveler = require("../models/Traveler");
-const Payout = require("../models/Payout");
+/* ============================================================
+   SENDER PAYMENT METHOD
+============================================================ */
 
-// ------------------------------------------------------
-// ⭐ AUTOMATIC INSTANT PAYOUT WHEN DELIVERY IS COMPLETED
-// ------------------------------------------------------
-router.post("/auto-payout", async (req, res) => {
-  try {
-    const { deliveryId } = req.body;
+// Create a Stripe SetupIntent
+router.post(
+  "/setup-intent",
+  createSetupIntent
+);
 
-    if (!deliveryId) {
-      return res.status(400).json({ error: "deliveryId is required" });
-    }
+// Save a verified Stripe payment method
+router.put(
+  "/payment-method",
+  savePaymentMethod
+);
 
-    // 1. Load delivery
-    const delivery = await Delivery.findById(deliveryId);
-    if (!delivery) {
-      return res.status(404).json({ error: "Delivery not found" });
-    }
+/* ============================================================
+   DELIVERY PAYMENT
+============================================================ */
 
-    if (delivery.status !== "delivered") {
-      return res.status(400).json({ error: "Delivery is not completed yet" });
-    }
+// Create or retrieve the PaymentIntent for a delivery
+router.post(
+  "/create-delivery-payment",
+  createDeliveryPayment
+);
 
-    // 2. Load traveler
-    const traveler = await Traveler.findById(delivery.travelerId);
-    if (!traveler) {
-      return res.status(404).json({ error: "Traveler not found" });
-    }
+// Retrieve the latest payment status for a delivery
+router.get(
+  "/delivery/:deliveryId/status",
+  getDeliveryPaymentStatus
+);
 
-    if (!traveler.stripeAccountId) {
-      return res.status(400).json({ error: "Traveler has no Stripe account" });
-    }
+/* ============================================================
+   TRAVELER PAYMENT RELEASE
+============================================================ */
 
-    // 3. Calculate payout split (80% traveler / 20% Flexago)
-    const total = delivery.price;
-    const travelerAmount = Math.round(total * 0.80 * 100); // cents
-    const flexagoAmount = Math.round(total * 0.20 * 100);  // cents
+// Release the funded delivery payment to the traveler
+router.post(
+  "/release",
+  releaseTravelerPayment
+);
 
-    // 4. Transfer 80% to traveler (Instant Payout enabled)
-    const travelerTransfer = await stripe.transfers.create({
-      amount: travelerAmount,
-      currency: "usd",
-      destination: traveler.stripeAccountId,
-      description: `Flexago delivery payout for ${deliveryId}`
-    });
-
-    // 5. Transfer 20% to Flexago (platform fee)
-    const flexagoTransfer = await stripe.transfers.create({
-      amount: flexagoAmount,
-      currency: "usd",
-      destination: process.env.FLEXAGO_STRIPE_ACCOUNT_ID,
-      description: `Flexago fee for delivery ${deliveryId}`
-    });
-
-    // 6. Create payout record
-    const payoutRecord = await Payout.create({
-      orderId: deliveryId,
-      travelerId: traveler._id,
-      amount: travelerAmount / 100,
-      status: "paid",
-      method: "bank",
-      stripePayoutId: travelerTransfer.id,
-      paidAt: new Date()
-    });
-
-    // 7. Update delivery status
-    delivery.status = "payout_completed";
-    delivery.payoutCompletedAt = new Date();
-    delivery.stripeTransferId = travelerTransfer.id;
-    await delivery.save();
-
-    // 8. Update traveler earnings
-    traveler.totalDeliveries += 1;
-    await traveler.save();
-
-    res.json({
-      success: true,
-      message: "Instant payout completed successfully",
-      travelerTransfer,
-      flexagoTransfer,
-      payoutRecord
-    });
-
-  } catch (err) {
-    console.error("❌ Auto payout error:", err);
-    res.status(500).json({ error: "Auto payout failed" });
-  }
-});
+/* ============================================================
+   EXPORT
+============================================================ */
 
 module.exports = router;
-

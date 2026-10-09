@@ -73,30 +73,104 @@ const DeliverySchema = new mongoose.Schema(
     pickupQR: String,
     pickupVerified: { type: Boolean, default: false },
 
-    status: {
-      type: String,
-      enum: [
-        "created",
-        "available",
-        "accepted",
-        "in_transit",
-        "delivered",
-        "payout_pending",
-        "payout_completed"
-      ],
-      default: "available"
-    },
-
+status: {
+  type: String,
+  enum: [
+    "created",
+    "payment_pending",
+    "payment_failed",
+    "available",
+    "accepted",
+    "in_transit",
+    "delivered",
+    "payout_pending",
+    "payout_completed"
+  ],
+  default: "payment_pending"
+},
     acceptedAt: Date,
-    pickedUpAt: Date,
-    deliveredAt: Date,
-    payoutCompletedAt: Date,
+pickedUpAt: Date,
+deliveredAt: Date,
+payoutCompletedAt: Date,
 
-    // ⭐ NEW — store Stripe transfer ID for payout tracking
-    stripeTransferId: { type: String, default: null },
+/* ============================================================
+   PAYMENT LIFECYCLE
+============================================================ */
 
-    proofPhoto: String,
-    notes: String
+paymentStatus: {
+  type: String,
+  enum: [
+    "pending",
+    "requires_payment",
+    "paid",
+    "failed",
+    "refunded"
+  ],
+  default: "pending"
+},
+
+payoutStatus: {
+  type: String,
+  enum: [
+    "pending",
+    "processing",
+    "completed",
+    "failed"
+  ],
+  default: "pending"
+},
+
+amountCharged: {
+  type: Number,
+  default: 0
+},
+
+currency: {
+  type: String,
+  default: "usd"
+},
+
+fundedAt: {
+  type: Date,
+  default: null
+},
+
+paymentFailedAt: {
+  type: Date,
+  default: null
+},
+
+payoutFailedAt: {
+  type: Date,
+  default: null
+},
+
+/* ============================================================
+   STRIPE TRACKING
+============================================================ */
+
+stripePaymentIntentId: {
+  type: String,
+  default: null
+},
+
+stripeChargeId: {
+  type: String,
+  default: null
+},
+
+stripeTransferId: {
+  type: String,
+  default: null
+},
+
+transferGroup: {
+  type: String,
+  default: null
+},
+
+proofPhoto: String,
+notes: String
   },
   { timestamps: true }
 );

@@ -46,47 +46,80 @@ const UserSchema = new mongoose.Schema(
       required: false,
     },
 
-    // ⭐ Account identity fields
-    dob: { type: String },          
+    // ============================================================
+    // ACCOUNT IDENTITY
+    // ============================================================
+
+    dob: { type: String },
     address: { type: String },
     city: { type: String },
     state: { type: String },
     zipcode: { type: String },
     country: { type: String },
-   // ⭐ Payout Method
-payoutMethod: {
-  type: {
-    type: String,
-    enum: ["bank", "card"],
-    default: null,
-  },
 
-  accountName: {
-    type: String,
-    default: null,
-  },
+    // ============================================================
+    // DISPLAY PAYOUT METHOD (NON-SENSITIVE)
+    // ============================================================
 
-  last4: {
-    type: String,
-    default: null,
-  },
+    payoutMethod: {
+      type: {
+        type: String,
+        enum: ["bank", "card"],
+        default: null,
+      },
 
-  updatedAt: {
-    type: Date,
-    default: null,
-  }
-},
+      accountName: {
+        type: String,
+        default: null,
+      },
 
-    // ⭐ KYC verification flag (used by controller)
+      last4: {
+        type: String,
+        default: null,
+      },
+
+      updatedAt: {
+        type: Date,
+        default: null,
+      },
+    },
+
+    // ============================================================
+    // STRIPE CUSTOMER + PAYMENT METHOD
+    // ============================================================
+
+    stripeCustomerId: {
+      type: String,
+      default: null,
+    },
+
+    defaultPaymentMethodId: {
+      type: String,
+      default: null,
+    },
+
+    paymentMethodBrand: {
+      type: String,
+      default: null,
+    },
+
+    paymentMethodLast4: {
+      type: String,
+      default: null,
+    },
+
+    // ============================================================
+    // KYC
+    // ============================================================
+
     kycVerified: {
       type: Boolean,
       default: false,
     },
 
-    // ⭐ Full KYC block (unchanged)
     kyc: {
       ssnLast4: { type: String },
-      dob: { type: Date },          
+      dob: { type: Date },
       idFrontUrl: { type: String },
       idBackUrl: { type: String },
       verified: { type: Boolean, default: false },
@@ -102,6 +135,7 @@ payoutMethod: {
 // ------------------------------------------------------
 // Password Hashing Middleware
 // ------------------------------------------------------
+
 UserSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
 
@@ -114,6 +148,7 @@ UserSchema.pre("save", async function (next) {
 // ------------------------------------------------------
 // Password Match Method
 // ------------------------------------------------------
+
 UserSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
