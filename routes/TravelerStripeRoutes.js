@@ -117,40 +117,39 @@ router.post(
 
       const travelerUser =
         traveler.user || {};
+const account =
+  await stripe.accounts.create(
+    {
+      type: "express",
 
-      const account =
-        await stripe.accounts.create(
-          {
-            type: "express",
-            country:
-              String(country).toUpperCase(),
+      country:
+        String(country).toUpperCase(),
 
-            email:
-              travelerUser.email ||
-              undefined,
+      email:
+        travelerUser.email ||
+        undefined,
 
-            capabilities: {
-              transfers: {
-                requested: true
-              }
-            },
+      capabilities: {
+        transfers: {
+          requested: true
+        }
+      },
 
-            metadata: {
-              flexagoTravelerId:
-                traveler._id.toString(),
+      metadata: {
+        flexagoTravelerId:
+          traveler._id.toString(),
 
-              flexagoUserId:
-                travelerUser._id
-                  ? travelerUser._id.toString()
-                  : ""
-            }
-          },
-          {
-            idempotencyKey:
-              `flexago-connect-account-${traveler._id}`
-          }
-        );
-
+        flexagoUserId:
+          travelerUser._id
+            ? travelerUser._id.toString()
+            : ""
+      }
+    },
+    {
+      idempotencyKey:
+        `flexago-connect-account-v1-enabled-${traveler._id}`
+    }
+  );
       traveler.stripeAccountId =
         account.id;
 
