@@ -39,6 +39,7 @@ const travelerRoutes = require("./routes/travelerRoutes");
 const deliveryRoutes = require("./routes/deliveryRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const stripeWebhookRoutes = require("./routes/stripeWebhook");
+const travelerStripeRoutes = require("./routes/TravelerStripeRoutes");
 
 
 // Upload routes
@@ -150,6 +151,12 @@ app.use("/api/travelers-db", travelerRoutes);
 
 // Traveler job actions
 app.use("/api/traveler", travelerRoutes);
+
+// Traveler Stripe Connect
+app.use(
+  "/api/traveler-stripe",
+  travelerStripeRoutes
+);
 
 // User routes
 app.use("/api/users", userRoutes);
