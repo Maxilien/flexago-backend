@@ -564,7 +564,7 @@ async function releaseTravelerPayment(req, res) {
 // Older deliveries store User._id
 // Newer deliveries may store Traveler._id
 //
-// Support both formats.
+// Support both FORMATING.
 // ------------------------------------------------------
 
 const traveler = await Traveler.findOne({
