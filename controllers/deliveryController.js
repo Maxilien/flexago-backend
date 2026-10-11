@@ -5,6 +5,7 @@
 
 const crypto = require("crypto");
 const Delivery = require("../models/Delivery");
+const Traveler = require("../models/Traveler");
 
 console.log("🟢 Flexago Marketplace Delivery Controller Loaded");
 
@@ -623,18 +624,24 @@ async function searchTravelerJobs(req, res) {
 
 /* ============================================================
    ACCEPT TRAVELER JOB
+
+   Accepts either:
+   - User._id
+   - Traveler._id
+
+   The backend resolves the authoritative Traveler profile,
+   stores Traveler._id on the delivery, and snapshots only
+   sender-safe traveler information.
 ============================================================ */
 
 async function acceptTravelerJob(req, res) {
   try {
     const { jobId } = req.params;
 
-    const {
-      travelerId,
-      travelerDetails
-    } = req.body;
+    const requestedTravelerId =
+      req.body?.travelerId;
 
-    if (!travelerId) {
+    if (!requestedTravelerId) {
       return res.status(400).json({
         success: false,
         error: "Missing travelerId"
@@ -654,29 +661,99 @@ async function acceptTravelerJob(req, res) {
     if (job.paymentStatus !== "paid") {
       return res.status(400).json({
         success: false,
-        error: "Job payment has not been funded"
+        error:
+          "Job payment has not been funded"
       });
     }
 
     if (job.status !== "available") {
       return res.status(400).json({
         success: false,
-        error: "Job is no longer available"
+        error:
+          "Job is no longer available"
       });
     }
 
-    job.travelerId =
-      travelerId;
+    /*
+     * The frontend currently sends User._id.
+     * Support both User._id and Traveler._id.
+     */
+    const traveler =
+      await Traveler.findOne({
+        $or: [
+          {
+            _id: requestedTravelerId
+          },
+          {
+            user: requestedTravelerId
+          }
+        ]
+      }).populate(
+        "user",
+        "firstName lastName"
+      );
 
-    if (travelerDetails) {
-      job.travelerDetails = {
-        firstName:
-          travelerDetails.firstName || "",
-
-        lastName:
-          travelerDetails.lastName || ""
-      };
+    if (!traveler) {
+      return res.status(404).json({
+        success: false,
+        error:
+          "Traveler profile not found"
+      });
     }
+
+    if (!traveler.user) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "Traveler user account is missing"
+      });
+    }
+
+    const firstName =
+      String(
+        traveler.user.firstName || ""
+      ).trim();
+
+    const lastName =
+      String(
+        traveler.user.lastName || ""
+      ).trim();
+
+    if (!firstName && !lastName) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "Traveler name is missing from the user account"
+      });
+    }
+
+    /*
+     * Store the authoritative Traveler profile ID,
+     * not the User ID.
+     */
+    job.travelerId =
+      traveler._id;
+
+    /*
+     * Store only sender-safe information.
+     * Do not store email or phone in travelerDetails.
+     */
+    job.travelerDetails = {
+      firstName,
+      lastName,
+
+      rating:
+        Number.isFinite(
+          Number(traveler.rating)
+        )
+          ? Number(traveler.rating)
+          : 5,
+
+      totalDeliveries:
+        Number(
+          traveler.totalDeliveries || 0
+        )
+    };
 
     job.pickupCode =
       Math.floor(
@@ -700,6 +777,26 @@ async function acceptTravelerJob(req, res) {
         job._id
       ).lean();
 
+    console.log(
+      "✅ Traveler accepted delivery:",
+      {
+        deliveryId:
+          job._id.toString(),
+
+        travelerId:
+          traveler._id.toString(),
+
+        travelerUserId:
+          traveler.user._id.toString(),
+
+        firstName,
+        lastName,
+
+        rating:
+          job.travelerDetails.rating
+      }
+    );
+
     return res.json({
       success: true,
       data: fullJob
@@ -712,11 +809,12 @@ async function acceptTravelerJob(req, res) {
 
     return res.status(500).json({
       success: false,
-      error: "Server error"
+      error:
+        error.message ||
+        "Unable to accept delivery"
     });
   }
 }
-
 /* ============================================================
    VERIFY PICKUP CODE OR QR
 ============================================================ */

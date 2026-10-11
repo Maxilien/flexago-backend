@@ -64,10 +64,27 @@ const DeliverySchema = new mongoose.Schema(
       default: null
     },
 
-    travelerDetails: {
-      firstName: String,
-      lastName: String
-    },
+travelerDetails: {
+  firstName: {
+    type: String,
+    default: ""
+  },
+
+  lastName: {
+    type: String,
+    default: ""
+  },
+
+  rating: {
+    type: Number,
+    default: 5
+  },
+
+  totalDeliveries: {
+    type: Number,
+    default: 0
+  }
+},
 
     pickupCode: String,
     pickupQR: String,
