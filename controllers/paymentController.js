@@ -558,6 +558,15 @@ async function releaseTravelerPayment(req, res) {
       });
     }
 
+// ------------------------------------------------------
+// FIND TRAVELER
+//
+// Older deliveries store User._id
+// Newer deliveries may store Traveler._id
+//
+// Support both formats.
+// ------------------------------------------------------
+
 const traveler = await Traveler.findOne({
   $or: [
     {
@@ -568,6 +577,19 @@ const traveler = await Traveler.findOne({
     }
   ]
 });
+
+console.log(
+  "Traveler lookup:",
+  {
+    deliveryTravelerId:
+      delivery.travelerId?.toString(),
+    travelerFound: !!traveler,
+    travelerMongoId:
+      traveler?._id?.toString(),
+    travelerUserId:
+      traveler?.user?.toString()
+  }
+);
     if (!traveler) {
       return res.status(404).json({
         success: false,
