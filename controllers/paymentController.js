@@ -558,10 +558,16 @@ async function releaseTravelerPayment(req, res) {
       });
     }
 
-    const traveler = await Traveler.findById(
-      delivery.travelerId
-    );
-
+const traveler = await Traveler.findOne({
+  $or: [
+    {
+      _id: delivery.travelerId
+    },
+    {
+      user: delivery.travelerId
+    }
+  ]
+});
     if (!traveler) {
       return res.status(404).json({
         success: false,
