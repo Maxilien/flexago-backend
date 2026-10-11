@@ -936,19 +936,47 @@ async function deliverTravelerJob(req, res) {
 }
 
 /* ============================================================
-   COMPLETE JOB
+   COMPLETE TRAVELER JOB
 
-   Marks the job payout_pending.
-   Real transfer runs through POST /api/payments/release.
+   Accepts proof of delivery from the final completion modal:
+   - signedBy
+   - photo
+   - signature
+
+   Moves:
+   in_transit or delivered
+   ↓
+   payout_pending
+
+   Real transfer runs through:
+   POST /api/payments/release
 ============================================================ */
 
-async function completeTravelerJob(req, res) {
+async function completeTravelerJob(
+  req,
+  res
+) {
   try {
-    const { jobId } = req.params;
-    const { proofPhoto } = req.body;
+    const { jobId } =
+      req.params;
+
+    const signedBy =
+      String(
+        req.body?.signedBy || ""
+      ).trim();
+
+    const photoFile =
+      req.files?.photo?.[0] ||
+      null;
+
+    const signatureFile =
+      req.files?.signature?.[0] ||
+      null;
 
     const job =
-      await Delivery.findById(jobId);
+      await Delivery.findById(
+        jobId
+      );
 
     if (!job) {
       return res.status(404).json({
@@ -957,36 +985,111 @@ async function completeTravelerJob(req, res) {
       });
     }
 
-    if (job.paymentStatus !== "paid") {
-      return res.status(400).json({
-        success: false,
-        error: "Delivery payment has not been funded"
-      });
-    }
-
-    if (job.status !== "delivered") {
+    if (
+      job.paymentStatus !== "paid"
+    ) {
       return res.status(400).json({
         success: false,
         error:
-          "Delivery must be marked delivered before completion"
+          "Delivery payment has not been funded"
+      });
+    }
+
+    if (
+      job.status !== "in_transit" &&
+      job.status !== "delivered"
+    ) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "Delivery must be in transit before completion"
       });
     }
 
     if (!job.pickupVerified) {
       return res.status(400).json({
         success: false,
-        error: "Pickup was not verified"
+        error:
+          "Pickup was not verified"
       });
     }
 
-    job.status = "payout_pending";
-    job.payoutStatus = "pending";
-
-    if (proofPhoto) {
-      job.proofPhoto = proofPhoto;
+    if (!signedBy) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "Recipient name is required"
+      });
     }
 
+    if (!photoFile) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "Delivery photo is required"
+      });
+    }
+
+    if (!signatureFile) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "Recipient signature is required"
+      });
+    }
+
+    const backendBaseUrl =
+      process.env.BACKEND_URL ||
+      `${req.protocol}://${req.get(
+        "host"
+      )}`;
+
+    const proofPhotoUrl =
+      `${backendBaseUrl}/uploads/` +
+      `${photoFile.filename}`;
+
+    const signatureUrl =
+      `${backendBaseUrl}/uploads/` +
+      `${signatureFile.filename}`;
+
+    job.signedBy =
+      signedBy;
+
+    job.proofPhoto =
+      proofPhotoUrl;
+
+    job.signatureUrl =
+      signatureUrl;
+
+    job.deliveredAt =
+      job.deliveredAt ||
+      new Date();
+
+    job.completedAt =
+      new Date();
+
+    job.status =
+      "payout_pending";
+
+    job.payoutStatus =
+      "pending";
+
     await job.save();
+
+    console.log(
+      "✅ Delivery completed:",
+      job._id
+    );
+
+    console.log(
+      "✅ Proof photo:",
+      job.proofPhoto
+    );
+
+    console.log(
+      "✅ Signature:",
+      job.signatureUrl
+    );
 
     return res.json({
       success: true,
@@ -995,6 +1098,7 @@ async function completeTravelerJob(req, res) {
         "Delivery completed and ready for payout release.",
 
       data: job,
+
       payoutRequired: true,
 
       payoutEndpoint:
@@ -1008,11 +1112,13 @@ async function completeTravelerJob(req, res) {
 
     return res.status(500).json({
       success: false,
-      error: "Server error"
+
+      error:
+        error.message ||
+        "Unable to complete delivery"
     });
   }
 }
-
 /* ============================================================
    PAYOUT JOB STATUS
 

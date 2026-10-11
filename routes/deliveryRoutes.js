@@ -6,6 +6,9 @@
 console.log("🟢 deliveryRoutes.js LOADED");
 
 const express = require("express");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 const {
   createDelivery,
   searchTravelerJobs,
@@ -20,6 +23,88 @@ const {
 const Delivery = require("../models/Delivery");
 
 const router = express.Router();
+/* ============================================================
+   PROOF OF DELIVERY UPLOAD
+============================================================ */
+
+const uploadsDirectory =
+  path.join(process.cwd(), "uploads");
+
+if (!fs.existsSync(uploadsDirectory)) {
+  fs.mkdirSync(
+    uploadsDirectory,
+    {
+      recursive: true
+    }
+  );
+}
+
+const proofStorage =
+  multer.diskStorage({
+    destination: (
+      req,
+      file,
+      callback
+    ) => {
+      callback(
+        null,
+        uploadsDirectory
+      );
+    },
+
+    filename: (
+      req,
+      file,
+      callback
+    ) => {
+      const extension =
+        path.extname(
+          file.originalname
+        ) || ".png";
+
+      const uniqueName =
+        `${Date.now()}-${Math.round(
+          Math.random() * 1e9
+        )}${extension}`;
+
+      callback(
+        null,
+        uniqueName
+      );
+    }
+  });
+
+const proofUpload =
+  multer({
+    storage: proofStorage,
+
+    limits: {
+      fileSize:
+        10 * 1024 * 1024
+    },
+
+    fileFilter: (
+      req,
+      file,
+      callback
+    ) => {
+      if (
+        file.mimetype &&
+        file.mimetype.startsWith(
+          "image/"
+        )
+      ) {
+        callback(null, true);
+        return;
+      }
+
+      callback(
+        new Error(
+          "Only image files are allowed."
+        )
+      );
+    }
+  });
 
 /* ============================================================
    CREATE DELIVERY (Sender)
@@ -48,7 +133,22 @@ router.post("/:jobId/pickup", pickupTravelerJob);
 router.post("/:jobId/verifyPickup", verifyPickupCode);
 
 router.post("/:jobId/deliver", deliverTravelerJob);
-router.post("/:jobId/complete", completeTravelerJob);
+router.post(
+  "/:jobId/complete",
+
+  proofUpload.fields([
+    {
+      name: "photo",
+      maxCount: 1
+    },
+    {
+      name: "signature",
+      maxCount: 1
+    }
+  ]),
+
+  completeTravelerJob
+);
 router.post("/:jobId/payout", payoutTravelerJob);
 
 /* ============================================================

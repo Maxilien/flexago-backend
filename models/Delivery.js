@@ -169,7 +169,30 @@ transferGroup: {
   default: null
 },
 
-proofPhoto: String,
+/* ============================================================
+   PROOF OF DELIVERY
+============================================================ */
+
+proofPhoto: {
+  type: String,
+  default: null
+},
+
+signedBy: {
+  type: String,
+  default: null
+},
+
+signatureUrl: {
+  type: String,
+  default: null
+},
+
+completedAt: {
+  type: Date,
+  default: null
+},
+
 notes: String
   },
   { timestamps: true }
