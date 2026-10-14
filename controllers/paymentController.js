@@ -495,7 +495,347 @@ async function getDeliveryPaymentStatus(req, res) {
 }
 
 // ------------------------------------------------------
-// RELEASE TRAVELER PAYMENT
+// PROCESS TRAVELER PAYMENT
+//
+// Reusable payout service.
+//
+// Used by:
+// 1. Automatic payout after delivery completion
+// 2. Manual POST /api/payments/release retry
+// ------------------------------------------------------
+
+async function processTravelerPayment(deliveryId) {
+  if (!deliveryId) {
+    const error =
+      new Error("deliveryId is required");
+
+    error.statusCode = 400;
+
+    throw error;
+  }
+
+  const delivery =
+    await Delivery.findById(
+      deliveryId
+    );
+
+  if (!delivery) {
+    const error =
+      new Error("Delivery not found");
+
+    error.statusCode = 404;
+
+    throw error;
+  }
+
+  if (
+    delivery.paymentStatus !== "paid"
+  ) {
+    const error =
+      new Error(
+        "Delivery payment has not been funded"
+      );
+
+    error.statusCode = 400;
+
+    throw error;
+  }
+
+  if (
+    delivery.status !== "delivered" &&
+    delivery.status !== "payout_pending" &&
+    delivery.status !== "payout_completed"
+  ) {
+    const error =
+      new Error(
+        "Delivery is not ready for payout"
+      );
+
+    error.statusCode = 400;
+
+    throw error;
+  }
+
+  if (!delivery.travelerId) {
+    const error =
+      new Error(
+        "Delivery has no assigned traveler"
+      );
+
+    error.statusCode = 400;
+
+    throw error;
+  }
+
+  /*
+   * Prevent duplicate transfers.
+   */
+  if (delivery.stripeTransferId) {
+    const existingPayout =
+      await Payout.findOne({
+        orderId:
+          delivery._id.toString()
+      });
+
+    return {
+      alreadyTransferred: true,
+
+      message:
+        "Traveler payment was already transferred",
+
+      deliveryId:
+        delivery._id,
+
+      stripeTransferId:
+        delivery.stripeTransferId,
+
+      payoutRecord:
+        existingPayout || null
+    };
+  }
+
+  /*
+   * Older delivery records may store User._id.
+   * New delivery records store Traveler._id.
+   * Support both formats.
+   */
+  const traveler =
+    await Traveler.findOne({
+      $or: [
+        {
+          _id:
+            delivery.travelerId
+        },
+        {
+          user:
+            delivery.travelerId
+        }
+      ]
+    });
+
+  console.log(
+    "Traveler payout lookup:",
+    {
+      deliveryId:
+        delivery._id.toString(),
+
+      deliveryTravelerId:
+        delivery.travelerId?.toString(),
+
+      travelerFound:
+        Boolean(traveler),
+
+      travelerProfileId:
+        traveler?._id?.toString(),
+
+      travelerUserId:
+        traveler?.user?.toString()
+    }
+  );
+
+  if (!traveler) {
+    const error =
+      new Error(
+        "Traveler not found"
+      );
+
+    error.statusCode = 404;
+
+    throw error;
+  }
+
+  if (!traveler.stripeAccountId) {
+    const error =
+      new Error(
+        "Traveler has no Stripe connected account"
+      );
+
+    error.statusCode = 400;
+
+    throw error;
+  }
+
+  const payoutInCents =
+    convertDollarsToCents(
+      delivery.payoutAmount
+    );
+
+  if (!payoutInCents) {
+    const error =
+      new Error(
+        "Traveler payout amount is invalid"
+      );
+
+    error.statusCode = 400;
+
+    throw error;
+  }
+
+  delivery.payoutStatus =
+    "processing";
+
+  delivery.status =
+    "payout_pending";
+
+  delivery.payoutFailedAt =
+    null;
+
+  await delivery.save();
+
+  const transferData = {
+    amount:
+      payoutInCents,
+
+    currency:
+      normalizeCurrency(
+        delivery.currency
+      ),
+
+    destination:
+      traveler.stripeAccountId,
+
+    transfer_group:
+      delivery.transferGroup ||
+      createTransferGroup(
+        delivery._id
+      ),
+
+    description:
+      `Flexago traveler payment for delivery ${delivery._id}`,
+
+    metadata: {
+      deliveryId:
+        delivery._id.toString(),
+
+      travelerId:
+        traveler._id.toString()
+    }
+  };
+
+  /*
+   * Link the transfer to the sender charge
+   * whenever the Charge ID is available.
+   */
+  if (delivery.stripeChargeId) {
+    transferData.source_transaction =
+      delivery.stripeChargeId;
+  }
+
+  const transfer =
+    await stripe.transfers.create(
+      transferData,
+      {
+        idempotencyKey:
+          `flexago-traveler-transfer-${delivery._id}`
+      }
+    );
+
+  delivery.stripeTransferId =
+    transfer.id;
+
+  delivery.payoutStatus =
+    "completed";
+
+  delivery.status =
+    "payout_completed";
+
+  delivery.payoutCompletedAt =
+    new Date();
+
+  delivery.payoutFailedAt =
+    null;
+
+  await delivery.save();
+
+  /*
+   * Create one permanent payout-history record.
+   */
+  let payoutRecord =
+    await Payout.findOne({
+      orderId:
+        delivery._id.toString()
+    });
+
+  if (!payoutRecord) {
+    payoutRecord =
+      await Payout.create({
+        orderId:
+          delivery._id.toString(),
+
+        travelerId:
+          traveler._id.toString(),
+
+        amount:
+          payoutInCents / 100,
+
+        status:
+          "paid",
+
+        method:
+          "bank",
+
+        /*
+         * Existing schema field.
+         * Stores the Stripe Transfer ID.
+         */
+        stripePayoutId:
+          transfer.id,
+
+        paidAt:
+          new Date()
+      });
+
+    /*
+     * Increment only when the payout-history
+     * record is created for the first time.
+     */
+    traveler.totalDeliveries =
+      Number(
+        traveler.totalDeliveries || 0
+      ) + 1;
+
+    await traveler.save();
+  }
+
+  console.log(
+    "✅ Traveler payment transferred:",
+    {
+      deliveryId:
+        delivery._id.toString(),
+
+      travelerId:
+        traveler._id.toString(),
+
+      connectedAccount:
+        traveler.stripeAccountId,
+
+      amount:
+        payoutInCents / 100,
+
+      stripeTransferId:
+        transfer.id
+    }
+  );
+
+  return {
+    alreadyTransferred: false,
+
+    message:
+      "Traveler payment transferred successfully",
+
+    deliveryId:
+      delivery._id,
+
+    stripeTransferId:
+      transfer.id,
+
+    payoutRecord
+  };
+}
+
+
+// ------------------------------------------------------
+// RELEASE TRAVELER PAYMENT ENDPOINT
 //
 // POST /api/payments/release
 //
@@ -503,202 +843,48 @@ async function getDeliveryPaymentStatus(req, res) {
 // {
 //   "deliveryId": "MongoDB delivery ID"
 // }
+//
+// Retained for:
+// - Manual testing
+// - Admin retry
+// - Failed payout recovery
 // ------------------------------------------------------
 
-async function releaseTravelerPayment(req, res) {
+async function releaseTravelerPayment(
+  req,
+  res
+) {
+  const { deliveryId } =
+    req.body || {};
+
   try {
-    const { deliveryId } = req.body;
-
-    if (!deliveryId) {
-      return res.status(400).json({
-        success: false,
-        error: "deliveryId is required",
-      });
-    }
-
-    const delivery = await Delivery.findById(deliveryId);
-
-    if (!delivery) {
-      return res.status(404).json({
-        success: false,
-        error: "Delivery not found",
-      });
-    }
-
-    if (delivery.paymentStatus !== "paid") {
-      return res.status(400).json({
-        success: false,
-        error: "Delivery payment has not been funded",
-      });
-    }
-
-    if (
-      delivery.status !== "delivered" &&
-      delivery.status !== "payout_pending"
-    ) {
-      return res.status(400).json({
-        success: false,
-        error: "Delivery is not ready for payout",
-      });
-    }
-
-    if (!delivery.travelerId) {
-      return res.status(400).json({
-        success: false,
-        error: "Delivery has no assigned traveler",
-      });
-    }
-
-    if (delivery.stripeTransferId) {
-      return res.json({
-        success: true,
-        alreadyTransferred: true,
-        message: "Traveler payment was already transferred",
-        stripeTransferId: delivery.stripeTransferId,
-      });
-    }
-
-// ------------------------------------------------------
-// FIND TRAVELER
-//
-// Older deliveries store User._id
-// Newer deliveries may store Traveler._id
-//
-// Support both FORMATING.
-// ------------------------------------------------------
-
-const traveler = await Traveler.findOne({
-  $or: [
-    {
-      _id: delivery.travelerId
-    },
-    {
-      user: delivery.travelerId
-    }
-  ]
-});
-
-console.log(
-  "Traveler lookup:",
-  {
-    deliveryTravelerId:
-      delivery.travelerId?.toString(),
-    travelerFound: !!traveler,
-    travelerMongoId:
-      traveler?._id?.toString(),
-    travelerUserId:
-      traveler?.user?.toString()
-  }
-);
-    if (!traveler) {
-      return res.status(404).json({
-        success: false,
-        error: "Traveler not found",
-      });
-    }
-
-    if (!traveler.stripeAccountId) {
-      return res.status(400).json({
-        success: false,
-        error: "Traveler has no Stripe connected account",
-      });
-    }
-
-    const payoutInCents = convertDollarsToCents(
-      delivery.payoutAmount
-    );
-
-    if (!payoutInCents) {
-      return res.status(400).json({
-        success: false,
-        error: "Traveler payout amount is invalid",
-      });
-    }
-
-    delivery.payoutStatus = "processing";
-    delivery.status = "payout_pending";
-    await delivery.save();
-
-    const transferData = {
-      amount: payoutInCents,
-      currency: normalizeCurrency(delivery.currency),
-      destination: traveler.stripeAccountId,
-      transfer_group:
-        delivery.transferGroup ||
-        createTransferGroup(delivery._id),
-      description: `Flexago traveler payment for delivery ${delivery._id}`,
-      metadata: {
-        deliveryId: delivery._id.toString(),
-        travelerId: traveler._id.toString(),
-      },
-    };
-
-    if (delivery.stripeChargeId) {
-      transferData.source_transaction =
-        delivery.stripeChargeId;
-    }
-
-    const transfer = await stripe.transfers.create(
-      transferData,
-      {
-        idempotencyKey: `flexago-traveler-transfer-${delivery._id}`,
-      }
-    );
-
-    delivery.stripeTransferId = transfer.id;
-    delivery.payoutStatus = "completed";
-    delivery.status = "payout_completed";
-    delivery.payoutCompletedAt = new Date();
-
-    await delivery.save();
-
-    const existingPayout = await Payout.findOne({
-      orderId: delivery._id.toString(),
-    });
-
-    let payoutRecord = existingPayout;
-
-    if (!payoutRecord) {
-      payoutRecord = await Payout.create({
-        orderId: delivery._id.toString(),
-        travelerId: traveler._id.toString(),
-        amount: payoutInCents / 100,
-        status: "paid",
-        method: "bank",
-
-        // Existing Payout schema field.
-        // This stores the Stripe Transfer ID for now.
-        stripePayoutId: transfer.id,
-
-        paidAt: new Date(),
-      });
-    }
-
-    traveler.totalDeliveries =
-      Number(traveler.totalDeliveries || 0) + 1;
-
-    await traveler.save();
+    const result =
+      await processTravelerPayment(
+        deliveryId
+      );
 
     return res.json({
       success: true,
-      alreadyTransferred: false,
-      message: "Traveler payment transferred successfully",
-      deliveryId: delivery._id,
-      stripeTransferId: transfer.id,
-      payoutRecord,
+      ...result
     });
   } catch (error) {
-    console.error("❌ Release traveler payment error:", error);
+    console.error(
+      "❌ Release traveler payment error:",
+      error
+    );
 
-    if (req.body?.deliveryId) {
+    if (deliveryId) {
       try {
         await Delivery.findByIdAndUpdate(
-          req.body.deliveryId,
+          deliveryId,
           {
             $set: {
-              payoutStatus: "failed",
-              payoutFailedAt: new Date(),
-            },
+              payoutStatus:
+                "failed",
+
+              payoutFailedAt:
+                new Date()
+            }
           }
         );
       } catch (updateError) {
@@ -709,13 +895,19 @@ console.log(
       }
     }
 
-    return res.status(500).json({
-      success: false,
-      error: error.message || "Failed to release traveler payment",
-    });
+    return res
+      .status(
+        error.statusCode || 500
+      )
+      .json({
+        success: false,
+
+        error:
+          error.message ||
+          "Failed to release traveler payment"
+      });
   }
 }
-
 // ------------------------------------------------------
 // EXPORT CONTROLLER
 // ------------------------------------------------------
@@ -725,5 +917,6 @@ module.exports = {
   savePaymentMethod,
   createDeliveryPayment,
   getDeliveryPaymentStatus,
-  releaseTravelerPayment,
+  processTravelerPayment,
+  releaseTravelerPayment
 };

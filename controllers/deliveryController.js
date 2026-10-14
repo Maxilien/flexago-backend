@@ -6,6 +6,7 @@
 const crypto = require("crypto");
 const Delivery = require("../models/Delivery");
 const Traveler = require("../models/Traveler");
+const {processTravelerPayment} = require("./paymentController");
 
 console.log("🟢 Flexago Marketplace Delivery Controller Loaded");
 
@@ -675,8 +676,7 @@ async function acceptTravelerJob(req, res) {
     }
 
     /*
-     * The frontend currently sends User._id.
-     * Support both User._id and Traveler._id.
+     * Support either User._id or Traveler._id.
      */
     const traveler =
       await Traveler.findOne({
@@ -727,17 +727,9 @@ async function acceptTravelerJob(req, res) {
       });
     }
 
-    /*
-     * Store the authoritative Traveler profile ID,
-     * not the User ID.
-     */
     job.travelerId =
       traveler._id;
 
-    /*
-     * Store only sender-safe information.
-     * Do not store email or phone in travelerDetails.
-     */
     job.travelerDetails = {
       firstName,
       lastName,
@@ -809,12 +801,14 @@ async function acceptTravelerJob(req, res) {
 
     return res.status(500).json({
       success: false,
+
       error:
         error.message ||
         "Unable to accept delivery"
     });
   }
 }
+
 /* ============================================================
    VERIFY PICKUP CODE OR QR
 ============================================================ */
@@ -971,6 +965,7 @@ async function pickupTravelerJob(req, res) {
   }
 }
 
+
 /* ============================================================
    DELIVER JOB
 ============================================================ */
@@ -1088,6 +1083,7 @@ async function completeTravelerJob(
     ) {
       return res.status(400).json({
         success: false,
+
         error:
           "Delivery payment has not been funded"
       });
@@ -1099,6 +1095,7 @@ async function completeTravelerJob(
     ) {
       return res.status(400).json({
         success: false,
+
         error:
           "Delivery must be in transit before completion"
       });
@@ -1107,14 +1104,14 @@ async function completeTravelerJob(
     if (!job.pickupVerified) {
       return res.status(400).json({
         success: false,
-        error:
-          "Pickup was not verified"
+        error: "Pickup was not verified"
       });
     }
 
     if (!signedBy) {
       return res.status(400).json({
         success: false,
+
         error:
           "Recipient name is required"
       });
@@ -1123,6 +1120,7 @@ async function completeTravelerJob(
     if (!photoFile) {
       return res.status(400).json({
         success: false,
+
         error:
           "Delivery photo is required"
       });
@@ -1131,6 +1129,7 @@ async function completeTravelerJob(
     if (!signatureFile) {
       return res.status(400).json({
         success: false,
+
         error:
           "Recipient signature is required"
       });
@@ -1189,18 +1188,61 @@ async function completeTravelerJob(
       job.signatureUrl
     );
 
+    let payoutResult = null;
+    let payoutError = null;
+
+    try {
+      payoutResult =
+        await processTravelerPayment(
+          job._id
+        );
+
+      console.log(
+        "✅ Automatic traveler payout completed:",
+        payoutResult
+      );
+    } catch (error) {
+      payoutError =
+        error.message;
+
+      console.error(
+        "❌ Automatic traveler payout failed:",
+        error
+      );
+
+      /*
+       * Proof of delivery remains saved.
+       * The payout can be retried manually.
+       */
+    }
+
+    /*
+     * Reload because processTravelerPayment()
+     * may have changed the delivery to
+     * payout_completed.
+     */
+    const updatedJob =
+      await Delivery.findById(
+        job._id
+      );
+
     return res.json({
       success: true,
 
       message:
-        "Delivery completed and ready for payout release.",
+        payoutResult
+          ? "Delivery completed and traveler payout processed."
+          : "Delivery completed. Traveler payout requires review.",
 
-      data: job,
+      data:
+        updatedJob || job,
 
-      payoutRequired: true,
+      payoutProcessed:
+        Boolean(payoutResult),
 
-      payoutEndpoint:
-        "/api/payments/release"
+      payoutResult,
+
+      payoutError
     });
   } catch (error) {
     console.error(
