@@ -905,47 +905,30 @@ async function verifyPickupCode(req, res) {
     if (!codeMatches && !qrMatches) {
       return res.status(400).json({
         success: false,
-        error: "Invalid pickup verification"
+        error:
+          "Invalid pickup verification"
       });
     }
 
+    /*
+     * IMPORTANT:
+     * Verification only confirms the code.
+     *
+     * Keep status as accepted so the
+     * frontend can show the Picked Up button.
+     */
     job.pickupVerified = true;
-    job.status = "in_transit";
-    job.pickedUpAt = new Date();
 
     await job.save();
 
-    /*
-     * Notify sender that pickup
-     * has been successfully verified.
-     *
-     * Email failure does not affect
-     * the delivery state.
-     */
-    if (job.sender?.email) {
-      const notificationSent =
-        await sendPickupVerifiedEmail({
-          to: job.sender.email,
-
-          deliveryId:
-            job._id.toString()
-        });
-
-      if (!notificationSent) {
-        console.warn(
-          "⚠️ Pickup verified email was not sent:",
-          job._id.toString()
-        );
-      }
-    } else {
-      console.warn(
-        "⚠️ Pickup verified email skipped because sender email is missing:",
-        job._id.toString()
-      );
-    }
+    console.log(
+      "✅ Pickup code verified:",
+      job._id.toString()
+    );
 
     return res.json({
       success: true,
+      pickupVerified: true,
       data: job
     });
   } catch (error) {
@@ -960,6 +943,8 @@ async function verifyPickupCode(req, res) {
     });
   }
 }
+
+
 /* ============================================================
    PICKUP JOB
 ============================================================ */
@@ -981,10 +966,15 @@ async function pickupTravelerJob(req, res) {
     if (job.paymentStatus !== "paid") {
       return res.status(400).json({
         success: false,
-        error: "Delivery payment has not been funded"
+        error:
+          "Delivery payment has not been funded"
       });
     }
 
+    /*
+     * Prevent duplicate pickup processing
+     * and duplicate pickup notifications.
+     */
     if (job.status === "in_transit") {
       return res.json({
         success: true,
@@ -996,23 +986,61 @@ async function pickupTravelerJob(req, res) {
     if (job.status !== "accepted") {
       return res.status(400).json({
         success: false,
-        error: "Delivery is not ready for pickup"
+        error:
+          "Delivery is not ready for pickup"
       });
     }
 
     if (!job.pickupVerified) {
       return res.status(400).json({
         success: false,
-        error: "Pickup verification is required"
+        error:
+          "Pickup verification is required"
       });
     }
 
+    /*
+     * Traveler has now explicitly clicked
+     * Picked Up.
+     */
     job.status = "in_transit";
+
     job.pickedUpAt =
       job.pickedUpAt ||
       new Date();
 
     await job.save();
+
+    console.log(
+      "✅ Delivery picked up:",
+      job._id.toString()
+    );
+
+    /*
+     * Send notification only when the
+     * actual pickup action occurs.
+     */
+    if (job.sender?.email) {
+      const notificationSent =
+        await sendPickupVerifiedEmail({
+          to: job.sender.email,
+
+          deliveryId:
+            job._id.toString()
+        });
+
+      if (!notificationSent) {
+        console.warn(
+          "⚠️ Pickup notification email was not sent:",
+          job._id.toString()
+        );
+      }
+    } else {
+      console.warn(
+        "⚠️ Pickup notification skipped because sender email is missing:",
+        job._id.toString()
+      );
+    }
 
     return res.json({
       success: true,
@@ -1022,69 +1050,6 @@ async function pickupTravelerJob(req, res) {
   } catch (error) {
     console.error(
       "❌ Pickup Job Error:",
-      error
-    );
-
-    return res.status(500).json({
-      success: false,
-      error: "Server error"
-    });
-  }
-}
-
-
-/* ============================================================
-   DELIVER JOB
-============================================================ */
-
-async function deliverTravelerJob(req, res) {
-  try {
-    const { jobId } = req.params;
-
-    const job =
-      await Delivery.findById(jobId);
-
-    if (!job) {
-      return res.status(404).json({
-        success: false,
-        error: "Job not found"
-      });
-    }
-
-    if (job.paymentStatus !== "paid") {
-      return res.status(400).json({
-        success: false,
-        error: "Delivery payment has not been funded"
-      });
-    }
-
-    if (job.status !== "in_transit") {
-      return res.status(400).json({
-        success: false,
-        error:
-          "Delivery must be in transit before it can be delivered"
-      });
-    }
-
-    if (!job.pickupVerified) {
-      return res.status(400).json({
-        success: false,
-        error: "Pickup was not verified"
-      });
-    }
-
-    job.status = "delivered";
-    job.deliveredAt = new Date();
-
-    await job.save();
-
-    return res.json({
-      success: true,
-      data: job
-    });
-  } catch (error) {
-    console.error(
-      "❌ Deliver Job Error:",
       error
     );
 
