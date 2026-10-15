@@ -849,18 +849,12 @@ async function acceptTravelerJob(req, res) {
 }
 /* ============================================================
    VERIFY PICKUP CODE OR QR
-
-   Successful verification confirms pickup,
-   moves the delivery to in_transit,
-   and notifies the sender.
 ============================================================ */
+
 async function verifyPickupCode(req, res) {
   try {
-    const { jobId } =
-      req.params;
-
-    const { code, qr } =
-      req.body;
+    const { jobId } = req.params;
+    const { code, qr } = req.body;
 
     const job =
       await Delivery.findById(jobId);
@@ -911,8 +905,7 @@ async function verifyPickupCode(req, res) {
     if (!codeMatches && !qrMatches) {
       return res.status(400).json({
         success: false,
-        error:
-          "Invalid pickup verification"
+        error: "Invalid pickup verification"
       });
     }
 
@@ -922,14 +915,12 @@ async function verifyPickupCode(req, res) {
 
     await job.save();
 
-    console.log(
-      "✅ Pickup verified and delivery moved to in transit:",
-      job._id
-    );
-
     /*
-     * Notify the sender after pickup
-     * has been verified successfully.
+     * Notify sender that pickup
+     * has been successfully verified.
+     *
+     * Email failure does not affect
+     * the delivery state.
      */
     if (job.sender?.email) {
       const notificationSent =
@@ -942,24 +933,19 @@ async function verifyPickupCode(req, res) {
 
       if (!notificationSent) {
         console.warn(
-          "⚠️ Pickup email was not sent:",
+          "⚠️ Pickup verified email was not sent:",
           job._id.toString()
         );
       }
     } else {
       console.warn(
-        "⚠️ Pickup email skipped because sender email is missing:",
+        "⚠️ Pickup verified email skipped because sender email is missing:",
         job._id.toString()
       );
     }
 
     return res.json({
       success: true,
-      pickupVerified: true,
-
-      message:
-        "Pickup verified. The delivery is now in transit.",
-
       data: job
     });
   } catch (error) {
@@ -974,17 +960,13 @@ async function verifyPickupCode(req, res) {
     });
   }
 }
-
-
 /* ============================================================
    PICKUP JOB
-
-   Retained for compatibility with existing frontend requests.
 ============================================================ */
+
 async function pickupTravelerJob(req, res) {
   try {
-    const { jobId } =
-      req.params;
+    const { jobId } = req.params;
 
     const job =
       await Delivery.findById(jobId);
@@ -999,23 +981,14 @@ async function pickupTravelerJob(req, res) {
     if (job.paymentStatus !== "paid") {
       return res.status(400).json({
         success: false,
-        error:
-          "Delivery payment has not been funded"
+        error: "Delivery payment has not been funded"
       });
     }
 
-    /*
-     * Successful verification normally
-     * moves the delivery to in_transit.
-     */
     if (job.status === "in_transit") {
       return res.json({
         success: true,
         alreadyPickedUp: true,
-
-        message:
-          "Delivery is already in transit.",
-
         data: job
       });
     }
@@ -1023,22 +996,18 @@ async function pickupTravelerJob(req, res) {
     if (job.status !== "accepted") {
       return res.status(400).json({
         success: false,
-        error:
-          "Delivery is not ready for pickup"
+        error: "Delivery is not ready for pickup"
       });
     }
 
     if (!job.pickupVerified) {
       return res.status(400).json({
         success: false,
-        error:
-          "Pickup verification is required"
+        error: "Pickup verification is required"
       });
     }
 
-    job.status =
-      "in_transit";
-
+    job.status = "in_transit";
     job.pickedUpAt =
       job.pickedUpAt ||
       new Date();
@@ -1048,10 +1017,6 @@ async function pickupTravelerJob(req, res) {
     return res.json({
       success: true,
       alreadyPickedUp: false,
-
-      message:
-        "Delivery marked as picked up and is now in transit.",
-
       data: job
     });
   } catch (error) {
@@ -1066,6 +1031,8 @@ async function pickupTravelerJob(req, res) {
     });
   }
 }
+
+
 /* ============================================================
    DELIVER JOB
 ============================================================ */
