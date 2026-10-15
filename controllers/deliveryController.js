@@ -1358,7 +1358,8 @@ async function completeTravelerJob(
         "Unable to complete delivery"
     });
   }
-}/* ============================================================
+}
+/* ============================================================
    PAYOUT JOB STATUS
 
    Real payout runs through POST /api/payments/release.
