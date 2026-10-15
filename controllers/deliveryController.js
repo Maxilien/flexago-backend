@@ -6,14 +6,26 @@
 const crypto = require("crypto");
 const Delivery = require("../models/Delivery");
 const Traveler = require("../models/Traveler");
-const {processTravelerPayment} = require("./paymentController");
+
+const {
+  processTravelerPayment
+} = require("./paymentController");
+
 const {
   sendDeliveryAcceptedEmail,
   sendPickupVerifiedEmail,
   sendDeliveryCompletedEmail
 } = require("../utils/emailService");
 
-console.log("🟢 Flexago Marketplace Delivery Controller Loaded");
+const {
+  sendDeliveryAcceptedSms,
+  sendPickupVerifiedSms,
+  sendDeliveryCompletedSms
+} = require("../utils/smsService");
+
+console.log(
+  "🟢 Flexago Marketplace Delivery Controller Loaded"
+);
 
 /* ============================================================
    GEO HELPERS
@@ -642,7 +654,8 @@ async function searchTravelerJobs(req, res) {
 
 async function acceptTravelerJob(req, res) {
   try {
-    const { jobId } = req.params;
+    const { jobId } =
+      req.params;
 
     const requestedTravelerId =
       req.body?.travelerId;
@@ -667,6 +680,7 @@ async function acceptTravelerJob(req, res) {
     if (job.paymentStatus !== "paid") {
       return res.status(400).json({
         success: false,
+
         error:
           "Job payment has not been funded"
       });
@@ -675,22 +689,27 @@ async function acceptTravelerJob(req, res) {
     if (job.status !== "available") {
       return res.status(400).json({
         success: false,
+
         error:
           "Job is no longer available"
       });
     }
 
     /*
-     * Support either User._id or Traveler._id.
+     * Support either:
+     * - User._id
+     * - Traveler._id
      */
     const traveler =
       await Traveler.findOne({
         $or: [
           {
-            _id: requestedTravelerId
+            _id:
+              requestedTravelerId
           },
           {
-            user: requestedTravelerId
+            user:
+              requestedTravelerId
           }
         ]
       }).populate(
@@ -701,6 +720,7 @@ async function acceptTravelerJob(req, res) {
     if (!traveler) {
       return res.status(404).json({
         success: false,
+
         error:
           "Traveler profile not found"
       });
@@ -709,6 +729,7 @@ async function acceptTravelerJob(req, res) {
     if (!traveler.user) {
       return res.status(400).json({
         success: false,
+
         error:
           "Traveler user account is missing"
       });
@@ -727,14 +748,26 @@ async function acceptTravelerJob(req, res) {
     if (!firstName && !lastName) {
       return res.status(400).json({
         success: false,
+
         error:
           "Traveler name is missing from the user account"
       });
     }
 
+    const travelerName =
+      `${firstName} ${lastName}`.trim();
+
+    /*
+     * Store the authoritative
+     * Traveler profile ID.
+     */
     job.travelerId =
       traveler._id;
 
+    /*
+     * Store only sender-safe
+     * traveler information.
+     */
     job.travelerDetails = {
       firstName,
       lastName,
@@ -763,10 +796,19 @@ async function acceptTravelerJob(req, res) {
         .randomBytes(16)
         .toString("hex");
 
-    job.pickupVerified = false;
-    job.status = "accepted";
-    job.acceptedAt = new Date();
+    job.pickupVerified =
+      false;
 
+    job.status =
+      "accepted";
+
+    job.acceptedAt =
+      new Date();
+
+    /*
+     * Save the accepted delivery before
+     * attempting notifications.
+     */
     await job.save();
 
     const fullJob =
@@ -795,19 +837,19 @@ async function acceptTravelerJob(req, res) {
     );
 
     /*
-     * Notify sender that the delivery
-     * has been accepted.
+     * ------------------------------------------------------
+     * ACCEPTED EMAIL NOTIFICATION
      *
-     * Email failure must not undo
+     * Email failure does not undo
      * the accepted delivery.
+     * ------------------------------------------------------
      */
-    const travelerName =
-      `${firstName} ${lastName}`.trim();
 
     if (job.sender?.email) {
-      const notificationSent =
+      const emailSent =
         await sendDeliveryAcceptedEmail({
-          to: job.sender.email,
+          to:
+            job.sender.email,
 
           deliveryId:
             job._id.toString(),
@@ -815,7 +857,7 @@ async function acceptTravelerJob(req, res) {
           travelerName
         });
 
-      if (!notificationSent) {
+      if (!emailSent) {
         console.warn(
           "⚠️ Delivery accepted email was not sent:",
           job._id.toString()
@@ -824,6 +866,42 @@ async function acceptTravelerJob(req, res) {
     } else {
       console.warn(
         "⚠️ Delivery accepted email skipped because sender email is missing:",
+        job._id.toString()
+      );
+    }
+
+    /*
+     * ------------------------------------------------------
+     * ACCEPTED SMS NOTIFICATION
+     *
+     * SMS failure does not undo:
+     * - Delivery acceptance
+     * - Pickup-code generation
+     * - Email notification
+     * ------------------------------------------------------
+     */
+
+    if (job.sender?.phone) {
+      const smsSent =
+        await sendDeliveryAcceptedSms({
+          to:
+            job.sender.phone,
+
+          deliveryId:
+            job._id.toString(),
+
+          travelerName
+        });
+
+      if (!smsSent) {
+        console.warn(
+          "⚠️ Delivery accepted SMS was not sent:",
+          job._id.toString()
+        );
+      }
+    } else {
+      console.warn(
+        "⚠️ Delivery accepted SMS skipped because sender phone is missing:",
         job._id.toString()
       );
     }
