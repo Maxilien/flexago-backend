@@ -7,7 +7,11 @@ const crypto = require("crypto");
 const Delivery = require("../models/Delivery");
 const Traveler = require("../models/Traveler");
 const {processTravelerPayment} = require("./paymentController");
-const {sendDeliveryAcceptedEmail} = require("../utils/emailService");
+const {
+  sendDeliveryAcceptedEmail,
+  sendPickupVerifiedEmail,
+  sendDeliveryCompletedEmail
+} = require("../utils/emailService");
 
 console.log("🟢 Flexago Marketplace Delivery Controller Loaded");
 
@@ -865,7 +869,8 @@ async function verifyPickupCode(req, res) {
     if (job.paymentStatus !== "paid") {
       return res.status(400).json({
         success: false,
-        error: "Delivery payment has not been funded"
+        error:
+          "Delivery payment has not been funded"
       });
     }
 
@@ -910,6 +915,35 @@ async function verifyPickupCode(req, res) {
 
     await job.save();
 
+    /*
+     * Notify sender that pickup
+     * has been successfully verified.
+     *
+     * Email failure does not affect
+     * the delivery state.
+     */
+    if (job.sender?.email) {
+      const notificationSent =
+        await sendPickupVerifiedEmail({
+          to: job.sender.email,
+
+          deliveryId:
+            job._id.toString()
+        });
+
+      if (!notificationSent) {
+        console.warn(
+          "⚠️ Pickup verified email was not sent:",
+          job._id.toString()
+        );
+      }
+    } else {
+      console.warn(
+        "⚠️ Pickup verified email skipped because sender email is missing:",
+        job._id.toString()
+      );
+    }
+
     return res.json({
       success: true,
       data: job
@@ -926,7 +960,6 @@ async function verifyPickupCode(req, res) {
     });
   }
 }
-
 /* ============================================================
    PICKUP JOB
 ============================================================ */
@@ -1138,7 +1171,8 @@ async function completeTravelerJob(
     if (!job.pickupVerified) {
       return res.status(400).json({
         success: false,
-        error: "Pickup was not verified"
+        error:
+          "Pickup was not verified"
       });
     }
 
@@ -1222,6 +1256,38 @@ async function completeTravelerJob(
       job.signatureUrl
     );
 
+    /*
+     * Notify sender that the delivery
+     * has been completed.
+     *
+     * This happens after proof of delivery
+     * has been successfully saved.
+     */
+    if (job.sender?.email) {
+      const notificationSent =
+        await sendDeliveryCompletedEmail({
+          to: job.sender.email,
+
+          deliveryId:
+            job._id.toString(),
+
+          signedBy:
+            job.signedBy
+        });
+
+      if (!notificationSent) {
+        console.warn(
+          "⚠️ Delivery completed email was not sent:",
+          job._id.toString()
+        );
+      }
+    } else {
+      console.warn(
+        "⚠️ Delivery completed email skipped because sender email is missing:",
+        job._id.toString()
+      );
+    }
+
     let payoutResult = null;
     let payoutError = null;
 
@@ -1292,8 +1358,7 @@ async function completeTravelerJob(
         "Unable to complete delivery"
     });
   }
-}
-/* ============================================================
+}/* ============================================================
    PAYOUT JOB STATUS
 
    Real payout runs through POST /api/payments/release.
