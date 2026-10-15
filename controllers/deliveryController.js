@@ -1059,7 +1059,77 @@ async function pickupTravelerJob(req, res) {
     });
   }
 }
+/* ============================================================
+   DELIVER JOB
+============================================================ */
+async function deliverTravelerJob(req, res) {
+  try {
+    const { jobId } =
+      req.params;
 
+    const job =
+      await Delivery.findById(jobId);
+
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        error: "Job not found"
+      });
+    }
+
+    if (job.paymentStatus !== "paid") {
+      return res.status(400).json({
+        success: false,
+        error:
+          "Delivery payment has not been funded"
+      });
+    }
+
+    if (job.status !== "in_transit") {
+      return res.status(400).json({
+        success: false,
+        error:
+          "Delivery must be in transit before it can be delivered"
+      });
+    }
+
+    if (!job.pickupVerified) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "Pickup was not verified"
+      });
+    }
+
+    job.status =
+      "delivered";
+
+    job.deliveredAt =
+      new Date();
+
+    await job.save();
+
+    console.log(
+      "✅ Delivery marked as delivered:",
+      job._id.toString()
+    );
+
+    return res.json({
+      success: true,
+      data: job
+    });
+  } catch (error) {
+    console.error(
+      "❌ Deliver Job Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      error: "Server error"
+    });
+  }
+}
 /* ============================================================
    COMPLETE TRAVELER JOB
 
