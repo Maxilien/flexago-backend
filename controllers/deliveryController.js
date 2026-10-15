@@ -983,14 +983,10 @@ async function verifyPickupCode(req, res) {
     if (!codeMatches && !qrMatches) {
       return res.status(400).json({
         success: false,
-        error:
-          "Invalid pickup verification"
+        error: "Invalid pickup verification"
       });
     }
 
-    /*
-     * Preserve the known-good pickup workflow.
-     */
     job.pickupVerified = true;
     job.status = "in_transit";
     job.pickedUpAt = new Date();
@@ -998,25 +994,22 @@ async function verifyPickupCode(req, res) {
     await job.save();
 
     /*
-     * ------------------------------------------------------
-     * PICKUP VERIFIED EMAIL
+     * Notify sender that pickup
+     * has been successfully verified.
      *
      * Email failure does not affect
      * the delivery state.
-     * ------------------------------------------------------
      */
-
     if (job.sender?.email) {
-      const emailSent =
+      const notificationSent =
         await sendPickupVerifiedEmail({
-          to:
-            job.sender.email,
+          to: job.sender.email,
 
           deliveryId:
             job._id.toString()
         });
 
-      if (!emailSent) {
+      if (!notificationSent) {
         console.warn(
           "⚠️ Pickup verified email was not sent:",
           job._id.toString()
@@ -1025,40 +1018,6 @@ async function verifyPickupCode(req, res) {
     } else {
       console.warn(
         "⚠️ Pickup verified email skipped because sender email is missing:",
-        job._id.toString()
-      );
-    }
-
-    /*
-     * ------------------------------------------------------
-     * PICKUP VERIFIED SMS
-     *
-     * SMS failure does not affect:
-     * - Pickup verification
-     * - in_transit status
-     * - Pickup email
-     * ------------------------------------------------------
-     */
-
-    if (job.sender?.phone) {
-      const smsSent =
-        await sendPickupVerifiedSms({
-          to:
-            job.sender.phone,
-
-          deliveryId:
-            job._id.toString()
-        });
-
-      if (!smsSent) {
-        console.warn(
-          "⚠️ Pickup verified SMS was not sent:",
-          job._id.toString()
-        );
-      }
-    } else {
-      console.warn(
-        "⚠️ Pickup verified SMS skipped because sender phone is missing:",
         job._id.toString()
       );
     }
@@ -1079,10 +1038,6 @@ async function verifyPickupCode(req, res) {
     });
   }
 }
-
-/* ============================================================
-   PICKUP JOB
-============================================================ */
 /* ============================================================
    PICKUP JOB
 ============================================================ */
@@ -1312,6 +1267,7 @@ async function completeTravelerJob(
     if (!job.pickupVerified) {
       return res.status(400).json({
         success: false,
+
         error:
           "Pickup was not verified"
       });
@@ -1380,6 +1336,10 @@ async function completeTravelerJob(
     job.payoutStatus =
       "pending";
 
+    /*
+     * Save completion and proof before
+     * attempting notifications or payout.
+     */
     await job.save();
 
     console.log(
@@ -1401,10 +1361,8 @@ async function completeTravelerJob(
      * ------------------------------------------------------
      * DELIVERY COMPLETED EMAIL
      *
-     * The delivery has already been saved before attempting
-     * email notification.
-     *
-     * Email failure must not reverse delivery completion.
+     * Email failure must not reverse
+     * delivery completion.
      * ------------------------------------------------------
      */
 
@@ -1423,7 +1381,7 @@ async function completeTravelerJob(
     );
 
     if (job.sender?.email) {
-      const notificationSent =
+      const emailSent =
         await sendDeliveryCompletedEmail({
           to:
             job.sender.email,
@@ -1435,9 +1393,9 @@ async function completeTravelerJob(
             job.signedBy
         });
 
-      if (notificationSent) {
+      if (emailSent) {
         console.log(
-          "✅ Delivery completed notification confirmed:",
+          "✅ Delivery completed email confirmed:",
           job._id.toString()
         );
       } else {
@@ -1449,6 +1407,49 @@ async function completeTravelerJob(
     } else {
       console.warn(
         "⚠️ Delivery completed email skipped because sender email is missing:",
+        job._id.toString()
+      );
+    }
+
+    /*
+     * ------------------------------------------------------
+     * DELIVERY COMPLETED SMS
+     *
+     * SMS failure must not affect:
+     * - Delivery completion
+     * - Proof of delivery
+     * - Completed email
+     * - Traveler payout
+     * ------------------------------------------------------
+     */
+
+    if (job.sender?.phone) {
+      const smsSent =
+        await sendDeliveryCompletedSms({
+          to:
+            job.sender.phone,
+
+          deliveryId:
+            job._id.toString(),
+
+          signedBy:
+            job.signedBy
+        });
+
+      if (smsSent) {
+        console.log(
+          "✅ Delivery completed SMS confirmed:",
+          job._id.toString()
+        );
+      } else {
+        console.warn(
+          "⚠️ Delivery completed SMS was not sent:",
+          job._id.toString()
+        );
+      }
+    } else {
+      console.warn(
+        "⚠️ Delivery completed SMS skipped because sender phone is missing:",
         job._id.toString()
       );
     }
@@ -1488,9 +1489,9 @@ async function completeTravelerJob(
     }
 
     /*
-     * Reload the delivery because
-     * processTravelerPayment() may have
-     * changed the status to payout_completed.
+     * Reload because processTravelerPayment()
+     * may have changed the delivery status
+     * to payout_completed.
      */
 
     const updatedJob =
