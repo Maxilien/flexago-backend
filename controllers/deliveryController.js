@@ -1143,17 +1143,26 @@ async function deliverTravelerJob(req, res) {
    ↓
    payout_pending
 
-   Real transfer runs through:
-   POST /api/payments/release
+   Automatic traveler payout runs after completion.
 ============================================================ */
 
 async function completeTravelerJob(
   req,
   res
 ) {
+  console.log(
+    "🔥 COMPLETE TRAVELER JOB HIT:",
+    req.originalUrl
+  );
+
   try {
     const { jobId } =
       req.params;
+
+    console.log(
+      "📦 Completing delivery:",
+      jobId
+    );
 
     const signedBy =
       String(
@@ -1278,7 +1287,7 @@ async function completeTravelerJob(
 
     console.log(
       "✅ Delivery completed:",
-      job._id
+      job._id.toString()
     );
 
     console.log(
@@ -1292,16 +1301,35 @@ async function completeTravelerJob(
     );
 
     /*
-     * Notify sender that the delivery
-     * has been completed.
+     * ------------------------------------------------------
+     * DELIVERY COMPLETED EMAIL
      *
-     * This happens after proof of delivery
-     * has been successfully saved.
+     * The delivery has already been saved before attempting
+     * email notification.
+     *
+     * Email failure must not reverse delivery completion.
+     * ------------------------------------------------------
      */
+
+    console.log(
+      "📧 About to send delivery completed email:",
+      {
+        deliveryId:
+          job._id.toString(),
+
+        senderEmail:
+          job.sender?.email || null,
+
+        signedBy:
+          job.signedBy
+      }
+    );
+
     if (job.sender?.email) {
       const notificationSent =
         await sendDeliveryCompletedEmail({
-          to: job.sender.email,
+          to:
+            job.sender.email,
 
           deliveryId:
             job._id.toString(),
@@ -1310,7 +1338,12 @@ async function completeTravelerJob(
             job.signedBy
         });
 
-      if (!notificationSent) {
+      if (notificationSent) {
+        console.log(
+          "✅ Delivery completed notification confirmed:",
+          job._id.toString()
+        );
+      } else {
         console.warn(
           "⚠️ Delivery completed email was not sent:",
           job._id.toString()
@@ -1322,6 +1355,12 @@ async function completeTravelerJob(
         job._id.toString()
       );
     }
+
+    /*
+     * ------------------------------------------------------
+     * AUTOMATIC TRAVELER PAYOUT
+     * ------------------------------------------------------
+     */
 
     let payoutResult = null;
     let payoutError = null;
@@ -1352,10 +1391,11 @@ async function completeTravelerJob(
     }
 
     /*
-     * Reload because processTravelerPayment()
-     * may have changed the delivery to
-     * payout_completed.
+     * Reload the delivery because
+     * processTravelerPayment() may have
+     * changed the status to payout_completed.
      */
+
     const updatedJob =
       await Delivery.findById(
         job._id
