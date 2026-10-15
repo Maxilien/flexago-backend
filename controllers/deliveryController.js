@@ -7,6 +7,7 @@ const crypto = require("crypto");
 const Delivery = require("../models/Delivery");
 const Traveler = require("../models/Traveler");
 const {processTravelerPayment} = require("./paymentController");
+const {sendDeliveryAcceptedEmail} = require("../utils/emailService");
 
 console.log("🟢 Flexago Marketplace Delivery Controller Loaded");
 
@@ -789,6 +790,40 @@ async function acceptTravelerJob(req, res) {
       }
     );
 
+    /*
+     * Notify sender that the delivery
+     * has been accepted.
+     *
+     * Email failure must not undo
+     * the accepted delivery.
+     */
+    const travelerName =
+      `${firstName} ${lastName}`.trim();
+
+    if (job.sender?.email) {
+      const notificationSent =
+        await sendDeliveryAcceptedEmail({
+          to: job.sender.email,
+
+          deliveryId:
+            job._id.toString(),
+
+          travelerName
+        });
+
+      if (!notificationSent) {
+        console.warn(
+          "⚠️ Delivery accepted email was not sent:",
+          job._id.toString()
+        );
+      }
+    } else {
+      console.warn(
+        "⚠️ Delivery accepted email skipped because sender email is missing:",
+        job._id.toString()
+      );
+    }
+
     return res.json({
       success: true,
       data: fullJob
@@ -808,7 +843,6 @@ async function acceptTravelerJob(req, res) {
     });
   }
 }
-
 /* ============================================================
    VERIFY PICKUP CODE OR QR
 ============================================================ */
