@@ -848,7 +848,7 @@ async function acceptTravelerJob(req, res) {
   }
 }
 /* ============================================================
-   VERIFY PICKUP CODE OR QR
+   VERIFY PICKUP CODE OR QR WHEN READY
 ============================================================ */
 
 async function verifyPickupCode(req, res) {
