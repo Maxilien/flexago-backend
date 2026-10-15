@@ -850,8 +850,9 @@ async function acceptTravelerJob(req, res) {
 /* ============================================================
    VERIFY PICKUP CODE OR QR
 
-   This step only verifies the pickup code or QR.
-   It does not move the delivery to in_transit.
+   Successful verification confirms pickup,
+   moves the delivery to in_transit,
+   and notifies the sender.
 ============================================================ */
 async function verifyPickupCode(req, res) {
   try {
@@ -915,25 +916,49 @@ async function verifyPickupCode(req, res) {
       });
     }
 
-    /*
-     * Only verify the pickup.
-     * The traveler must still click Picked Up.
-     */
     job.pickupVerified = true;
+    job.status = "in_transit";
+    job.pickedUpAt = new Date();
 
     await job.save();
 
     console.log(
-      "✅ Pickup verification successful:",
+      "✅ Pickup verified and delivery moved to in transit:",
       job._id
     );
+
+    /*
+     * Notify the sender after pickup
+     * has been verified successfully.
+     */
+    if (job.sender?.email) {
+      const notificationSent =
+        await sendPickupVerifiedEmail({
+          to: job.sender.email,
+
+          deliveryId:
+            job._id.toString()
+        });
+
+      if (!notificationSent) {
+        console.warn(
+          "⚠️ Pickup email was not sent:",
+          job._id.toString()
+        );
+      }
+    } else {
+      console.warn(
+        "⚠️ Pickup email skipped because sender email is missing:",
+        job._id.toString()
+      );
+    }
 
     return res.json({
       success: true,
       pickupVerified: true,
 
       message:
-        "Pickup verified. The delivery is ready to be marked as picked up.",
+        "Pickup verified. The delivery is now in transit.",
 
       data: job
     });
@@ -954,14 +979,7 @@ async function verifyPickupCode(req, res) {
 /* ============================================================
    PICKUP JOB
 
-   This runs when the traveler clicks Picked Up.
-
-   Moves:
-   accepted
-   ↓
-   in_transit
-
-   Sends the sender pickup notification.
+   Retained for compatibility with existing frontend requests.
 ============================================================ */
 async function pickupTravelerJob(req, res) {
   try {
@@ -987,8 +1005,8 @@ async function pickupTravelerJob(req, res) {
     }
 
     /*
-     * Idempotency protection.
-     * Do not send another pickup email.
+     * Successful verification normally
+     * moves the delivery to in_transit.
      */
     if (job.status === "in_transit") {
       return res.json({
@@ -996,7 +1014,7 @@ async function pickupTravelerJob(req, res) {
         alreadyPickedUp: true,
 
         message:
-          "Delivery was already marked as picked up.",
+          "Delivery is already in transit.",
 
         data: job
       });
@@ -1026,40 +1044,6 @@ async function pickupTravelerJob(req, res) {
       new Date();
 
     await job.save();
-
-    console.log(
-      "✅ Delivery marked as picked up:",
-      job._id
-    );
-
-    /*
-     * Notify the sender only after
-     * the traveler clicks Picked Up.
-     *
-     * Email failure does not reverse
-     * the successful pickup transition.
-     */
-    if (job.sender?.email) {
-      const notificationSent =
-        await sendPickupVerifiedEmail({
-          to: job.sender.email,
-
-          deliveryId:
-            job._id.toString()
-        });
-
-      if (!notificationSent) {
-        console.warn(
-          "⚠️ Pickup email was not sent:",
-          job._id.toString()
-        );
-      }
-    } else {
-      console.warn(
-        "⚠️ Pickup email skipped because sender email is missing:",
-        job._id.toString()
-      );
-    }
 
     return res.json({
       success: true,
