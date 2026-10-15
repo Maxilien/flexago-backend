@@ -983,10 +983,14 @@ async function verifyPickupCode(req, res) {
     if (!codeMatches && !qrMatches) {
       return res.status(400).json({
         success: false,
-        error: "Invalid pickup verification"
+        error:
+          "Invalid pickup verification"
       });
     }
 
+    /*
+     * Preserve the known-good pickup workflow.
+     */
     job.pickupVerified = true;
     job.status = "in_transit";
     job.pickedUpAt = new Date();
@@ -994,22 +998,25 @@ async function verifyPickupCode(req, res) {
     await job.save();
 
     /*
-     * Notify sender that pickup
-     * has been successfully verified.
+     * ------------------------------------------------------
+     * PICKUP VERIFIED EMAIL
      *
      * Email failure does not affect
      * the delivery state.
+     * ------------------------------------------------------
      */
+
     if (job.sender?.email) {
-      const notificationSent =
+      const emailSent =
         await sendPickupVerifiedEmail({
-          to: job.sender.email,
+          to:
+            job.sender.email,
 
           deliveryId:
             job._id.toString()
         });
 
-      if (!notificationSent) {
+      if (!emailSent) {
         console.warn(
           "⚠️ Pickup verified email was not sent:",
           job._id.toString()
@@ -1018,6 +1025,40 @@ async function verifyPickupCode(req, res) {
     } else {
       console.warn(
         "⚠️ Pickup verified email skipped because sender email is missing:",
+        job._id.toString()
+      );
+    }
+
+    /*
+     * ------------------------------------------------------
+     * PICKUP VERIFIED SMS
+     *
+     * SMS failure does not affect:
+     * - Pickup verification
+     * - in_transit status
+     * - Pickup email
+     * ------------------------------------------------------
+     */
+
+    if (job.sender?.phone) {
+      const smsSent =
+        await sendPickupVerifiedSms({
+          to:
+            job.sender.phone,
+
+          deliveryId:
+            job._id.toString()
+        });
+
+      if (!smsSent) {
+        console.warn(
+          "⚠️ Pickup verified SMS was not sent:",
+          job._id.toString()
+        );
+      }
+    } else {
+      console.warn(
+        "⚠️ Pickup verified SMS skipped because sender phone is missing:",
         job._id.toString()
       );
     }
@@ -1038,6 +1079,10 @@ async function verifyPickupCode(req, res) {
     });
   }
 }
+
+/* ============================================================
+   PICKUP JOB
+============================================================ */
 /* ============================================================
    PICKUP JOB
 ============================================================ */
