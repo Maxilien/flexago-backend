@@ -35,6 +35,9 @@ const http = require("http");
 // ✅ STEP 2 — Now app.js and all routes can safely read process.env
 const app = require("./app");
 const { Server } = require("socket.io");
+const {
+  initExplorerSocket
+} = require("./ws/explorerSocket");
 
 // ============================================================
 // ⭐ GOOGLE TRANSLATION CLIENT (for /translate + /detect-language)
@@ -139,7 +142,8 @@ const io = new Server(server, {
   path: "/socket.io",
   transports: ["websocket"],
 });
-
+// Native WebSocket server for delivery chat
+initExplorerSocket(server);
 // WebSocket logic (delivery rooms + updates)
 io.on("connection", (socket) => {
   console.log("🔌 WS connected:", socket.id);

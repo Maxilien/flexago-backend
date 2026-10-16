@@ -8,7 +8,7 @@ console.log("🟢 app.js LOADED");
 const fs = require("fs");
 
 // ============================================================
-// ⭐ GOOGLE CLOUD CREDENTIAL LOADER (Render + Local)
+// GOOGLE CLOUD CREDENTIAL LOADER (Render + Local)
 // ============================================================
 
 if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
@@ -17,9 +17,15 @@ if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
       "service-account.json",
       process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON
     );
-    console.log("🔐 Google credentials loaded from Render env variable.");
+
+    console.log(
+      "🔐 Google credentials loaded from Render env variable."
+    );
   } catch (err) {
-    console.error("❌ Failed to write service-account.json:", err);
+    console.error(
+      "❌ Failed to write service-account.json:",
+      err
+    );
   }
 }
 
@@ -28,7 +34,7 @@ const cors = require("cors");
 
 /* ============================================================
    ROUTE IMPORTS (CommonJS)
-   ============================================================ */
+============================================================ */
 
 // Legacy Explorer routes
 const explorerRoutes = require("./routes/explorerRoutes");
@@ -37,56 +43,92 @@ const explorerRoutes = require("./routes/explorerRoutes");
 const userRoutes = require("./routes/userRoutes");
 const travelerRoutes = require("./routes/travelerRoutes");
 const deliveryRoutes = require("./routes/deliveryRoutes");
-const paymentRoutes = require("./routes/paymentRoutes");
-const stripeWebhookRoutes = require("./routes/stripeWebhook");
-const travelerStripeRoutes = require("./routes/TravelerStripeRoutes");
 
+// Delivery Chat routes
+const deliveryChatRoutes = require(
+  "./routes/deliveryChatRoutes"
+);
+
+const paymentRoutes = require("./routes/paymentRoutes");
+const stripeWebhookRoutes = require(
+  "./routes/stripeWebhook"
+);
+const travelerStripeRoutes = require(
+  "./routes/TravelerStripeRoutes"
+);
 
 // Upload routes
 const uploadRoutes = require("./routes/uploadRoutes");
 
 // Identity Verification Routes (Stripe Identity)
 const identityRoutes = require("./routes/identity");
-const verifyStatusRoutes = require("./routes/verifyStatus");
-const identityWebhook = require("./routes/identityWebhook");
+const verifyStatusRoutes = require(
+  "./routes/verifyStatus"
+);
+const identityWebhook = require(
+  "./routes/identityWebhook"
+);
 
-// ⭐ NEW — Email Verification Route
-const verifyEmailRoutes = require("./routes/verifyEmailRoutes");
+// Email Verification Route
+const verifyEmailRoutes = require(
+  "./routes/verifyEmailRoutes"
+);
 
-// ⭐ NEW — Create Account Route
-const createAccountRoutes = require("./routes/create-account");
+// Create Account Route
+const createAccountRoutes = require(
+  "./routes/create-account"
+);
 
-// ⭐ NEW — Twilio Phone Verification Route
+// Twilio Phone Verification Route
 const verifyPhoneRoutes = require("./routes/verify");
 
-// ⭐ NEW — ADMIN ROUTES
+// ADMIN ROUTES
 const adminAuthRoutes = require("./routes/adminAuth");
 const adminUsersRoutes = require("./routes/adminUsers");
 
-// ⭐ UPDATED — Deliveries replaces Orders
-const adminDeliveriesRoutes = require("./routes/adminDeliveries");
+// Deliveries replaces Orders
+const adminDeliveriesRoutes = require(
+  "./routes/adminDeliveries"
+);
 
-const adminEscrowRoutes = require("./routes/adminEscrow");
-const adminPayoutsRoutes = require("./routes/adminPayouts");
-const adminRevenueRoutes = require("./routes/adminRevenue");
-const adminAnalyticsRoutes = require("./routes/adminAnalytics");
+const adminEscrowRoutes = require(
+  "./routes/adminEscrow"
+);
 
-// ⭐ NEW — Admin Background Check Dashboard
-const adminBackgroundRoutes = require("./routes/adminBackground");
+const adminPayoutsRoutes = require(
+  "./routes/adminPayouts"
+);
 
-// ⭐ NEW — Support Chat Route
+const adminRevenueRoutes = require(
+  "./routes/adminRevenue"
+);
+
+const adminAnalyticsRoutes = require(
+  "./routes/adminAnalytics"
+);
+
+// Admin Background Check Dashboard
+const adminBackgroundRoutes = require(
+  "./routes/adminBackground"
+);
+
+// Support Chat Route
 const supportChatRoute = require("./support/chat");
 
-// ⭐ NEW — Checkr Background Check Webhook
-const checkrWebhookRoute = require("./routes/checkrWebhook");
+// Checkr Background Check Webhook
+const checkrWebhookRoute = require(
+  "./routes/checkrWebhook"
+);
 
-const errorHandler = require("./middleware/errorHandler");
+const errorHandler = require(
+  "./middleware/errorHandler"
+);
 
 const app = express();
 
 /* ============================================================
    CORE MIDDLEWARE (UPDATED CORS)
-   ============================================================ */
+============================================================ */
 
 const allowedOrigins = [
   "http://127.0.0.1:5500",
@@ -100,57 +142,114 @@ const allowedOrigins = [
   "https://app.flexagoo.com"
 ];
 
-app.use(cors({
-  origin: allowedOrigins,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: allowedOrigins,
+    methods: [
+      "GET",
+      "POST",
+      "PUT",
+      "PATCH",
+      "DELETE"
+    ],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "x-user-id",
+      "x-user-role"
+    ],
+    credentials: true
+  })
+);
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
+
   if (allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
+    res.header(
+      "Access-Control-Allow-Origin",
+      origin
+    );
   }
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, x-user-id, x-user-role"
+  );
+
   next();
 });
 
 app.options("*", cors());
 
 // Stripe Payment webhook must run before express.json()
-app.use("/api/payments/webhook", stripeWebhookRoutes);
+app.use(
+  "/api/payments/webhook",
+  stripeWebhookRoutes
+);
 
 // Stripe Identity webhook requires raw request body
-app.use("/webhook", express.raw({ type: "application/json" }));
+app.use(
+  "/webhook",
+  express.raw({
+    type: "application/json"
+  })
+);
 
 // JSON parser for all other routes
 app.use(express.json());
 
 // Static uploads
-app.use("/uploads", express.static("uploads"));
+app.use(
+  "/uploads",
+  express.static("uploads")
+);
 
 /* ============================================================
    ROUTES (ORDER MATTERS)
-   ============================================================ */
+============================================================ */
 
 // Upload endpoints
-app.use("/api/uploads", uploadRoutes);
+app.use(
+  "/api/uploads",
+  uploadRoutes
+);
 
 // Legacy Explorer routes
-app.use("/api", explorerRoutes);
+app.use(
+  "/api",
+  explorerRoutes
+);
 
 // Delivery routes
-app.use("/api/deliveries", deliveryRoutes);
+app.use(
+  "/api/deliveries",
+  deliveryRoutes
+);
+
+// Delivery Chat routes
+app.use(
+  "/api/delivery-chat",
+  deliveryChatRoutes
+);
 
 // Payment routes
-app.use("/api/payments", paymentRoutes);
+app.use(
+  "/api/payments",
+  paymentRoutes
+);
 
 // Traveler DB routes
-app.use("/api/travelers-db", travelerRoutes);
+app.use(
+  "/api/travelers-db",
+  travelerRoutes
+);
 
 // Traveler job actions
-app.use("/api/traveler", travelerRoutes);
+app.use(
+  "/api/traveler",
+  travelerRoutes
+);
 
 // Traveler Stripe Connect
 app.use(
@@ -159,58 +258,113 @@ app.use(
 );
 
 // User routes
-app.use("/api/users", userRoutes);
+app.use(
+  "/api/users",
+  userRoutes
+);
 
-// Identity Verification (create session)
-app.use("/api/verify", identityRoutes);
+// Identity Verification
+app.use(
+  "/api/verify",
+  identityRoutes
+);
 
-// Identity Verification Status (check if verified)
-app.use("/api/verify", verifyStatusRoutes);
+// Identity Verification Status
+app.use(
+  "/api/verify",
+  verifyStatusRoutes
+);
 
-// ⭐ NEW — Email Verification
-app.use("/api/verify", verifyEmailRoutes);
+// Email Verification
+app.use(
+  "/api/verify",
+  verifyEmailRoutes
+);
 
-// ⭐ NEW — Twilio Phone Verification
-app.use("/api/verify", verifyPhoneRoutes);
+// Twilio Phone Verification
+app.use(
+  "/api/verify",
+  verifyPhoneRoutes
+);
 
 // Stripe Identity Webhook
-app.use("/webhook", identityWebhook);
+app.use(
+  "/webhook",
+  identityWebhook
+);
 
-// ⭐ NEW — Create Account (Traveler/Sender)
-app.use("/api/account", createAccountRoutes);
+// Create Account
+app.use(
+  "/api/account",
+  createAccountRoutes
+);
 
-// ⭐ NEW — Support Chat API
-app.use("/api/support/chat", supportChatRoute);
+// Support Chat API
+app.use(
+  "/api/support/chat",
+  supportChatRoute
+);
 
-// ⭐ NEW — Checkr Background Check Webhook
-app.use("/api/checkr/webhook", checkrWebhookRoute);
+// Checkr Background Check Webhook
+app.use(
+  "/api/checkr/webhook",
+  checkrWebhookRoute
+);
 
 /* ============================================================
-   ⭐ ADMIN ROUTES (JWT PROTECTED)
-   ============================================================ */
+   ADMIN ROUTES (JWT PROTECTED)
+============================================================ */
 
-app.use("/api/admin", adminAuthRoutes);
-app.use("/api/admin/users", adminUsersRoutes);
+app.use(
+  "/api/admin",
+  adminAuthRoutes
+);
 
-// ⭐ UPDATED — Deliveries replaces Orders
-app.use("/api/admin/deliveries", adminDeliveriesRoutes);
+app.use(
+  "/api/admin/users",
+  adminUsersRoutes
+);
 
-app.use("/api/admin/escrow", adminEscrowRoutes);
-app.use("/api/admin/payouts", adminPayoutsRoutes);
-app.use("/api/admin/revenue", adminRevenueRoutes);
-app.use("/api/admin/analytics", adminAnalyticsRoutes);
+// Deliveries replaces Orders
+app.use(
+  "/api/admin/deliveries",
+  adminDeliveriesRoutes
+);
 
-// ⭐ NEW — Admin Background Check Dashboard
-app.use("/api/admin/background", adminBackgroundRoutes);
+app.use(
+  "/api/admin/escrow",
+  adminEscrowRoutes
+);
+
+app.use(
+  "/api/admin/payouts",
+  adminPayoutsRoutes
+);
+
+app.use(
+  "/api/admin/revenue",
+  adminRevenueRoutes
+);
+
+app.use(
+  "/api/admin/analytics",
+  adminAnalyticsRoutes
+);
+
+// Admin Background Check Dashboard
+app.use(
+  "/api/admin/background",
+  adminBackgroundRoutes
+);
 
 /* ============================================================
    ERROR HANDLER
-   ============================================================ */
+============================================================ */
 
 app.use(errorHandler);
 
 /* ============================================================
    EXPORT
-   ============================================================ */
+============================================================ */
 
 module.exports = app;
