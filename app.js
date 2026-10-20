@@ -48,7 +48,10 @@ const deliveryRoutes = require("./routes/deliveryRoutes");
 const deliveryChatRoutes = require(
   "./routes/deliveryChatRoutes"
 );
-
+// Support Ticket routes
+const supportTicketRoutes = require(
+  "./routes/supportTicketRoutes"
+);
 const paymentRoutes = require("./routes/paymentRoutes");
 const stripeWebhookRoutes = require(
   "./routes/stripeWebhook"
@@ -232,7 +235,11 @@ app.use(
   "/api/delivery-chat",
   deliveryChatRoutes
 );
-
+// Support Ticket routes
+app.use(
+  "/api/support-tickets",
+  supportTicketRoutes
+);
 // Payment routes
 app.use(
   "/api/payments",
