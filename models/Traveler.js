@@ -58,19 +58,24 @@ const TravelerSchema = new mongoose.Schema(
       },
     ],
 
-    // Performance metrics
-    rating: {
-      type: Number,
-      min: 1,
-      max: 5,
-      default: 5,
-    },
+   // Performance metrics
+rating: {
+  type: Number,
+  min: 1,
+  max: 5,
+  default: 5,
+},
 
-    totalDeliveries: {
-      type: Number,
-      default: 0,
-    },
+ratingCount: {
+  type: Number,
+  min: 0,
+  default: 0,
+},
 
+totalDeliveries: {
+  type: Number,
+  default: 0,
+},
     // ------------------------------------------------------
     // Verification (Stripe Identity + Checkr Background Check)
     // ------------------------------------------------------

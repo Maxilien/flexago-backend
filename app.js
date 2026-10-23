@@ -52,6 +52,10 @@ const deliveryChatRoutes = require(
 const supportTicketRoutes = require(
   "./routes/supportTicketRoutes"
 );
+// Rating routes
+const ratingRoutes = require(
+  "./routes/ratingRoutes"
+);
 const paymentRoutes = require("./routes/paymentRoutes");
 const stripeWebhookRoutes = require(
   "./routes/stripeWebhook"
@@ -239,6 +243,11 @@ app.use(
 app.use(
   "/api/support-tickets",
   supportTicketRoutes
+);
+// Rating routes
+app.use(
+  "/api/ratings",
+  ratingRoutes
 );
 // Payment routes
 app.use(
