@@ -13,39 +13,70 @@ router.get("/", adminAuth, async (req, res) => {
     // Find deliveries where payout is completed
     const deliveries = await Delivery.find({ status: "payout_completed" }).lean();
 
-    // Attach sender + traveler details
+    // Build clean Payout rows from completed deliveries
     const enriched = await Promise.all(
-      deliveries.map(async d => {
-        const sender = await User.findById(d.senderId).lean();
-        const traveler = d.travelerId
-          ? await Traveler.findById(d.travelerId).lean()
-          : null;
+      deliveries.map(async delivery => {
+        const sender =
+          await User.findById(
+            delivery.senderId
+          )
+            .select(
+              "firstName lastName email"
+            )
+            .lean();
+
+        const traveler =
+          delivery.travelerId
+            ? await Traveler.findById(
+                delivery.travelerId
+              )
+                .populate(
+                  "user",
+                  "firstName lastName email"
+                )
+                .lean()
+            : null;
+
+        const senderName = sender
+          ? `${sender.firstName || ""} ${sender.lastName || ""}`.trim()
+          : "";
+
+        const travelerUser =
+          traveler?.user || null;
+
+        const travelerName =
+          travelerUser
+            ? `${travelerUser.firstName || ""} ${travelerUser.lastName || ""}`.trim()
+            : "";
 
         return {
-          ...d,
+          deliveryId:
+            delivery._id,
 
-          sender: sender
-            ? {
-                firstName: sender.firstName,
-                lastName: sender.lastName,
-                phone: sender.phone,
-                email: sender.email,
-                address: sender.address,
-                city: sender.city,
-                state: sender.state,
-                zipcode: sender.zipcode,
-                country: sender.country
-              }
-            : null,
+          senderName:
+            senderName || "Unknown Sender",
 
-          travelerDetails: traveler
-            ? {
-                firstName: traveler.firstName,
-                lastName: traveler.lastName,
-                phone: traveler.phone,
-                email: traveler.email
-              }
-            : null
+          senderEmail:
+            sender?.email || "",
+
+          travelerName:
+            travelerName || "Unknown Traveler",
+
+          travelerEmail:
+            travelerUser?.email || "",
+
+          payoutAmount:
+            Number(delivery.payoutAmount) || 0,
+
+          status:
+            delivery.payoutStatus ||
+            delivery.status ||
+            "completed",
+
+          completedAt:
+            delivery.completedAt ||
+            delivery.updatedAt ||
+            null
         };
       })
     );
