@@ -13,42 +13,71 @@ router.get("/", adminAuth, async (req, res) => {
     // Find deliveries waiting for payout
     const deliveries = await Delivery.find({ status: "payout_pending" }).lean();
 
-    // Attach sender + traveler details
+   // Build clean Escrow rows from payout-pending deliveries
     const enriched = await Promise.all(
-      deliveries.map(async d => {
-        const sender = await User.findById(d.senderId).lean();
-        const traveler = d.travelerId
-          ? await Traveler.findById(d.travelerId).lean()
-          : null;
+      deliveries.map(async delivery => {
+        const sender =
+          await User.findById(
+            delivery.senderId
+          )
+            .select(
+              "firstName lastName email"
+            )
+            .lean();
+
+        const traveler =
+          delivery.travelerId
+            ? await Traveler.findById(
+                delivery.travelerId
+              )
+                .populate(
+                  "user",
+                  "firstName lastName email"
+                )
+                .lean()
+            : null;
+
+        const senderName = sender
+          ? `${sender.firstName || ""} ${sender.lastName || ""}`.trim()
+          : "";
+
+        const travelerUser =
+          traveler?.user || null;
+
+        const travelerName =
+          travelerUser
+            ? `${travelerUser.firstName || ""} ${travelerUser.lastName || ""}`.trim()
+            : "";
+
+        const deliveryPrice =
+          Number(delivery.price) || 0;
+
+        const travelerPayout =
+          Number(delivery.payoutAmount) || 0;
 
         return {
-          ...d,
-          sender: sender
-            ? {
-                firstName: sender.firstName,
-                lastName: sender.lastName,
-                phone: sender.phone,
-                email: sender.email,
-                address: sender.address,
-                city: sender.city,
-                state: sender.state,
-                zipcode: sender.zipcode,
-                country: sender.country
-              }
-            : null,
-
-          travelerDetails: traveler
-            ? {
-                firstName: traveler.firstName,
-                lastName: traveler.lastName,
-                phone: traveler.phone,
-                email: traveler.email
-              }
-            : null
+          deliveryId: delivery._id,
+          senderName:
+            senderName || "Unknown Sender",
+          senderEmail:
+            sender?.email || "",
+          travelerName:
+            travelerName || "Unassigned",
+          travelerEmail:
+            travelerUser?.email || "",
+          deliveryPrice,
+          travelerPayout,
+          flexagoFee:
+            deliveryPrice -
+            travelerPayout,
+          status:
+            delivery.status ||
+            "payout_pending",
+          createdAt:
+            delivery.createdAt || null
         };
       })
     );
-
     res.json(enriched);
 
   } catch (err) {
