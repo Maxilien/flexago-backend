@@ -63,10 +63,17 @@ router.get("/", adminAuth, async (req, res) => {
       ];
     }
 
-    const deliveries = await Delivery.find(query)
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    const [
+      deliveries,
+      total
+    ] = await Promise.all([
+      Delivery.find(query)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+
+      Delivery.countDocuments(query)
+    ]);
 
     const enriched = await Promise.all(
       deliveries.map(async d => {
@@ -97,6 +104,8 @@ router.get("/", adminAuth, async (req, res) => {
 
     res.json({
       page,
+      limit,
+      total,
       deliveries: enriched
     });
   } catch (err) {
