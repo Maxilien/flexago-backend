@@ -1,14 +1,33 @@
 // utils/generateToken.js
 // ------------------------------------------------------
-// Flexagoo JWT Token Generator (CommonJS)
+// Flexago Regular User JWT Token Generator
 // ------------------------------------------------------
 
 const jwt = require("jsonwebtoken");
 
-function generateToken(userId) {
-  return jwt.sign({ id: userId }, "FLEXAGO_SECRET_KEY", {
-    expiresIn: "30d"
-  });
+function generateToken(user) {
+  if (!process.env.JWT_SECRET) {
+    throw new Error(
+      "JWT_SECRET environment variable is required"
+    );
+  }
+
+  if (!user?._id) {
+    throw new Error(
+      "A valid user is required to generate a token"
+    );
+  }
+
+  return jwt.sign(
+    {
+      id: user._id.toString(),
+      role: user.role
+    },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: "30d"
+    }
+  );
 }
 
 module.exports = generateToken;

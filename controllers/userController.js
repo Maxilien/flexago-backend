@@ -7,6 +7,7 @@ console.log("🟢 userController.js LOADED");
 const User = require("../models/User");
 const Traveler = require("../models/Traveler");
 const bcrypt = require("bcryptjs");
+const generateToken = require("../utils/generateToken");
 
 // ------------------------------------------------------
 // CREATE USER (Sender or Traveler)
@@ -155,27 +156,73 @@ async function updateUser(req, res) {
 // ------------------------------------------------------
 async function loginUser(req, res) {
   try {
-    const email = req.body.email.toLowerCase();
-    const password = req.body.password;
+    const email = String(
+      req.body?.email || ""
+    )
+      .trim()
+      .toLowerCase();
 
-    const user = await User.findOne({ email }).select("+password");
-    if (!user)
-      return res.status(404).json({ success: false, error: "User not found" });
+    const password =
+      req.body?.password;
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
-      return res.status(401).json({ success: false, error: "Invalid password" });
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "Email and password are required"
+      });
+    }
 
-    const safeUser = user.toObject();
+    const user =
+      await User.findOne({
+        email
+      }).select("+password");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found"
+      });
+    }
+
+    const isMatch =
+      await bcrypt.compare(
+        password,
+        user.password
+      );
+
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid password"
+      });
+    }
+
+    const token =
+      generateToken(user);
+
+    const safeUser =
+      user.toObject();
+
     delete safeUser.password;
 
-    res.json({ success: true, data: safeUser });
-
+    return res.json({
+      success: true,
+      data: safeUser,
+      token
+    });
   } catch (err) {
-    res.status(400).json({ success: false, error: err.message });
+    console.error(
+      "User login error:",
+      err
+    );
+
+    return res.status(500).json({
+      success: false,
+      error: "Unable to log in"
+    });
   }
 }
-
 module.exports = {
   createUser,
   getUserById,

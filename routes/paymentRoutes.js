@@ -8,6 +8,8 @@ console.log("🟢 paymentRoutes.js LOADED");
 
 const express = require("express");
 
+const adminAuth = require("../middleware/adminAuth");
+
 const {
   createSetupIntent,
   savePaymentMethod,
@@ -54,12 +56,14 @@ router.get(
    TRAVELER PAYMENT RELEASE
 ============================================================ */
 
-// Release the funded delivery payment to the traveler
+// Release or retry a funded delivery payment to the traveler.
+// Restricted to admin/superadmin because this endpoint can
+// initiate a real Stripe transfer.
 router.post(
   "/release",
+  adminAuth,
   releaseTravelerPayment
 );
-
 /* ============================================================
    EXPORT
 ============================================================ */

@@ -9,6 +9,7 @@ const express = require("express");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const auth = require("../middleware/auth");
 const {
   createDelivery,
   searchTravelerJobs,
@@ -135,6 +136,8 @@ router.post("/:jobId/verifyPickup", verifyPickupCode);
 router.post("/:jobId/deliver", deliverTravelerJob);
 router.post(
   "/:jobId/complete",
+
+  auth,
 
   proofUpload.fields([
     {

@@ -1240,7 +1240,50 @@ async function completeTravelerJob(
         error: "Job not found"
       });
     }
+    /*
+     * ------------------------------------------------------
+     * AUTHORIZED TRAVELER VERIFICATION
+     *
+     * Only the authenticated traveler assigned to this
+     * delivery can complete it and trigger payment release.
+     * ------------------------------------------------------
+     */
 
+    if (
+      !req.user ||
+      req.user.role !== "traveler"
+    ) {
+      return res.status(403).json({
+        success: false,
+        error:
+          "Only authenticated travelers can complete deliveries"
+      });
+    }
+
+    const authenticatedTraveler =
+      await Traveler.findOne({
+        user: req.user.id
+      });
+
+    if (!authenticatedTraveler) {
+      return res.status(403).json({
+        success: false,
+        error:
+          "Traveler profile was not found"
+      });
+    }
+
+    if (
+      !job.travelerId ||
+      job.travelerId.toString() !==
+        authenticatedTraveler._id.toString()
+    ) {
+      return res.status(403).json({
+        success: false,
+        error:
+          "You are not assigned to this delivery"
+      });
+    }
     if (
       job.paymentStatus !== "paid"
     ) {
