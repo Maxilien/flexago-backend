@@ -9,6 +9,7 @@ const express = require("express");
 const Stripe = require("stripe");
 
 const Traveler = require("../models/Traveler");
+const auth = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -25,10 +26,15 @@ function getFrontendUrl() {
     process.env.FRONTEND_URL ||
     "https://app.flexagoo.com";
 
-  return configuredUrl.replace(/\/+$/, "");
+  return configuredUrl.replace(
+    /\/+$/,
+    ""
+  );
 }
 
-async function getTravelerWithUser(travelerId) {
+async function getTravelerWithUser(
+  travelerId
+) {
   return Traveler.findById(
     travelerId
   ).populate(
@@ -36,7 +42,82 @@ async function getTravelerWithUser(travelerId) {
     "firstName lastName email phone"
   );
 }
+/* ============================================================
+   AUTHORIZE TRAVELER STRIPE ACCESS
 
+   Confirms:
+   - Request has an authenticated user
+   - Authenticated user is a traveler
+   - Requested Traveler profile exists
+   - Traveler profile belongs to authenticated User
+============================================================ */
+
+async function authorizeTraveler(
+  req,
+  travelerId
+) {
+  if (
+    !req.user ||
+    req.user.role !== "traveler"
+  ) {
+    const error =
+      new Error(
+        "Traveler authentication required"
+      );
+
+    error.statusCode = 403;
+
+    throw error;
+  }
+
+  if (!travelerId) {
+    const error =
+      new Error(
+        "travelerId is required"
+      );
+
+    error.statusCode = 400;
+
+    throw error;
+  }
+
+  const traveler =
+    await getTravelerWithUser(
+      travelerId
+    );
+
+  if (!traveler) {
+    const error =
+      new Error(
+        "Traveler not found"
+      );
+
+    error.statusCode = 404;
+
+    throw error;
+  }
+
+  const travelerUserId =
+    traveler.user?._id
+      ? traveler.user._id.toString()
+      : traveler.user?.toString();
+
+  if (
+    !travelerUserId ||
+    travelerUserId !== req.user.id
+  ) {
+    const error =
+      new Error(
+        "You are not authorized to manage this Stripe account"
+      );
+
+    error.statusCode = 403;
+
+    throw error;
+  }
+
+  return traveler;
+}
 /* ============================================================
    CREATE OR REUSE CONNECTED ACCOUNT
 
@@ -51,6 +132,7 @@ async function getTravelerWithUser(travelerId) {
 
 router.post(
   "/create-account",
+  auth,
   async (req, res) => {
     try {
       const {
@@ -65,17 +147,11 @@ router.post(
         });
       }
 
-      const traveler =
-        await getTravelerWithUser(
-          travelerId
-        );
-
-      if (!traveler) {
-        return res.status(404).json({
-          success: false,
-          error: "Traveler not found"
-        });
-      }
+const traveler =
+  await authorizeTraveler(
+    req,
+    travelerId
+  );
 
       if (traveler.stripeAccountId) {
         try {
@@ -186,7 +262,11 @@ const account =
         error
       );
 
-      return res.status(500).json({
+     return res
+  .status(
+    error.statusCode || 500
+  )
+  .json({
         success: false,
         error:
           error.message ||
@@ -209,6 +289,7 @@ const account =
 
 router.post(
   "/onboarding-link",
+  auth,
   async (req, res) => {
     try {
       const { travelerId } =
@@ -221,18 +302,11 @@ router.post(
         });
       }
 
-      const traveler =
-        await Traveler.findById(
-          travelerId
-        );
-
-      if (!traveler) {
-        return res.status(404).json({
-          success: false,
-          error: "Traveler not found"
-        });
-      }
-
+const traveler =
+  await authorizeTraveler(
+    req,
+    travelerId
+  );
       if (!traveler.stripeAccountId) {
         return res.status(400).json({
           success: false,
@@ -300,7 +374,11 @@ router.post(
         error
       );
 
-      return res.status(500).json({
+      return res
+  .status(
+    error.statusCode || 500
+  )
+  .json({
         success: false,
         error:
           error.message ||
@@ -318,22 +396,18 @@ router.post(
 
 router.get(
   "/status/:travelerId",
+  auth,
   async (req, res) => {
+
     try {
       const { travelerId } =
         req.params;
 
-      const traveler =
-        await Traveler.findById(
-          travelerId
-        );
-
-      if (!traveler) {
-        return res.status(404).json({
-          success: false,
-          error: "Traveler not found"
-        });
-      }
+const traveler =
+  await authorizeTraveler(
+    req,
+    travelerId
+  );
 
       if (!traveler.stripeAccountId) {
         return res.json({
@@ -398,7 +472,11 @@ router.get(
         error
       );
 
-      return res.status(500).json({
+      return res
+  .status(
+    error.statusCode || 500
+  )
+  .json({
         success: false,
         error:
           error.message ||
@@ -409,87 +487,28 @@ router.get(
 );
 
 /* ============================================================
-   SAVE CONNECTED ACCOUNT ID
+   LEGACY SAVE CONNECTED ACCOUNT ID
 
-   Temporary compatibility endpoint.
-   New onboarding normally saves the account automatically.
+   Disabled for production security.
 
-   POST /api/traveler-stripe/save-stripe-account
+   Connected Stripe accounts are created and saved through:
+   POST /api/traveler-stripe/create-account
+
+   This prevents clients from manually assigning an arbitrary
+   Stripe connected account ID to a Traveler profile.
 ============================================================ */
 
 router.post(
   "/save-stripe-account",
+  auth,
   async (req, res) => {
-    try {
-      const {
-        travelerId,
-        accountId
-      } = req.body;
-
-      if (
-        !travelerId ||
-        !accountId
-      ) {
-        return res.status(400).json({
-          success: false,
-          error:
-            "travelerId and accountId are required"
-        });
-      }
-
-      const account =
-        await stripe.accounts.retrieve(
-          accountId
-        );
-
-      if (!account) {
-        return res.status(404).json({
-          success: false,
-          error:
-            "Stripe connected account not found"
-        });
-      }
-
-      const traveler =
-        await Traveler.findById(
-          travelerId
-        );
-
-      if (!traveler) {
-        return res.status(404).json({
-          success: false,
-          error: "Traveler not found"
-        });
-      }
-
-      traveler.stripeAccountId =
-        account.id;
-
-      await traveler.save();
-
-      return res.json({
-        success: true,
-        travelerId:
-          traveler._id,
-        accountId:
-          account.id
-      });
-    } catch (error) {
-      console.error(
-        "❌ Save Stripe account error:",
-        error
-      );
-
-      return res.status(500).json({
-        success: false,
-        error:
-          error.message ||
-          "Failed to save Stripe account ID"
-      });
-    }
+    return res.status(410).json({
+      success: false,
+      error:
+        "This endpoint is no longer supported. Use Stripe Connect onboarding."
+    });
   }
 );
-
 /* ============================================================
    EXPORT
 ============================================================ */
