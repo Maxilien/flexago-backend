@@ -671,6 +671,45 @@ async function processTravelerPayment(deliveryId) {
     throw error;
   }
 
+  /*
+   * ------------------------------------------------------
+   * PAYOUT AMOUNT SAFETY CHECK
+   *
+   * Never transfer more to the traveler than the amount
+   * actually collected from the sender.
+   * ------------------------------------------------------
+   */
+
+  const amountChargedInCents =
+    convertDollarsToCents(
+      delivery.amountCharged
+    );
+
+  if (!amountChargedInCents) {
+    const error =
+      new Error(
+        "Sender payment amount is invalid"
+      );
+
+    error.statusCode = 400;
+
+    throw error;
+  }
+
+  if (
+    payoutInCents >
+    amountChargedInCents
+  ) {
+    const error =
+      new Error(
+        "Traveler payout exceeds sender payment amount"
+      );
+
+    error.statusCode = 400;
+
+    throw error;
+  }
+
   delivery.payoutStatus =
     "processing";
 
@@ -730,17 +769,47 @@ async function processTravelerPayment(deliveryId) {
       }
     );
 
+  /*
+   * The Stripe Transfer succeeded.
+   *
+   * Funds have moved from the Flexago platform
+   * Stripe account to the traveler's connected
+   * Stripe account.
+   *
+   * This does not yet confirm that funds reached
+   * the traveler's external bank account or card.
+   */
+
+  const transferredAt =
+    new Date();
+
   delivery.stripeTransferId =
     transfer.id;
 
-  delivery.payoutStatus =
-    "completed";
+  delivery.stripePayoutId =
+    null;
 
+  delivery.payoutStatus =
+    "transferred";
+
+  /*
+   * Preserve the existing delivery workflow status
+   * so completed deliveries remain compatible with:
+   * - Ratings
+   * - Admin Payouts
+   * - Completed delivery history
+   */
   delivery.status =
     "payout_completed";
 
+  delivery.transferredAt =
+    transferredAt;
+
   delivery.payoutCompletedAt =
-    new Date();
+    null;
+
+  delivery.externalPayoutPaidAt =
+    null;
 
   delivery.payoutFailedAt =
     null;
@@ -748,7 +817,8 @@ async function processTravelerPayment(deliveryId) {
   await delivery.save();
 
   /*
-   * Create one permanent payout-history record.
+   * Create or update one permanent payment-history
+   * record for this delivery.
    */
   let payoutRecord =
     await Payout.findOne({
@@ -756,9 +826,12 @@ async function processTravelerPayment(deliveryId) {
         delivery._id.toString()
     });
 
+  const isNewPayoutRecord =
+    !payoutRecord;
+
   if (!payoutRecord) {
     payoutRecord =
-      await Payout.create({
+      new Payout({
         orderId:
           delivery._id.toString(),
 
@@ -766,29 +839,45 @@ async function processTravelerPayment(deliveryId) {
           traveler._id.toString(),
 
         amount:
-          payoutInCents / 100,
-
-        status:
-          "paid",
-
-        method:
-          "bank",
-
-        /*
-         * Existing schema field.
-         * Stores the Stripe Transfer ID.
-         */
-        stripePayoutId:
-          transfer.id,
-
-        paidAt:
-          new Date()
+          payoutInCents / 100
       });
+  }
 
-    /*
-     * Increment only when the payout-history
-     * record is created for the first time.
-     */
+  payoutRecord.travelerId =
+    traveler._id.toString();
+
+  payoutRecord.amount =
+    payoutInCents / 100;
+
+  payoutRecord.status =
+    "transferred";
+
+  payoutRecord.method =
+    payoutRecord.method ||
+    "bank";
+
+  payoutRecord.stripeTransferId =
+    transfer.id;
+
+  payoutRecord.stripePayoutId =
+    null;
+
+  payoutRecord.transferredAt =
+    transferredAt;
+
+  payoutRecord.paidAt =
+    null;
+
+  payoutRecord.failedAt =
+    null;
+
+  await payoutRecord.save();
+
+  /*
+   * Increment only when the permanent payment-history
+   * record is created for the first time.
+   */
+  if (isNewPayoutRecord) {
     traveler.totalDeliveries =
       Number(
         traveler.totalDeliveries || 0
@@ -798,7 +887,7 @@ async function processTravelerPayment(deliveryId) {
   }
 
   console.log(
-    "✅ Traveler payment transferred:",
+    "✅ Traveler payment transferred to connected Stripe account:",
     {
       deliveryId:
         delivery._id.toString(),
@@ -813,7 +902,10 @@ async function processTravelerPayment(deliveryId) {
         payoutInCents / 100,
 
       stripeTransferId:
-        transfer.id
+        transfer.id,
+
+      payoutStatus:
+        delivery.payoutStatus
     }
   );
 
@@ -821,7 +913,7 @@ async function processTravelerPayment(deliveryId) {
     alreadyTransferred: false,
 
     message:
-      "Traveler payment transferred successfully",
+      "Traveler payment transferred to connected Stripe account",
 
     deliveryId:
       delivery._id,
@@ -829,9 +921,12 @@ async function processTravelerPayment(deliveryId) {
     stripeTransferId:
       transfer.id,
 
+    payoutStatus:
+      delivery.payoutStatus,
+
     payoutRecord
   };
-}
+    }
 
 
 // ------------------------------------------------------

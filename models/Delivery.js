@@ -131,12 +131,14 @@ payoutStatus: {
   enum: [
     "pending",
     "processing",
+    "transferred",
+    "external_payout_pending",
+    "external_payout_in_transit",
     "completed",
     "failed"
   ],
   default: "pending"
 },
-
 amountCharged: {
   type: Number,
   default: 0
@@ -153,6 +155,16 @@ fundedAt: {
 },
 
 paymentFailedAt: {
+  type: Date,
+  default: null
+},
+
+transferredAt: {
+  type: Date,
+  default: null
+},
+
+externalPayoutPaidAt: {
   type: Date,
   default: null
 },
@@ -177,6 +189,11 @@ stripeChargeId: {
 },
 
 stripeTransferId: {
+  type: String,
+  default: null
+},
+
+stripePayoutId: {
   type: String,
   default: null
 },
