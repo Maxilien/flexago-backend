@@ -846,7 +846,350 @@ router.get(
     }
   }
 );
+/* ============================================================
+   GET TRAVELER STRIPE PAYOUT BALANCE
 
+   GET /api/traveler-stripe/balance/:travelerId
+
+   Returns:
+   - Standard available balance
+   - Pending balance
+   - Instant payout eligible balance
+============================================================ */
+
+router.get(
+  "/balance/:travelerId",
+  auth,
+  async (req, res) => {
+    try {
+      const { travelerId } = req.params;
+
+      const traveler =
+        await authorizeTraveler(
+          req,
+          travelerId
+        );
+
+      if (!traveler.stripeAccountId) {
+        throw createRouteError(
+          "Traveler does not have a connected Stripe account",
+          400
+        );
+      }
+
+      const balance =
+        await stripe.balance.retrieve(
+          {},
+          {
+            stripeAccount:
+              traveler.stripeAccountId
+          }
+        );
+
+      const getUsdAmount = (items) => {
+        const usdBalance =
+          (items || []).find(
+            (item) =>
+              item.currency === "usd"
+          );
+
+        return usdBalance?.amount || 0;
+      };
+
+      const availableCents =
+        getUsdAmount(
+          balance.available
+        );
+
+      const pendingCents =
+        getUsdAmount(
+          balance.pending
+        );
+
+      const instantAvailableCents =
+        getUsdAmount(
+          balance.instant_available
+        );
+
+      return res.json({
+        success: true,
+        currency: "usd",
+
+        availableCents,
+        pendingCents,
+        instantAvailableCents,
+
+        available:
+          availableCents / 100,
+
+        pending:
+          pendingCents / 100,
+
+        instantAvailable:
+          instantAvailableCents / 100
+      });
+    } catch (error) {
+      console.error(
+        "Traveler Stripe balance error:",
+        {
+          message:
+            error.message,
+
+          type:
+            error.type || null,
+
+          code:
+            error.code || null,
+
+          statusCode:
+            error.statusCode || 500
+        }
+      );
+
+      return res
+        .status(
+          error.statusCode || 500
+        )
+        .json({
+          success: false,
+
+          error:
+            error.message ||
+            "Failed to retrieve traveler Stripe balance"
+        });
+    }
+  }
+);
+
+/* ============================================================
+   CREATE TRAVELER INSTANT PAYOUT
+
+   POST /api/traveler-stripe/instant-payout
+
+   Body:
+   {
+     "travelerId": "MongoDB traveler ID",
+     "amount": 7.64
+   }
+
+   The amount is provided by the frontend in USD.
+   Stripe receives the amount in cents.
+============================================================ */
+
+router.post(
+  "/instant-payout",
+  auth,
+  async (req, res) => {
+    try {
+      const {
+        travelerId,
+        amount
+      } = req.body;
+
+      const traveler =
+        await authorizeTraveler(
+          req,
+          travelerId
+        );
+
+      if (!traveler.stripeAccountId) {
+        throw createRouteError(
+          "Traveler does not have a connected Stripe account",
+          400
+        );
+      }
+
+      const requestedAmount =
+        Number(amount);
+
+      if (
+        !Number.isFinite(
+          requestedAmount
+        ) ||
+        requestedAmount <= 0
+      ) {
+        throw createRouteError(
+          "A valid payout amount is required",
+          400
+        );
+      }
+
+      const amountInCents =
+        Math.round(
+          requestedAmount * 100
+        );
+
+      /*
+       * Always retrieve the balance directly
+       * from Stripe before creating a payout.
+       *
+       * Never trust the frontend balance.
+       */
+      const balance =
+        await stripe.balance.retrieve(
+          {},
+          {
+            stripeAccount:
+              traveler.stripeAccountId
+          }
+        );
+
+      const instantUsdBalance =
+        (
+          balance.instant_available ||
+          []
+        ).find(
+          (item) =>
+            item.currency === "usd"
+        );
+
+      const instantAvailableCents =
+        instantUsdBalance?.amount ||
+        0;
+
+      if (
+        instantAvailableCents <= 0
+      ) {
+        throw createRouteError(
+          "No funds are currently available for instant payout",
+          400
+        );
+      }
+
+      if (
+        amountInCents >
+        instantAvailableCents
+      ) {
+        throw createRouteError(
+          "Requested payout exceeds the instant payout balance",
+          400
+        );
+      }
+
+      const payout =
+        await stripe.payouts.create(
+          {
+            amount:
+              amountInCents,
+
+            currency:
+              "usd",
+
+            method:
+              "instant",
+
+            description:
+              "Flexago traveler instant payout",
+
+            metadata: {
+              travelerId:
+                traveler._id.toString(),
+
+              userId:
+                req.user.id
+            }
+          },
+          {
+            stripeAccount:
+              traveler.stripeAccountId
+          }
+        );
+
+      console.log(
+        "Traveler instant payout created:",
+        {
+          travelerId:
+            traveler._id.toString(),
+
+          stripeAccountId:
+            traveler.stripeAccountId,
+
+          stripePayoutId:
+            payout.id,
+
+          amount:
+            payout.amount,
+
+          currency:
+            payout.currency,
+
+          method:
+            payout.method,
+
+          status:
+            payout.status
+        }
+      );
+
+      return res.json({
+        success: true,
+
+        message:
+          "Instant payout created successfully",
+
+        payout: {
+          id:
+            payout.id,
+
+          amount:
+            payout.amount / 100,
+
+          amountCents:
+            payout.amount,
+
+          currency:
+            payout.currency,
+
+          method:
+            payout.method,
+
+          status:
+            payout.status,
+
+          arrivalDate:
+            payout.arrival_date ||
+            null
+        }
+      });
+    } catch (error) {
+      console.error(
+        "Traveler instant payout error:",
+        {
+          message:
+            error.message,
+
+          type:
+            error.type || null,
+
+          code:
+            error.code || null,
+
+          declineCode:
+            error.decline_code ||
+            null,
+
+          statusCode:
+            error.statusCode || 500
+        }
+      );
+
+      return res
+        .status(
+          error.statusCode || 500
+        )
+        .json({
+          success: false,
+
+          error:
+            error.message ||
+            "Failed to create instant payout",
+
+          code:
+            error.code || null
+        });
+    }
+  }
+);
 /* ============================================================
    LEGACY SAVE CONNECTED ACCOUNT ID
 
