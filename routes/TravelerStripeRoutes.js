@@ -981,10 +981,28 @@ router.post(
   auth,
   async (req, res) => {
     try {
-      const {
-        travelerId,
-        amount
-      } = req.body;
+const {
+  travelerId,
+  amount,
+  requestId
+} = req.body;
+
+if (
+  typeof requestId !== "string" ||
+  !requestId.trim()
+) {
+  throw createRouteError(
+    "requestId is required",
+    400
+  );
+}
+
+if (requestId.length > 100) {
+  throw createRouteError(
+    "requestId is invalid",
+    400
+  );
+}
 
       const traveler =
         await authorizeTraveler(
@@ -1066,35 +1084,42 @@ router.post(
         );
       }
 
-      const payout =
-        await stripe.payouts.create(
-          {
-            amount:
-              amountInCents,
+const idempotencyKey =
+  `flexago-instant-payout-${requestId.trim()}`;
 
-            currency:
-              "usd",
+const payout =
+  await stripe.payouts.create(
+    {
+      amount:
+        amountInCents,
 
-            method:
-              "instant",
+      currency:
+        "usd",
 
-            description:
-              "Flexago traveler instant payout",
+      method:
+        "instant",
 
-            metadata: {
-              travelerId:
-                traveler._id.toString(),
+      description:
+        "Flexago traveler instant payout",
 
-              userId:
-                req.user.id
-            }
-          },
-          {
-            stripeAccount:
-              traveler.stripeAccountId
-          }
-        );
+      metadata: {
+        travelerId:
+          traveler._id.toString(),
 
+        userId:
+          req.user.id,
+
+        requestId:
+          requestId.trim()
+      }
+    },
+    {
+      stripeAccount:
+        traveler.stripeAccountId,
+
+      idempotencyKey
+    }
+  );
       console.log(
         "Traveler instant payout created:",
         {
@@ -1106,7 +1131,8 @@ router.post(
 
           stripePayoutId:
             payout.id,
-
+          requestId:
+  requestId.trim(),
           amount:
             payout.amount,
 
