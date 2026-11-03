@@ -182,14 +182,25 @@ function createRouteError(
    - Traveler profile belongs to authenticated User
 ============================================================ */
 
-async function authorizeTraveler(
-  req,
-  travelerId
-) {
+async function authorizeTraveler(req, travelerId) {
   if (
     !req.user ||
     req.user.role !== "traveler"
   ) {
+    console.log(
+      "COMPLETE DELIVERY AUTH DEBUG:",
+      {
+        hasUser: Boolean(req.user),
+        userId: req.user?.id || null,
+        role: req.user?.role || null,
+        email:
+          req.user?.email ||
+          req.user?.user?.email ||
+          null,
+        jobId: req.params?.jobId || null
+      }
+    );
+
     throw createRouteError(
       "Traveler authentication required",
       403
@@ -204,9 +215,7 @@ async function authorizeTraveler(
   }
 
   const traveler =
-    await getTravelerWithUser(
-      travelerId
-    );
+    await getTravelerWithUser(travelerId);
 
   if (!traveler) {
     throw createRouteError(
