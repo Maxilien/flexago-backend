@@ -3,19 +3,133 @@
 // Flexago Traveler Stripe Connect Routes
 // ------------------------------------------------------
 
-console.log("🟢 TravelerStripeRoutes.js LOADED");
+console.log(
+  "TravelerStripeRoutes.js LOADED"
+);
 
 const express = require("express");
 const Stripe = require("stripe");
 
-const Traveler = require("../models/Traveler");
-const auth = require("../middleware/auth");
+const Traveler = require(
+  "../models/Traveler"
+);
+
+const auth = require(
+  "../middleware/auth"
+);
 
 const router = express.Router();
 
 const stripe = Stripe(
   process.env.STRIPE_SECRET_KEY
 );
+
+const STRIPE_V2_API_VERSION =
+  "2026-10-28.endive";
+
+/* ============================================================
+   STRIPE API V2 REQUEST HELPER
+============================================================ */
+
+async function stripeV2Request(
+  path,
+  {
+    method = "GET",
+    body = null,
+    idempotencyKey = null
+  } = {}
+) {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    const error =
+      new Error(
+        "STRIPE_SECRET_KEY is not configured"
+      );
+
+    error.statusCode = 500;
+
+    throw error;
+  }
+
+  const headers = {
+    Authorization:
+      `Bearer ${process.env.STRIPE_SECRET_KEY}`,
+
+    "Stripe-Version":
+      STRIPE_V2_API_VERSION,
+
+    "Content-Type":
+      "application/json"
+  };
+
+  if (idempotencyKey) {
+    headers["Idempotency-Key"] =
+      idempotencyKey;
+  }
+
+  const response =
+    await fetch(
+      `https://api.stripe.com${path}`,
+      {
+        method,
+        headers,
+
+        body:
+          body === null
+            ? undefined
+            : JSON.stringify(body)
+      }
+    );
+
+  const responseText =
+    await response.text();
+
+  let data = {};
+
+  if (responseText) {
+    try {
+      data =
+        JSON.parse(
+          responseText
+        );
+    } catch (parseError) {
+      const error =
+        new Error(
+          "Stripe returned an invalid response"
+        );
+
+      error.statusCode =
+        response.status || 502;
+
+      throw error;
+    }
+  }
+
+  if (!response.ok) {
+    const stripeError =
+      data?.error || data || {};
+
+    const error =
+      new Error(
+        stripeError.message ||
+        "Stripe API request failed"
+      );
+
+    error.statusCode =
+      response.status || 500;
+
+    error.stripeCode =
+      stripeError.code || null;
+
+    error.stripeRequestId =
+      response.headers.get(
+        "request-id"
+      ) || null;
+
+    throw error;
+  }
+
+  return data;
+}
 
 /* ============================================================
    HELPERS
@@ -42,6 +156,22 @@ async function getTravelerWithUser(
     "firstName lastName email phone"
   );
 }
+
+function createRouteError(
+  message,
+  statusCode
+) {
+  const error =
+    new Error(
+      message
+    );
+
+  error.statusCode =
+    statusCode;
+
+  return error;
+}
+
 /* ============================================================
    AUTHORIZE TRAVELER STRIPE ACCESS
 
@@ -60,25 +190,17 @@ async function authorizeTraveler(
     !req.user ||
     req.user.role !== "traveler"
   ) {
-    const error =
-      new Error(
-        "Traveler authentication required"
-      );
-
-    error.statusCode = 403;
-
-    throw error;
+    throw createRouteError(
+      "Traveler authentication required",
+      403
+    );
   }
 
   if (!travelerId) {
-    const error =
-      new Error(
-        "travelerId is required"
-      );
-
-    error.statusCode = 400;
-
-    throw error;
+    throw createRouteError(
+      "travelerId is required",
+      400
+    );
   }
 
   const traveler =
@@ -87,14 +209,10 @@ async function authorizeTraveler(
     );
 
   if (!traveler) {
-    const error =
-      new Error(
-        "Traveler not found"
-      );
-
-    error.statusCode = 404;
-
-    throw error;
+    throw createRouteError(
+      "Traveler not found",
+      404
+    );
   }
 
   const travelerUserId =
@@ -106,18 +224,15 @@ async function authorizeTraveler(
     !travelerUserId ||
     travelerUserId !== req.user.id
   ) {
-    const error =
-      new Error(
-        "You are not authorized to manage this Stripe account"
-      );
-
-    error.statusCode = 403;
-
-    throw error;
+    throw createRouteError(
+      "You are not authorized to manage this Stripe account",
+      403
+    );
   }
 
   return traveler;
 }
+
 /* ============================================================
    CREATE OR REUSE CONNECTED ACCOUNT
 
@@ -140,19 +255,19 @@ router.post(
         country = "US"
       } = req.body;
 
-      if (!travelerId) {
-        return res.status(400).json({
-          success: false,
-          error: "travelerId is required"
-        });
-      }
+      const traveler =
+        await authorizeTraveler(
+          req,
+          travelerId
+        );
 
-const traveler =
-  await authorizeTraveler(
-    req,
-    travelerId
-  );
-
+      /*
+       * Reuse an existing connected account when
+       * Stripe can retrieve the stored account ID.
+       *
+       * Stripe supports using a v2 account ID with
+       * supported Accounts v1 endpoints.
+       */
       if (traveler.stripeAccountId) {
         try {
           const existingAccount =
@@ -163,27 +278,49 @@ const traveler =
           return res.json({
             success: true,
             reused: true,
+
+            travelerId:
+              traveler._id,
+
             accountId:
               existingAccount.id,
+
             detailsSubmitted:
               Boolean(
-                existingAccount.details_submitted
+                existingAccount
+                  .details_submitted
               ),
+
             payoutsEnabled:
               Boolean(
-                existingAccount.payouts_enabled
+                existingAccount
+                  .payouts_enabled
               ),
+
             chargesEnabled:
               Boolean(
-                existingAccount.charges_enabled
+                existingAccount
+                  .charges_enabled
               )
           });
         } catch (retrieveError) {
           console.warn(
-            "⚠️ Existing Stripe account could not be retrieved:",
-            retrieveError.message
+            "Existing Stripe account could not be retrieved:",
+            {
+              travelerId:
+                traveler._id.toString(),
+
+              message:
+                retrieveError.message
+            }
           );
 
+          /*
+           * Clear an obsolete sandbox account ID.
+           *
+           * The v2 idempotency key below prevents
+           * duplicate account creation on retries.
+           */
           traveler.stripeAccountId =
             null;
 
@@ -193,85 +330,218 @@ const traveler =
 
       const travelerUser =
         traveler.user || {};
-const account =
-  await stripe.accounts.create(
-    {
-      type: "express",
 
-      country:
-        String(country).toUpperCase(),
+      const firstName =
+        String(
+          travelerUser.firstName || ""
+        ).trim();
 
-      email:
-        travelerUser.email ||
-        undefined,
+      const lastName =
+        String(
+          travelerUser.lastName || ""
+        ).trim();
 
-      capabilities: {
-        transfers: {
-          requested: true
-        }
-      },
+      const travelerEmail =
+        String(
+          travelerUser.email || ""
+        ).trim();
 
-      metadata: {
-        flexagoTravelerId:
-          traveler._id.toString(),
-
-        flexagoUserId:
-          travelerUser._id
-            ? travelerUser._id.toString()
-            : ""
+      if (!travelerEmail) {
+        throw createRouteError(
+          "Traveler email is required for Stripe onboarding",
+          400
+        );
       }
-    },
-    {
-      idempotencyKey:
-        `flexago-connect-account-v1-enabled-${traveler._id}`
-    }
-  );
+
+      const displayName =
+        `${firstName} ${lastName}`.trim() ||
+        travelerEmail ||
+        `Flexago Traveler ${traveler._id}`;
+
+      const normalizedCountry =
+        String(
+          country || "US"
+        )
+          .trim()
+          .toLowerCase();
+
+      /*
+       * Create an Accounts v2 Recipient account.
+       *
+       * Recipient is appropriate because the traveler
+       * receives transfers from Flexago and does not
+       * create charges directly against customers.
+       */
+      const account =
+        await stripeV2Request(
+          "/v2/core/accounts",
+          {
+            method: "POST",
+
+            idempotencyKey:
+              `flexago-recipient-v2-${traveler._id}`,
+
+            body: {
+              contact_email:
+                travelerEmail,
+
+              display_name:
+                displayName,
+
+              dashboard:
+                "express",
+
+              identity: {
+                country:
+                  normalizedCountry,
+
+                entity_type:
+                  "individual",
+
+                individual: {
+                  email:
+                    travelerEmail,
+
+                  given_name:
+                    firstName ||
+                    undefined,
+
+                  surname:
+                    lastName ||
+                    undefined,
+
+                  phone:
+                    travelerUser.phone ||
+                    undefined
+                }
+              },
+
+              defaults: {
+                currency:
+                  "usd",
+
+                responsibilities: {
+                  fees_collector:
+                    "application",
+
+                  losses_collector:
+                    "application"
+                }
+              },
+
+              configuration: {
+                recipient: {
+                  capabilities: {
+                    stripe_balance: {
+                      stripe_transfers: {
+                        requested: true
+                      }
+                    }
+                  }
+                }
+              },
+
+              metadata: {
+                flexagoTravelerId:
+                  traveler._id.toString(),
+
+                flexagoUserId:
+                  travelerUser._id
+                    ? travelerUser._id.toString()
+                    : ""
+              },
+
+              include: [
+                "configuration.recipient",
+                "defaults",
+                "identity",
+                "requirements"
+              ]
+            }
+          }
+        );
+
+      if (!account?.id) {
+        throw createRouteError(
+          "Stripe did not return a connected account ID",
+          502
+        );
+      }
+
       traveler.stripeAccountId =
         account.id;
 
       await traveler.save();
 
       console.log(
-        "✅ Stripe connected account created:",
-        account.id
+        "Stripe Recipient account created:",
+        {
+          travelerId:
+            traveler._id.toString(),
+
+          accountId:
+            account.id,
+
+          livemode:
+            account.livemode
+        }
       );
 
       return res.status(201).json({
         success: true,
         reused: false,
+
         travelerId:
           traveler._id,
+
         accountId:
           account.id,
+
+        onboardingComplete:
+          false,
+
         detailsSubmitted:
-          Boolean(
-            account.details_submitted
-          ),
+          false,
+
         payoutsEnabled:
-          Boolean(
-            account.payouts_enabled
-          ),
+          false,
+
         chargesEnabled:
-          Boolean(
-            account.charges_enabled
-          )
+          false
       });
     } catch (error) {
       console.error(
-        "❌ Create connected account error:",
-        error
+        "Create Stripe Recipient account error:",
+        {
+          message:
+            error.message,
+
+          stripeCode:
+            error.stripeCode || null,
+
+          stripeRequestId:
+            error.stripeRequestId || null,
+
+          statusCode:
+            error.statusCode || 500
+        }
       );
 
-     return res
-  .status(
-    error.statusCode || 500
-  )
-  .json({
-        success: false,
-        error:
-          error.message ||
-          "Failed to create connected account"
-      });
+      return res
+        .status(
+          error.statusCode || 500
+        )
+        .json({
+          success: false,
+
+          error:
+            error.message ||
+            "Failed to create connected account",
+
+          code:
+            error.stripeCode ||
+            null
+        });
     }
   }
 );
@@ -295,24 +565,17 @@ router.post(
       const { travelerId } =
         req.body;
 
-      if (!travelerId) {
-        return res.status(400).json({
-          success: false,
-          error: "travelerId is required"
-        });
-      }
+      const traveler =
+        await authorizeTraveler(
+          req,
+          travelerId
+        );
 
-const traveler =
-  await authorizeTraveler(
-    req,
-    travelerId
-  );
       if (!traveler.stripeAccountId) {
-        return res.status(400).json({
-          success: false,
-          error:
-            "Traveler does not have a Stripe connected account"
-        });
+        throw createRouteError(
+          "Traveler does not have a Stripe connected account",
+          400
+        );
       }
 
       const frontendUrl =
@@ -332,58 +595,118 @@ const traveler =
           traveler._id.toString()
         )}`;
 
+      /*
+       * Create an Accounts v2 onboarding link.
+       *
+       * The traveler is redirected to Stripe to enter
+       * identity, verification, and payout information.
+       */
       const accountLink =
-        await stripe.accountLinks.create({
-          account:
-            traveler.stripeAccountId,
+        await stripeV2Request(
+          "/v2/core/account_links",
+          {
+            method: "POST",
 
-          refresh_url:
-            refreshUrl,
+            idempotencyKey:
+              `flexago-recipient-onboarding-${traveler._id}-${Date.now()}`,
 
-          return_url:
-            returnUrl,
+            body: {
+              account:
+                traveler.stripeAccountId,
 
-          type:
-            "account_onboarding",
+              use_case: {
+                type:
+                  "account_onboarding",
 
-          collection_options: {
-            fields:
-              "eventually_due"
+                account_onboarding: {
+                  refresh_url:
+                    refreshUrl,
+
+                  return_url:
+                    returnUrl,
+
+                  collection_options: {
+                    fields:
+                      "eventually_due",
+
+                    future_requirements:
+                      "include"
+                  }
+                }
+              }
+            }
           }
-        });
+        );
+
+      if (!accountLink?.url) {
+        throw createRouteError(
+          "Stripe did not return an onboarding URL",
+          502
+        );
+      }
 
       console.log(
-        "✅ Stripe onboarding link created for:",
-        traveler.stripeAccountId
+        "Stripe Recipient onboarding link created:",
+        {
+          travelerId:
+            traveler._id.toString(),
+
+          accountId:
+            traveler.stripeAccountId,
+
+          livemode:
+            accountLink.livemode
+        }
       );
 
       return res.json({
         success: true,
+
         travelerId:
           traveler._id,
+
         accountId:
           traveler.stripeAccountId,
+
         onboardingUrl:
           accountLink.url,
+
         expiresAt:
           accountLink.expires_at
       });
     } catch (error) {
       console.error(
-        "❌ Create onboarding link error:",
-        error
+        "Create Recipient onboarding link error:",
+        {
+          message:
+            error.message,
+
+          stripeCode:
+            error.stripeCode || null,
+
+          stripeRequestId:
+            error.stripeRequestId || null,
+
+          statusCode:
+            error.statusCode || 500
+        }
       );
 
       return res
-  .status(
-    error.statusCode || 500
-  )
-  .json({
-        success: false,
-        error:
-          error.message ||
-          "Failed to create onboarding link"
-      });
+        .status(
+          error.statusCode || 500
+        )
+        .json({
+          success: false,
+
+          error:
+            error.message ||
+            "Failed to create onboarding link",
+
+          code:
+            error.stripeCode ||
+            null
+        });
     }
   }
 );
@@ -398,16 +721,15 @@ router.get(
   "/status/:travelerId",
   auth,
   async (req, res) => {
-
     try {
       const { travelerId } =
         req.params;
 
-const traveler =
-  await authorizeTraveler(
-    req,
-    travelerId
-  );
+      const traveler =
+        await authorizeTraveler(
+          req,
+          travelerId
+        );
 
       if (!traveler.stripeAccountId) {
         return res.json({
@@ -416,10 +738,18 @@ const traveler =
           onboardingComplete: false,
           payoutsEnabled: false,
           chargesEnabled: false,
-          accountId: null
+          accountId: null,
+          currentlyDue: [],
+          pastDue: [],
+          disabledReason: null
         });
       }
 
+      /*
+       * Retrieve a v1-compatible representation of the
+       * v2 Account so the existing Flexago response
+       * fields can remain stable during migration.
+       */
       const account =
         await stripe.accounts.retrieve(
           traveler.stripeAccountId
@@ -433,10 +763,25 @@ const traveler =
         account.requirements
           ?.past_due || [];
 
+      const detailsSubmitted =
+        Boolean(
+          account.details_submitted
+        );
+
+      const payoutsEnabled =
+        Boolean(
+          account.payouts_enabled
+        );
+
+      const chargesEnabled =
+        Boolean(
+          account.charges_enabled
+        );
+
       const onboardingComplete =
         Boolean(
-          account.details_submitted &&
-          account.payouts_enabled &&
+          detailsSubmitted &&
+          payoutsEnabled &&
           currentlyDue.length === 0 &&
           pastDue.length === 0
         );
@@ -445,22 +790,16 @@ const traveler =
         success: true,
         connected: true,
         onboardingComplete,
+
         accountId:
           account.id,
-        detailsSubmitted:
-          Boolean(
-            account.details_submitted
-          ),
-        payoutsEnabled:
-          Boolean(
-            account.payouts_enabled
-          ),
-        chargesEnabled:
-          Boolean(
-            account.charges_enabled
-          ),
+
+        detailsSubmitted,
+        payoutsEnabled,
+        chargesEnabled,
         currentlyDue,
         pastDue,
+
         disabledReason:
           account.requirements
             ?.disabled_reason ||
@@ -468,20 +807,33 @@ const traveler =
       });
     } catch (error) {
       console.error(
-        "❌ Stripe account status error:",
-        error
+        "Stripe account status error:",
+        {
+          message:
+            error.message,
+
+          type:
+            error.type || null,
+
+          code:
+            error.code || null,
+
+          statusCode:
+            error.statusCode || 500
+        }
       );
 
       return res
-  .status(
-    error.statusCode || 500
-  )
-  .json({
-        success: false,
-        error:
-          error.message ||
-          "Failed to retrieve connected account status"
-      });
+        .status(
+          error.statusCode || 500
+        )
+        .json({
+          success: false,
+
+          error:
+            error.message ||
+            "Failed to retrieve connected account status"
+        });
     }
   }
 );
@@ -491,11 +843,8 @@ const traveler =
 
    Disabled for production security.
 
-   Connected Stripe accounts are created and saved through:
+   Connected Stripe accounts must be created and saved through:
    POST /api/traveler-stripe/create-account
-
-   This prevents clients from manually assigning an arbitrary
-   Stripe connected account ID to a Traveler profile.
 ============================================================ */
 
 router.post(
@@ -504,11 +853,13 @@ router.post(
   async (req, res) => {
     return res.status(410).json({
       success: false,
+
       error:
         "This endpoint is no longer supported. Use Stripe Connect onboarding."
     });
   }
 );
+
 /* ============================================================
    EXPORT
 ============================================================ */
