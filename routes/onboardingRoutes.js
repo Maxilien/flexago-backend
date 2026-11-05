@@ -465,7 +465,8 @@ router.post("/identity/start", ipSendLimit, requireSession, sessionSendLimit, as
           require_live_capture: true
         }
       },
-      return_url: `${FRONTEND_URL}/verify-stripe`
+      // The app shows Stripe in a sheet, so it needs a "close this" page.
+      return_url: `${FRONTEND_URL}/${req.body?.native ? "identity-done" : "verify-stripe"}`
     });
 
     session.stripeIdentitySessionId = verification.id;

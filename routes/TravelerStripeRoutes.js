@@ -597,12 +597,15 @@ router.post(
           traveler._id.toString()
         )}`;
 
+      // The app shows Stripe in a sheet, so it needs a "close this" page.
       const returnUrl =
-        `${frontendUrl}/traveler.html` +
-        `?stripe_connect=return` +
-        `&travelerId=${encodeURIComponent(
-          traveler._id.toString()
-        )}`;
+        req.body?.native
+          ? `${frontendUrl}/identity-done`
+          : `${frontendUrl}/traveler.html` +
+          `?stripe_connect=return` +
+          `&travelerId=${encodeURIComponent(
+            traveler._id.toString()
+          )}`;
 
       /*
        * Create an Accounts v2 onboarding link.
