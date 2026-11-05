@@ -12,6 +12,9 @@ const mongoose = require("mongoose");
 
 const OnboardingSessionSchema = new mongoose.Schema(
   {
+    // Set when an existing user is re-verifying.
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
     role: { type: String, enum: ["sender", "traveler"], required: true },

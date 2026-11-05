@@ -31,17 +31,32 @@ router.post("/", async (req, res) => {
 
   const event = JSON.parse(req.body.toString("utf8"));
 
-  if (event.type === "report.completed") {
-    const report = event.data.object;
+  const report = event.data?.object;
 
-    const traveler = await Traveler.findOne({
-      checkr_report_id: report.id
-    });
+  if (report && /^report\.(created|completed|suspended)$/.test(event.type)) {
+    // Only match on IDs that are present: an empty condition would
+    // match any traveler and attach this result to the wrong person.
+    const matches = [
+      report.id && { checkr_report_id: report.id },
+      report.candidate_id && { checkr_candidate_id: report.candidate_id }
+    ].filter(Boolean);
 
-    if (!traveler) return res.status(404).end();
+    const traveler = matches.length
+      ? await Traveler.findOne({ $or: matches })
+      : null;
 
-    traveler.background_status = report.result; // clear, consider, suspended
-    traveler.background_completed_at = new Date();
+    if (!traveler) return res.status(200).end();
+
+    traveler.checkr_report_id = report.id;
+
+    if (event.type !== "report.created") {
+      const outcome = event.type === "report.suspended" ? "suspended" : report.result;
+
+      // Anything other than a clean result needs a person to review it.
+      traveler.background_status =
+        ["clear", "consider", "suspended"].includes(outcome) ? outcome : "consider";
+      traveler.background_completed_at = new Date();
+    }
 
     await traveler.save();
   }

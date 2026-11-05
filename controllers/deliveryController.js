@@ -5,10 +5,15 @@
 
 const crypto = require("crypto");
 const Delivery = require("../models/Delivery");
+const UserBlock = require("../models/UserBlock");
 const {
   uploadImage,
   storeUploadedFile
 } = require("../utils/imageUpload");
+const {
+  calculatePrice,
+  resolveDistanceMiles
+} = require("../utils/pricing");
 
 // Route matching: how far a stop may be from the traveler's road,
 // and the wider area allowed around the start and destination.
@@ -202,7 +207,8 @@ async function createDelivery(req, res) {
       sender,
       receiver,
       notes,
-      price
+      distanceMiles,
+      insuranceType
     } = req.body;
 
     // The sender is whoever is logged in, never the request body.
@@ -235,23 +241,29 @@ async function createDelivery(req, res) {
       });
     }
 
-    const numericPrice = Number(price);
+    // Priced on the server. Any price sent by the app is ignored.
+    const { price: roundedPrice, payoutAmount } = calculatePrice({
+      deliveryType: packageData?.deliveryType,
+      distanceMiles: resolveDistanceMiles(
+        distanceMiles,
+        haversineMiles(
+          pickup.location.coordinates,
+          dropoff.location.coordinates
+        )
+      ),
+      weight: packageData?.weight,
+      declaredValue: packageData?.declaredValue,
+      packageType: packageData?.type,
+      size: packageData?.size,
+      insuranceType
+    });
 
-    if (
-      !Number.isFinite(numericPrice) ||
-      numericPrice <= 0
-    ) {
+    if (roundedPrice <= 0) {
       return res.status(400).json({
         success: false,
-        error: "Delivery price must be greater than zero."
+        error: "Unable to price this delivery. Check the delivery type and addresses."
       });
     }
-
-    const roundedPrice =
-      Math.round(numericPrice * 100) / 100;
-
-    const payoutAmount =
-      Math.round(roundedPrice * 0.8 * 100) / 100;
 
     const submittedPhotos = Array.isArray(packageData?.photos)
       ? packageData.photos
@@ -478,7 +490,8 @@ async function searchTravelerJobs(req, res) {
     const query = {
       status: "available",
       paymentStatus: "paid",
-      declinedBy: { $ne: req.user.id }
+      declinedBy: { $ne: req.user.id },
+      senderId: { $nin: await UserBlock.idsHiddenFrom(req.user.id) }
     };
 
     if (deliveryType) {
@@ -686,6 +699,21 @@ async function acceptTravelerJob(req, res) {
 
         error:
           "Traveler user account is missing"
+      });
+    }
+
+    if (traveler.background_status !== "clear") {
+      return res.status(403).json({
+        success: false,
+        code: "BACKGROUND_CHECK_REQUIRED",
+        error: "Complete your background check before accepting jobs."
+      });
+    }
+
+    if (await UserBlock.between(job.senderId, traveler.user._id)) {
+      return res.status(403).json({
+        success: false,
+        error: "This job is not available."
       });
     }
 

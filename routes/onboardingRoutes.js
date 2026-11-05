@@ -14,6 +14,7 @@ const jwt = require("jsonwebtoken");
 const OnboardingSession = require("../models/OnboardingSession");
 const User = require("../models/User");
 const Traveler = require("../models/Traveler");
+const auth = require("../middleware/auth");
 const rateLimit = require("../middleware/rateLimit");
 const generateToken = require("../utils/generateToken");
 const { sendVerificationEmail } = require("../utils/emailService");
@@ -115,7 +116,8 @@ function publicState(session) {
     emailVerified: Boolean(session.emailVerifiedAt),
     phoneVerified: Boolean(session.phoneVerifiedAt),
     identityStatus: session.identityStatus,
-    identityVerified: session.identityStatus === "verified"
+    identityVerified: session.identityStatus === "verified",
+    reverify: Boolean(session.userId)
   };
 }
 
@@ -231,6 +233,37 @@ router.post("/start", startLimit, async (req, res) => {
   }
 });
 
+// Existing accounts verify with the same checks. Their email stays fixed.
+router.post("/reverify/start", startLimit, auth, async (req, res) => {
+  try {
+    const { user } = req.user;
+
+    if (!["sender", "traveler"].includes(user.role)) {
+      return res.status(403).json({ success: false, error: "This account can't be verified here." });
+    }
+
+    await OnboardingSession.deleteMany({ userId: user._id });
+
+    const session = await OnboardingSession.create({
+      userId: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      email: user.email,
+      emailVerifiedAt: user.emailVerified ? new Date() : null
+    });
+
+    return res.status(201).json({
+      success: true,
+      token: sessionToken(session),
+      data: publicState(session)
+    });
+  } catch (error) {
+    console.error("Reverify start error:", error);
+    return res.status(500).json({ success: false, error: "Unable to start verification." });
+  }
+});
+
 router.get("/status", requireSession, async (req, res) => {
   try {
     const session = req.onboarding;
@@ -258,13 +291,15 @@ router.get("/status", requireSession, async (req, res) => {
 router.post("/email/send", ipSendLimit, requireSession, sessionSendLimit, async (req, res) => {
   try {
     const session = req.onboarding;
-    const email = String(req.body?.email || "").trim().toLowerCase();
+    const email = session.userId
+      ? session.email
+      : String(req.body?.email || "").trim().toLowerCase();
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ success: false, error: "Enter a valid email address." });
     }
 
-    if (await User.exists({ email })) {
+    if (!session.userId && await User.exists({ email })) {
       return res.status(409).json({
         success: false,
         error: "An account already exists with this email."
@@ -309,7 +344,7 @@ router.post("/phone/send", ipSendLimit, requireSession, sessionSendLimit, async 
       return res.status(400).json({ success: false, error: "Enter a valid phone number." });
     }
 
-    if (await User.exists({ phone })) {
+    if (await User.exists({ phone, _id: { $ne: session.userId } })) {
       return res.status(409).json({
         success: false,
         error: "An account already exists with this phone number."
@@ -490,6 +525,10 @@ router.post("/complete", requireSession, async (req, res) => {
       });
     }
 
+    if (session.userId) {
+      return finishReverification(session, dobText, res);
+    }
+
     if (typeof password !== "string" || password.length < MIN_PASSWORD_LENGTH) {
       return res.status(400).json({
         success: false,
@@ -544,6 +583,38 @@ router.post("/complete", requireSession, async (req, res) => {
     return res.status(500).json({ success: false, error: "Unable to create your account." });
   }
 });
+
+async function finishReverification(session, dobText, res) {
+  const user = await User.findById(session.userId);
+
+  if (!user) {
+    return res.status(404).json({ success: false, error: "Account not found." });
+  }
+
+  Object.assign(user, {
+    phone: session.phone,
+    dob: dobText,
+    emailVerified: true,
+    phoneVerified: true,
+    identityVerified: true,
+    identityVerifiedAt: session.identityVerifiedAt,
+    stripeIdentitySessionId: session.stripeIdentitySessionId,
+    kycVerified: true
+  });
+
+  await user.save();
+
+  if (user.role === "traveler") {
+    await Traveler.updateOne({ user: user._id }, { verified: true });
+  }
+
+  await session.deleteOne();
+
+  const safeUser = user.toObject();
+  delete safeUser.password;
+
+  return res.json({ success: true, token: generateToken(user), data: safeUser });
+}
 
 router.applyIdentityResult = applyIdentityResult;
 router.retrieveVerification = retrieveVerification;

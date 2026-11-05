@@ -277,6 +277,12 @@ app.use(
   require("./routes/onboardingRoutes")
 );
 
+// Report and block
+app.use(
+  "/api/safety",
+  require("./routes/safetyRoutes")
+);
+
 // Stripe Identity Webhook
 app.use(
   "/webhook",

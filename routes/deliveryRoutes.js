@@ -13,6 +13,7 @@ const auth = require("../middleware/auth");
 const Traveler = require("../models/Traveler");
 const {
   requireRole,
+  requireVerified,
   requireSelf,
   requireAssignedTraveler
 } = require("../middleware/access");
@@ -122,6 +123,7 @@ const proofUpload =
 router.post(
   "/",
   requireRole("sender"),
+  requireVerified,
   (req, res, next) => {
     console.log("🔥 DELIVERY ROUTE HIT");
     next();
@@ -132,12 +134,12 @@ router.post(
 /* ============================================================
    TRAVELER JOB SEARCH
 ============================================================ */
-router.post("/search", requireRole("traveler"), searchTravelerJobs);
+router.post("/search", requireRole("traveler"), requireVerified, searchTravelerJobs);
 
 /* ============================================================
    TRAVELER ACTIONS
 ============================================================ */
-router.post("/:jobId/accept", requireRole("traveler"), acceptTravelerJob);
+router.post("/:jobId/accept", requireRole("traveler"), requireVerified, acceptTravelerJob);
 
 // Hides the job from this traveler's search results.
 router.post("/:jobId/decline", requireRole("traveler"), async (req, res) => {

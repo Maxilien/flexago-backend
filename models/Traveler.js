@@ -92,6 +92,12 @@ totalDeliveries: {
       default: null,
     },
 
+    // Checkr hosted application link
+    checkr_invitation_url: {
+      type: String,
+      default: null,
+    },
+
     // Checkr Report ID
     checkr_report_id: {
       type: String,

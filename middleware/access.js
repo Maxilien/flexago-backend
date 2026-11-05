@@ -22,6 +22,21 @@ function requireRole(...roles) {
   };
 }
 
+// Accounts from before strict onboarding must re-verify first.
+function requireVerified(req, res, next) {
+  const user = req.user?.user;
+
+  if (user?.emailVerified && user?.phoneVerified && user?.identityVerified) {
+    return next();
+  }
+
+  return res.status(403).json({
+    success: false,
+    code: "VERIFICATION_REQUIRED",
+    error: "Please finish verifying your account."
+  });
+}
+
 // The :param in the URL must be the logged-in user's own ID.
 function requireSelf(param = "id") {
   return (req, res, next) => {
@@ -153,6 +168,7 @@ async function getDeliveryAccess(deliveryId, userId) {
 
 module.exports = {
   requireRole,
+  requireVerified,
   requireSelf,
   requireSelfTraveler,
   requireAssignedTraveler,
