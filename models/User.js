@@ -31,7 +31,7 @@ const UserSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
-      minlength: 6,
+      minlength: 8,
       select: false,
     },
 
@@ -116,6 +116,14 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+
+    emailVerified: { type: Boolean, default: false },
+    phoneVerified: { type: Boolean, default: false },
+    identityVerified: { type: Boolean, default: false },
+    identityVerifiedAt: { type: Date, default: null },
+    stripeIdentitySessionId: { type: String, default: null },
+
+    photoUrl: { type: String, default: null },
 
     kyc: {
       ssnLast4: { type: String },

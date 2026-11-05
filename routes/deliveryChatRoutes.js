@@ -14,6 +14,7 @@
 ============================================================ */
 
 const express = require("express");
+const auth = require("../middleware/auth");
 
 const {
   getDeliveryMessages,
@@ -33,6 +34,7 @@ const router = express.Router();
 
 router.get(
   "/:deliveryId",
+  auth,
   deliveryChatAuth,
   getDeliveryMessages
 );
@@ -43,6 +45,7 @@ router.get(
 
 router.post(
   "/:deliveryId",
+  auth,
   deliveryChatAuth,
   sendDeliveryMessage
 );
@@ -53,6 +56,7 @@ router.post(
 
 router.patch(
   "/:deliveryId/read",
+  auth,
   deliveryChatAuth,
   markDeliveryMessagesRead
 );

@@ -6,8 +6,14 @@
 console.log("🟢 travelerRoutes.js LOADED");
 
 const express = require("express");
+const auth = require("../middleware/auth");
 const {
-  createTraveler,
+  requireRole,
+  requireSelf,
+  requireSelfTraveler,
+  requireAssignedTraveler
+} = require("../middleware/access");
+const {
   getTravelerByUser,
   updateTravelerLocation
 } = require("../controllers/travelerController");
@@ -22,14 +28,13 @@ const Traveler = require("../models/Traveler");
 const router = express.Router();
 
 // Traveler profile
-router.post("/", createTraveler);
-router.get("/user/:userId", getTravelerByUser);
-router.put("/location/:userId", updateTravelerLocation);
+router.get("/user/:userId", auth, requireSelf("userId"), getTravelerByUser);
+router.put("/location/:userId", auth, requireSelf("userId"), updateTravelerLocation);
 
 /* ============================================================
    ⭐ UPDATE TRAVELER (ADDRESS ONLY — IDENTITY LOCKED)
 ============================================================ */
-router.put("/travelers/:id", async (req, res) => {
+router.put("/travelers/:id", auth, requireSelfTraveler("id"), async (req, res) => {
   try {
     const id = req.params.id;
 
@@ -61,11 +66,9 @@ router.put("/travelers/:id", async (req, res) => {
 /* ============================================================
    ⭐ Traveler Job Acceptance — Background Check Enforcement
 ============================================================ */
-router.post("/jobs/:jobId/accept", async (req, res) => {
+router.post("/jobs/:jobId/accept", auth, requireRole("traveler"), async (req, res) => {
   try {
-    const travelerId = req.body.travelerId;
-
-    const traveler = await Traveler.findById(travelerId);
+    const traveler = await Traveler.findOne({ user: req.user.id });
     if (!traveler) {
       return res.status(404).json({ error: "Traveler not found." });
     }
@@ -87,7 +90,7 @@ router.post("/jobs/:jobId/accept", async (req, res) => {
 /* ============================================================
    Traveler Job Completion
 ============================================================ */
-router.post("/jobs/:jobId/complete", completeTravelerJob);
+router.post("/jobs/:jobId/complete", auth, requireAssignedTraveler(), completeTravelerJob);
 
 module.exports = router;
 

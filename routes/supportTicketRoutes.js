@@ -19,6 +19,7 @@
 ============================================================ */
 
 const express = require("express");
+const auth = require("../middleware/auth");
 
 const {
   createSupportTicket,
@@ -59,6 +60,7 @@ const router = express.Router();
 
 router.post(
   "/",
+  auth,
   createSupportTicket
 );
 
@@ -72,6 +74,7 @@ router.post(
 
 router.get(
   "/my",
+  auth,
   getMySupportTickets
 );
 
@@ -81,6 +84,7 @@ router.get(
 
 router.get(
   "/my/:ticketId",
+  auth,
   getMySupportTicket
 );
 

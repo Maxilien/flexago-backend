@@ -37,7 +37,6 @@ const cors = require("cors");
 ============================================================ */
 
 // Legacy Explorer routes
-const explorerRoutes = require("./routes/explorerRoutes");
 
 // MongoDB-powered routes
 const userRoutes = require("./routes/userRoutes");
@@ -65,29 +64,17 @@ const travelerStripeRoutes = require(
 );
 
 // Upload routes
-const uploadRoutes = require("./routes/uploadRoutes");
 
 // Identity Verification Routes (Stripe Identity)
-const identityRoutes = require("./routes/identity");
-const verifyStatusRoutes = require(
-  "./routes/verifyStatus"
-);
 const identityWebhook = require(
   "./routes/identityWebhook"
 );
 
 // Email Verification Route
-const verifyEmailRoutes = require(
-  "./routes/verifyEmailRoutes"
-);
 
 // Create Account Route
-const createAccountRoutes = require(
-  "./routes/create-account"
-);
 
 // Twilio Phone Verification Route
-const verifyPhoneRoutes = require("./routes/verify");
 
 // ADMIN ROUTES
 const adminAuthRoutes = require("./routes/adminAuth");
@@ -146,7 +133,9 @@ const allowedOrigins = [
   "https://flexago-backend.onrender.com",
   "https://www.flexagoo.com",
   "https://flexagoo.com",
-  "https://app.flexagoo.com"
+  "https://app.flexagoo.com",
+  "capacitor://localhost",
+  "https://localhost"
 ];
 
 app.use(
@@ -189,6 +178,9 @@ app.use((req, res, next) => {
 
 app.options("*", cors());
 
+// Render sits in front of this app; needed for per-IP rate limits.
+app.set("trust proxy", 1);
+
 // Stripe Payment webhook must run before express.json()
 app.use(
   "/api/payments/webhook",
@@ -203,6 +195,18 @@ app.use(
   })
 );
 
+// Checkr webhook needs the raw body to verify its signature
+app.use(
+  "/api/checkr/webhook",
+  express.raw({
+    type: "application/json"
+  })
+);
+
+// Larger limit only where photos are sent
+app.use("/api/deliveries", express.json({ limit: "12mb" }));
+app.use("/api/users/me/photo", express.json({ limit: "6mb" }));
+
 // JSON parser for all other routes
 app.use(express.json());
 
@@ -215,18 +219,6 @@ app.use(
 /* ============================================================
    ROUTES (ORDER MATTERS)
 ============================================================ */
-
-// Upload endpoints
-app.use(
-  "/api/uploads",
-  uploadRoutes
-);
-
-// Legacy Explorer routes
-app.use(
-  "/api",
-  explorerRoutes
-);
 
 // Delivery routes
 app.use(
@@ -279,40 +271,16 @@ app.use(
   userRoutes
 );
 
-// Identity Verification
+// Strict signup
 app.use(
-  "/api/verify",
-  identityRoutes
-);
-
-// Identity Verification Status
-app.use(
-  "/api/verify",
-  verifyStatusRoutes
-);
-
-// Email Verification
-app.use(
-  "/api/verify",
-  verifyEmailRoutes
-);
-
-// Twilio Phone Verification
-app.use(
-  "/api/verify",
-  verifyPhoneRoutes
+  "/api/onboarding",
+  require("./routes/onboardingRoutes")
 );
 
 // Stripe Identity Webhook
 app.use(
   "/webhook",
   identityWebhook
-);
-
-// Create Account
-app.use(
-  "/api/account",
-  createAccountRoutes
 );
 
 // Support Chat API

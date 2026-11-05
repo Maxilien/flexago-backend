@@ -5,6 +5,17 @@
 
 const crypto = require("crypto");
 const Delivery = require("../models/Delivery");
+const {
+  uploadImage,
+  storeUploadedFile
+} = require("../utils/imageUpload");
+
+// Route matching: how far a stop may be from the traveler's road,
+// and the wider area allowed around the start and destination.
+const ROUTE_CORRIDOR_MILES = 6;
+const ROUTE_END_ZONE_MILES = 20;
+const ROUTE_DIRECTION_TOLERANCE_MILES = 0.5;
+const MAX_PACKAGE_PHOTOS = 5;
 const Traveler = require("../models/Traveler");
 
 const {
@@ -67,73 +78,51 @@ function haversineMiles(a, b) {
   return EARTH_RADIUS_MILES * c;
 }
 
-function distancePointToSegmentMiles(point, start, end) {
-  const [px, py] = point;
-  const [ax, ay] = start;
-  const [bx, by] = end;
+// Finds where a point sits along a route: how far it is from the
+// road, and how many miles into the trip that closest spot is.
+function locateOnRoute(point, polyline) {
+  const milesPerDegreeLng = Math.cos((point[1] * Math.PI) / 180);
 
-  const segment = [bx - ax, by - ay];
-  const pointVector = [px - ax, py - ay];
+  let closest = { offRouteMiles: Infinity, progressMiles: 0 };
+  let travelled = 0;
 
-  const segmentLengthSquared =
-    segment[0] * segment[0] +
-    segment[1] * segment[1];
+  for (let index = 0; index < polyline.length - 1; index += 1) {
+    const start = polyline[index];
+    const end = polyline[index + 1];
 
-  if (segmentLengthSquared === 0) {
-    return haversineMiles(point, start);
-  }
+    const segmentX = (end[0] - start[0]) * milesPerDegreeLng;
+    const segmentY = end[1] - start[1];
+    const pointX = (point[0] - start[0]) * milesPerDegreeLng;
+    const pointY = point[1] - start[1];
 
-  const projection =
-    pointVector[0] * segment[0] +
-    pointVector[1] * segment[1];
+    const lengthSquared = segmentX * segmentX + segmentY * segmentY;
 
-  let ratio =
-    projection / segmentLengthSquared;
+    const ratio = lengthSquared === 0
+      ? 0
+      : Math.max(
+          0,
+          Math.min(1, (pointX * segmentX + pointY * segmentY) / lengthSquared)
+        );
 
-  ratio = Math.max(
-    0,
-    Math.min(1, ratio)
-  );
+    const nearest = [
+      start[0] + (end[0] - start[0]) * ratio,
+      start[1] + (end[1] - start[1]) * ratio
+    ];
 
-  const closestPoint = [
-    ax + segment[0] * ratio,
-    ay + segment[1] * ratio
-  ];
+    const offRouteMiles = haversineMiles(point, nearest);
+    const segmentMiles = haversineMiles(start, end);
 
-  return haversineMiles(
-    point,
-    closestPoint
-  );
-}
-
-function distancePointToPolylineMiles(point, polyline) {
-  if (
-    !Array.isArray(polyline) ||
-    polyline.length < 2
-  ) {
-    return Infinity;
-  }
-
-  let minimumDistance = Infinity;
-
-  for (
-    let index = 0;
-    index < polyline.length - 1;
-    index += 1
-  ) {
-    const distance =
-      distancePointToSegmentMiles(
-        point,
-        polyline[index],
-        polyline[index + 1]
-      );
-
-    if (distance < minimumDistance) {
-      minimumDistance = distance;
+    if (offRouteMiles < closest.offRouteMiles) {
+      closest = {
+        offRouteMiles,
+        progressMiles: travelled + segmentMiles * ratio
+      };
     }
+
+    travelled += segmentMiles;
   }
 
-  return minimumDistance;
+  return closest;
 }
 
 /* ============================================================
@@ -213,16 +202,11 @@ async function createDelivery(req, res) {
       sender,
       receiver,
       notes,
-      price,
-      senderId
+      price
     } = req.body;
 
-    if (!senderId) {
-      return res.status(400).json({
-        success: false,
-        error: "senderId is required"
-      });
-    }
+    // The sender is whoever is logged in, never the request body.
+    const senderId = req.user.id;
 
     const pickup =
       normalizeGeoPoint(rawPickup);
@@ -269,61 +253,37 @@ async function createDelivery(req, res) {
     const payoutAmount =
       Math.round(roundedPrice * 0.8 * 100) / 100;
 
-    let resolvedPhotoUrl = null;
+    const submittedPhotos = Array.isArray(packageData?.photos)
+      ? packageData.photos
+      : packageData?.photoUrl
+        ? [packageData.photoUrl]
+        : [];
 
-    if (
-      packageData?.photoUrl &&
-      packageData.photoUrl.startsWith("data:")
-    ) {
-      try {
-        const cloudinary =
-          require("cloudinary").v2;
-
-        cloudinary.config({
-          cloud_name:
-            process.env.CLOUDINARY_CLOUD_NAME,
-
-          api_key:
-            process.env.CLOUDINARY_API_KEY,
-
-          api_secret:
-            process.env.CLOUDINARY_API_SECRET
-        });
-
-        const uploaded =
-          await cloudinary.uploader.upload(
-            packageData.photoUrl,
-            {
-              folder: "flexago/deliveries",
-              transformation: [
-                {
-                  width: 800,
-                  quality: "auto"
-                }
-              ]
-            }
-          );
-
-        resolvedPhotoUrl = uploaded.secure_url;
-
-        console.log(
-          "✅ Photo uploaded to Cloudinary:",
-          resolvedPhotoUrl
-        );
-      } catch (uploadError) {
-        console.error(
-          "❌ Cloudinary upload failed:",
-          uploadError.message
-        );
-
-        resolvedPhotoUrl = null;
-      }
-    } else if (
-      typeof packageData?.photoUrl === "string"
-    ) {
-      resolvedPhotoUrl =
-        packageData.photoUrl;
+    if (submittedPhotos.length > MAX_PACKAGE_PHOTOS) {
+      return res.status(400).json({
+        success: false,
+        error: `You can add up to ${MAX_PACKAGE_PHOTOS} photos.`
+      });
     }
+
+    let photoUrls = [];
+
+    try {
+      photoUrls = await Promise.all(
+        submittedPhotos.map((photo) =>
+          uploadImage(photo, "flexago/deliveries")
+        )
+      );
+    } catch (uploadError) {
+      console.error("Photo upload failed:", uploadError.message);
+
+      return res.status(400).json({
+        success: false,
+        error: "One of your photos could not be uploaded. Please try again."
+      });
+    }
+
+    const resolvedPhotoUrl = photoUrls[0] || null;
 
     const delivery =
       await Delivery.create({
@@ -376,7 +336,9 @@ async function createDelivery(req, res) {
               : null,
 
           photoUrl:
-            resolvedPhotoUrl
+            resolvedPhotoUrl,
+
+          photoUrls
         },
 
         notes:
@@ -464,7 +426,6 @@ async function searchTravelerJobs(req, res) {
       start,
       destination,
       route,
-      maxMiles = 5,
       deliveryType
     } = req.body;
 
@@ -509,18 +470,15 @@ async function searchTravelerJobs(req, res) {
         .filter(validCoordinates);
     }
 
-    const parsedMaxMiles =
-      Number(maxMiles);
-
-    const allowedMiles =
-      Number.isFinite(parsedMaxMiles) &&
-      parsedMaxMiles > 0
-        ? parsedMaxMiles
-        : 5;
+    // Without a drawn route, use the straight line between the two points.
+    if (polyline.length < 2) {
+      polyline = [startPoint, destinationPoint];
+    }
 
     const query = {
       status: "available",
-      paymentStatus: "paid"
+      paymentStatus: "paid",
+      declinedBy: { $ne: req.user.id }
     };
 
     if (deliveryType) {
@@ -558,69 +516,71 @@ async function searchTravelerJobs(req, res) {
             destinationPoint
           );
 
-        const pickupRouteDistance =
-          distancePointToPolylineMiles(
-            pickupCoordinates,
-            polyline
-          );
+        const pickupOnRoad =
+          locateOnRoute(pickupCoordinates, polyline);
 
-        const dropoffRouteDistance =
-          distancePointToPolylineMiles(
-            dropoffCoordinates,
-            polyline
-          );
+        const dropoffOnRoad =
+          locateOnRoute(dropoffCoordinates, polyline);
+
+        // These limits live on the server so the app can't widen them.
+        const pickupAllowed =
+          pickupOnRoad.offRouteMiles <= ROUTE_CORRIDOR_MILES ||
+          pickupStartDistance <= ROUTE_END_ZONE_MILES;
+
+        const dropoffAllowed =
+          dropoffOnRoad.offRouteMiles <= ROUTE_CORRIDOR_MILES ||
+          dropoffDestinationDistance <= ROUTE_END_ZONE_MILES;
+
+        // The traveler must reach the pickup before the drop-off.
+        const sameDirection =
+          pickupOnRoad.progressMiles <=
+          dropoffOnRoad.progressMiles + ROUTE_DIRECTION_TOLERANCE_MILES;
 
         const matches =
-          polyline.length < 2
-            ? pickupStartDistance <= allowedMiles &&
-              dropoffDestinationDistance <= allowedMiles
-            : (
-                pickupStartDistance <= allowedMiles ||
-                pickupRouteDistance <= allowedMiles
-              ) &&
-              (
-                dropoffDestinationDistance <= allowedMiles ||
-                dropoffRouteDistance <= allowedMiles
-              );
+          pickupAllowed &&
+          dropoffAllowed &&
+          sameDirection;
 
         if (!matches) {
           return null;
         }
 
+        const {
+          pickupCode,
+          pickupQR,
+          declinedBy,
+          ...publicJob
+        } = job;
+
         return {
-          ...job,
+          ...publicJob,
+
+          sender: { name: job.sender?.name || "" },
+
+          receiver: { name: job.receiver?.name || "" },
+
+          pickup: {
+            ...job.pickup,
+            contactPhone: ""
+          },
+
+          dropoff: {
+            ...job.dropoff,
+            contactPhone: ""
+          },
 
           _distance: {
-            pickupStartMiles:
-              pickupStartDistance,
-
-            dropoffDestMiles:
-              dropoffDestinationDistance,
-
-            pickupRouteMiles:
-              pickupRouteDistance,
-
-            dropoffRouteMiles:
-              dropoffRouteDistance
+            offRouteMiles: Math.max(
+              pickupOnRoad.offRouteMiles,
+              dropoffOnRoad.offRouteMiles
+            )
           }
         };
       })
       .filter(Boolean)
-      .sort((a, b) => {
-        const aDistance =
-          a._distance.pickupStartMiles +
-          a._distance.dropoffDestMiles +
-          a._distance.pickupRouteMiles +
-          a._distance.dropoffRouteMiles;
-
-        const bDistance =
-          b._distance.pickupStartMiles +
-          b._distance.dropoffDestMiles +
-          b._distance.pickupRouteMiles +
-          b._distance.dropoffRouteMiles;
-
-        return aDistance - bDistance;
-      });
+      .sort((a, b) =>
+        a._distance.offRouteMiles - b._distance.offRouteMiles
+      );
 
     return res.json({
       success: true,
@@ -657,15 +617,9 @@ async function acceptTravelerJob(req, res) {
     const { jobId } =
       req.params;
 
+    // The traveler is whoever is logged in, never the request body.
     const requestedTravelerId =
-      req.body?.travelerId;
-
-    if (!requestedTravelerId) {
-      return res.status(400).json({
-        success: false,
-        error: "Missing travelerId"
-      });
-    }
+      req.user.id;
 
     const job =
       await Delivery.findById(jobId);
@@ -1349,19 +1303,38 @@ async function completeTravelerJob(
         "host"
       )}`;
 
+    const proofFiles =
+      req.files?.photo || [];
+
+    const proofPhotoUrls =
+      await Promise.all(
+        proofFiles.map((file) =>
+          storeUploadedFile(
+            file,
+            "flexago/proof",
+            backendBaseUrl
+          )
+        )
+      );
+
     const proofPhotoUrl =
-      `${backendBaseUrl}/uploads/` +
-      `${photoFile.filename}`;
+      proofPhotoUrls[0];
 
     const signatureUrl =
-      `${backendBaseUrl}/uploads/` +
-      `${signatureFile.filename}`;
+      await storeUploadedFile(
+        signatureFile,
+        "flexago/proof",
+        backendBaseUrl
+      );
 
     job.signedBy =
       signedBy;
 
     job.proofPhoto =
       proofPhotoUrl;
+
+    job.proofPhotos =
+      proofPhotoUrls;
 
     job.signatureUrl =
       signatureUrl;

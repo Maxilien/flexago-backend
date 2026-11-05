@@ -31,7 +31,8 @@ const PackageSchema = new mongoose.Schema({
   deliveryType: String,
   description: String,
   declaredValue: Number,
-  photoUrl: { type: String, default: null }
+  photoUrl: { type: String, default: null },
+  photoUrls: { type: [String], default: [] }
 });
 
 const DeliverySchema = new mongoose.Schema(
@@ -210,6 +211,16 @@ transferGroup: {
 proofPhoto: {
   type: String,
   default: null
+},
+
+proofPhotos: {
+  type: [String],
+  default: []
+},
+
+declinedBy: {
+  type: [String],
+  default: []
 },
 
 signedBy: {

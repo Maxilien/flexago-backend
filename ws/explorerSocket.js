@@ -12,6 +12,8 @@ const {
 } = require("ws");
 
 const mongoose = require("mongoose");
+const jwt = require("jsonwebtoken");
+const { getDeliveryAccess } = require("../middleware/access");
 
 const Traveler = require("../models/Traveler");
 const Delivery = require("../models/Delivery");
@@ -215,13 +217,14 @@ async function authorizeDeliveryChat(
 
 async function handleDeliveryChatJoin(ws, data) {
   const deliveryId = normalizeId(data.deliveryId);
-  const userId = normalizeId(data.userId);
-  const userRole = normalizeRole(data.userRole);
+  const access = isValidObjectId(deliveryId)
+    ? await getDeliveryAccess(deliveryId, ws.authUserId)
+    : {};
 
   const authorization = await authorizeDeliveryChat(
     deliveryId,
-    userId,
-    userRole
+    access.participantId || "",
+    access.role || ""
   );
 
   if (!authorization.authorized) {
@@ -351,17 +354,45 @@ function handleDeliveryChatRead(ws, data) {
 ============================================================ */
 
 function initExplorerSocket(server) {
+  // noServer, because attaching directly would make this server reject
+  // every other upgrade on the port, including Socket.IO live tracking.
   wss = new WebSocketServer({
-    server,
-    path: "/ws"
+    noServer: true,
+    handleProtocols: (protocols) =>
+      protocols.has("flexago") ? "flexago" : false
+  });
+
+  server.on("upgrade", (req, socket, head) => {
+    const { pathname } = new URL(req.url, "http://localhost");
+
+    if (pathname !== "/ws") return;
+
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      wss.emit("connection", ws, req);
+    });
   });
 
   console.log(
     "🔌 WebSocket server initialized (MongoDB mode)"
   );
 
-  wss.on("connection", (ws) => {
-    console.log("🟢 Client connected to WebSocket");
+  wss.on("connection", (ws, req) => {
+    // The login token arrives as a WebSocket subprotocol.
+    const token = String(req.headers["sec-websocket-protocol"] || "")
+      .split(",")
+      .map((value) => value.trim())
+      .find((value) => value !== "flexago");
+
+    try {
+      ws.authUserId = jwt.verify(token, process.env.JWT_SECRET).id;
+    } catch (error) {
+      ws.authUserId = null;
+    }
+
+    if (!ws.authUserId) {
+      ws.close(4401, "Authentication required");
+      return;
+    }
 
     ws.deliveryId = null;
     ws.deliveryChatUser = null;
@@ -379,6 +410,20 @@ function initExplorerSocket(server) {
             sendSocketError(
               ws,
               "Invalid delivery ID."
+            );
+
+            return;
+          }
+
+          const access = await getDeliveryAccess(
+            data.deliveryId,
+            ws.authUserId
+          );
+
+          if (!access.role) {
+            sendSocketError(
+              ws,
+              "You are not part of this delivery."
             );
 
             return;
@@ -427,7 +472,8 @@ function initExplorerSocket(server) {
         ==================================================== */
 
         if (data.type === "traveler_gps") {
-          const { userId, lat, lng } = data;
+          const { lat, lng } = data;
+          const userId = ws.authUserId;
 
           const traveler = await Traveler.findOneAndUpdate(
             { user: userId },
@@ -470,15 +516,14 @@ function initExplorerSocket(server) {
         ==================================================== */
 
         if (data.type === "status_update") {
+          // Status changes are saved through the protected API.
+          // This only relays them inside a room the client joined.
           const { deliveryId, status } = data;
 
-          await Delivery.findByIdAndUpdate(
-            deliveryId,
-            {
-              status,
-              updatedAt: new Date()
-            }
-          );
+          if (ws.deliveryId !== normalizeId(deliveryId)) {
+            sendSocketError(ws, "Join this delivery first.");
+            return;
+          }
 
           broadcastToRoom(deliveryId, {
             type: "status_update",
@@ -498,6 +543,11 @@ function initExplorerSocket(server) {
 
         if (data.type === "traveler_assigned") {
           const { deliveryId, traveler } = data;
+
+          if (ws.deliveryId !== normalizeId(deliveryId)) {
+            sendSocketError(ws, "Join this delivery first.");
+            return;
+          }
 
           broadcastToRoom(deliveryId, {
             type: "traveler_assigned",

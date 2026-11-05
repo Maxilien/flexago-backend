@@ -1,57 +1,53 @@
 const express = require("express");
 const router = express.Router();
 const Stripe = require("stripe");
-const TempEmail = require("../models/TempEmail");   // ⭐ Add this
+const OnboardingSession = require("../models/OnboardingSession");
+const {
+  applyIdentityResult,
+  retrieveVerification
+} = require("./onboardingRoutes");
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 // RAW body required for Stripe signature verification
 router.post("/", express.raw({ type: "application/json" }), async (req, res) => {
-  const sig = req.headers["stripe-signature"];
-
   let event;
+
   try {
     event = stripe.webhooks.constructEvent(
       req.body,
-      sig,
+      req.headers["stripe-signature"],
       process.env.STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
-    console.error("❌ Webhook signature error:", err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+    console.error("Webhook signature error:", err.message);
+    return res.status(400).send("Webhook signature verification failed");
   }
 
-  /* ============================================================
-     HANDLE SUCCESSFUL VERIFICATION
-     ============================================================ */
-  if (event.type === "identity.verification_session.verified") {
-    const session = event.data.object;
-    const userId = session.metadata.userId;
-
-    console.log("🎉 Identity Verified for user:", userId);
-
+  if (
+    event.type === "identity.verification_session.verified" ||
+    event.type === "identity.verification_session.requires_input" ||
+    event.type === "identity.verification_session.canceled"
+  ) {
     try {
-      await TempEmail.findOneAndUpdate(
-        { userId },
-        { identityVerified: true },
-        { new: true }
+      const verification = event.data.object;
+      const session = await OnboardingSession.findById(
+        verification.metadata?.onboardingSessionId
       );
 
-      console.log("✅ User marked as verified in DB");
-    } catch (dbErr) {
-      console.error("❌ DB update error:", dbErr);
+      if (session) {
+        await applyIdentityResult(
+          session,
+          await retrieveVerification(stripe, verification.id)
+        );
+      }
+    } catch (err) {
+      console.error("Identity webhook error:", err);
+      return res.status(500).end();
     }
   }
 
-  /* ============================================================
-     HANDLE VERIFICATION FAILURE
-     ============================================================ */
-  if (event.type === "identity.verification_session.requires_input") {
-    const session = event.data.object;
-    console.log("⚠️ Verification failed or needs input:", session.id);
-  }
-
-  res.json({ received: true });
+  return res.json({ received: true });
 });
 
 module.exports = router;
