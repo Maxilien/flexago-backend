@@ -130,6 +130,7 @@ paymentStatus: {
   default: "pending"
 },
 
+itemConfirmedAt: { type: Date, default: null },
 arrivedAt: { type: Date, default: null },
 cancelledAt: { type: Date, default: null },
 cancelledBy: { type: String, default: null },

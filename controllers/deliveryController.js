@@ -208,8 +208,16 @@ async function createDelivery(req, res) {
       receiver,
       notes,
       distanceMiles,
-      insuranceType
+      insuranceType,
+      itemConfirmed
     } = req.body;
+
+    if (itemConfirmed !== true) {
+      return res.status(400).json({
+        success: false,
+        error: "Please confirm your item is allowed."
+      });
+    }
 
     // The sender is whoever is logged in, never the request body.
     const senderId = req.user.id;
@@ -300,6 +308,7 @@ async function createDelivery(req, res) {
     const delivery =
       await Delivery.create({
         senderId: String(senderId),
+        itemConfirmedAt: new Date(),
 
         sender: {
           name: sender?.name || "",
