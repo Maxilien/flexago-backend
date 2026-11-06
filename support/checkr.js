@@ -1,6 +1,6 @@
 // support/checkr.js
 // ------------------------------------------------------
-// Sends a traveler to Checkr's hosted application, where they
+// Sends a user to Checkr's hosted application, where they
 // give consent and enter their own details. Sensitive data such
 // as Social Security numbers never touches Flexago.
 // ------------------------------------------------------
@@ -8,6 +8,9 @@
 const BASE_URL = (
   process.env.CHECKR_BASE_URL || "https://api.checkr.com/v1"
 ).replace(/\/$/, "");
+
+// Signup doesn't ask for an address, and FlexaGo launches in Texas.
+const LAUNCH_STATE = "TX";
 
 function isConfigured() {
   return Boolean(process.env.CHECKR_API_KEY && process.env.CHECKR_PACKAGE);
@@ -51,7 +54,7 @@ async function createInvitation(candidateId, user) {
   const invitation = await post("/invitations", {
     candidate_id: candidateId,
     package: process.env.CHECKR_PACKAGE,
-    work_locations: [{ country: "US", state: user.state }]
+    work_locations: [{ country: "US", state: user.state || LAUNCH_STATE }]
   });
 
   return invitation.invitation_url;

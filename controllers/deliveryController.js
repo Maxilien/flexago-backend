@@ -702,7 +702,7 @@ async function acceptTravelerJob(req, res) {
       });
     }
 
-    if (traveler.background_status !== "clear") {
+    if (req.user.user.background_status !== "clear") {
       return res.status(403).json({
         success: false,
         code: "BACKGROUND_CHECK_REQUIRED",

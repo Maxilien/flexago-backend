@@ -120,6 +120,17 @@ const UserSchema = new mongoose.Schema(
     emailVerified: { type: Boolean, default: false },
     phoneVerified: { type: Boolean, default: false },
     identityVerified: { type: Boolean, default: false },
+
+    // Everyone needs a clear background check to use the app.
+    background_status: {
+      type: String,
+      enum: ["not_started", "invited", "pending", "clear", "consider", "suspended"],
+      default: "not_started"
+    },
+    background_completed_at: { type: Date, default: null },
+    checkr_candidate_id: { type: String, default: null },
+    checkr_invitation_url: { type: String, default: null },
+    checkr_report_id: { type: String, default: null },
     identityVerifiedAt: { type: Date, default: null },
     stripeIdentitySessionId: { type: String, default: null },
 

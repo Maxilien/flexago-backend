@@ -37,6 +37,18 @@ function requireVerified(req, res, next) {
   });
 }
 
+function requireBackgroundClear(req, res, next) {
+  if (req.user?.user?.background_status === "clear") {
+    return next();
+  }
+
+  return res.status(403).json({
+    success: false,
+    code: "BACKGROUND_CHECK_REQUIRED",
+    error: "Complete your background check first."
+  });
+}
+
 // The :param in the URL must be the logged-in user's own ID.
 function requireSelf(param = "id") {
   return (req, res, next) => {
@@ -169,6 +181,7 @@ async function getDeliveryAccess(deliveryId, userId) {
 module.exports = {
   requireRole,
   requireVerified,
+  requireBackgroundClear,
   requireSelf,
   requireSelfTraveler,
   requireAssignedTraveler,

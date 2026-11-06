@@ -1,7 +1,7 @@
 const crypto = require("crypto");
 const express = require("express");
 const router = express.Router();
-const Traveler = require("../models/Traveler");
+const User = require("../models/User");
 
 // Checkr signs each webhook with an HMAC of the raw body.
 function validSignature(rawBody, signature) {
@@ -35,30 +35,32 @@ router.post("/", async (req, res) => {
 
   if (report && /^report\.(created|completed|suspended)$/.test(event.type)) {
     // Only match on IDs that are present: an empty condition would
-    // match any traveler and attach this result to the wrong person.
+    // match any user and attach this result to the wrong person.
     const matches = [
       report.id && { checkr_report_id: report.id },
       report.candidate_id && { checkr_candidate_id: report.candidate_id }
     ].filter(Boolean);
 
-    const traveler = matches.length
-      ? await Traveler.findOne({ $or: matches })
+    const user = matches.length
+      ? await User.findOne({ $or: matches })
       : null;
 
-    if (!traveler) return res.status(200).end();
+    if (!user) return res.status(200).end();
 
-    traveler.checkr_report_id = report.id;
+    user.checkr_report_id = report.id;
 
-    if (event.type !== "report.created") {
+    if (event.type === "report.created") {
+      user.background_status = "pending";
+    } else {
       const outcome = event.type === "report.suspended" ? "suspended" : report.result;
 
-      // Anything other than a clean result needs a person to review it.
-      traveler.background_status =
+      // Only a clean result gives access. Anything else stays blocked.
+      user.background_status =
         ["clear", "consider", "suspended"].includes(outcome) ? outcome : "consider";
-      traveler.background_completed_at = new Date();
+      user.background_completed_at = new Date();
     }
 
-    await traveler.save();
+    await user.save();
   }
 
   return res.status(200).end();

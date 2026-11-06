@@ -120,6 +120,8 @@ totalDeliveries: {
     // ------------------------------------------------------
     // Stripe Connect — Traveler Payout Account
     // ------------------------------------------------------
+    cancellationCount: { type: Number, default: 0 },
+
     stripeAccountId: {
       type: String,
       default: null,

@@ -102,6 +102,7 @@ const adminAnalyticsRoutes = require(
 );
 
 // Admin Background Check Dashboard
+const backgroundRoutes = require("./routes/backgroundRoutes");
 const adminBackgroundRoutes = require(
   "./routes/adminBackground"
 );
@@ -342,6 +343,11 @@ app.use(
 );
 
 // Admin Background Check Dashboard
+app.use(
+  "/api/background",
+  backgroundRoutes
+);
+
 app.use(
   "/api/admin/background",
   adminBackgroundRoutes

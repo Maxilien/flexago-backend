@@ -102,7 +102,9 @@ status: {
     "in_transit",
     "delivered",
     "payout_pending",
-    "payout_completed"
+    "payout_completed",
+    "under_review",
+    "cancelled"
   ],
   default: "payment_pending"
 },
@@ -122,10 +124,23 @@ paymentStatus: {
     "requires_payment",
     "paid",
     "failed",
+    "partially_refunded",
     "refunded"
   ],
   default: "pending"
 },
+
+arrivedAt: { type: Date, default: null },
+cancelledAt: { type: Date, default: null },
+cancelledBy: { type: String, default: null },
+cancellationCase: { type: String, default: null },
+cancellationNote: { type: String, default: "" },
+refundAmount: { type: Number, default: 0 },
+refundStatus: { type: String, default: null },
+stripeRefundId: { type: String, default: null },
+travelerCancelPay: { type: Number, default: 0 },
+travelerCancelPayStatus: { type: String, default: null },
+stripeCancelTransferId: { type: String, default: null },
 
 payoutStatus: {
   type: String,

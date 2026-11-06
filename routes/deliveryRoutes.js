@@ -13,6 +13,7 @@ const auth = require("../middleware/auth");
 const Traveler = require("../models/Traveler");
 const {
   requireRole,
+  requireBackgroundClear,
   requireVerified,
   requireSelf,
   requireAssignedTraveler
@@ -29,6 +30,13 @@ const {
 } = require("../controllers/deliveryController");
 
 const Delivery = require("../models/Delivery");
+const {
+  cancelDelivery,
+  markArrived,
+  previewCancel,
+  reportItemProblem,
+  reportNoShow
+} = require("../controllers/cancellationController");
 
 const router = express.Router();
 
@@ -124,6 +132,7 @@ router.post(
   "/",
   requireRole("sender"),
   requireVerified,
+  requireBackgroundClear,
   (req, res, next) => {
     console.log("🔥 DELIVERY ROUTE HIT");
     next();
@@ -134,7 +143,7 @@ router.post(
 /* ============================================================
    TRAVELER JOB SEARCH
 ============================================================ */
-router.post("/search", requireRole("traveler"), requireVerified, searchTravelerJobs);
+router.post("/search", requireRole("traveler"), requireVerified, requireBackgroundClear, searchTravelerJobs);
 
 /* ============================================================
    TRAVELER ACTIONS
@@ -161,6 +170,14 @@ router.post("/:jobId/pickup", requireAssignedTraveler(), pickupTravelerJob);
 router.post("/:jobId/verifyPickup", requireAssignedTraveler(), verifyPickupCode);
 
 router.post("/:jobId/deliver", requireAssignedTraveler(), deliverTravelerJob);
+
+// Cancelling and problems at pickup
+router.get("/:jobId/cancel-preview", previewCancel);
+router.post("/:jobId/cancel", cancelDelivery);
+router.post("/:jobId/arrived", requireAssignedTraveler(), markArrived);
+router.post("/:jobId/no-show", requireAssignedTraveler(), reportNoShow);
+router.post("/:jobId/item-problem", requireAssignedTraveler(), reportItemProblem);
+
 router.post(
   "/:jobId/complete",
 
