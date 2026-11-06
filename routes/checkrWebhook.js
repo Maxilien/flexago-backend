@@ -2,6 +2,8 @@ const crypto = require("crypto");
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
+const { sendBackgroundClearedEmail } = require("../utils/emailService");
+const { sendBackgroundClearedSms } = require("../utils/smsService");
 
 // Checkr signs each webhook with an HMAC of the raw body.
 function validSignature(rawBody, signature) {
@@ -47,6 +49,8 @@ router.post("/", async (req, res) => {
 
     if (!user) return res.status(200).end();
 
+    const wasClear = user.background_status === "clear";
+
     user.checkr_report_id = report.id;
 
     if (event.type === "report.created") {
@@ -61,6 +65,13 @@ router.post("/", async (req, res) => {
     }
 
     await user.save();
+
+    if (!wasClear && user.background_status === "clear") {
+      await Promise.allSettled([
+        sendBackgroundClearedEmail({ to: user.email }),
+        sendBackgroundClearedSms({ to: user.phone })
+      ]);
+    }
   }
 
   return res.status(200).end();

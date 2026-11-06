@@ -17,7 +17,8 @@ router.post("/", express.raw({ type: "application/json" }), async (req, res) => 
     event = stripe.webhooks.constructEvent(
       req.body,
       req.headers["stripe-signature"],
-      process.env.STRIPE_WEBHOOK_SECRET
+      // Each Stripe webhook has its own signing secret.
+      process.env.STRIPE_IDENTITY_WEBHOOK_SECRET || process.env.STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
     console.error("Webhook signature error:", err.message);

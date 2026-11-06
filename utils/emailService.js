@@ -532,7 +532,66 @@ async function sendPayoutFailedEmail({
 // EXPORTS
 // ------------------------------------------------------
 
+async function sendAdminLoginCodeEmail(to, code) {
+  try {
+    await transporter.sendMail({
+      from: getFromAddress(),
+      to,
+      subject: "Your FlexaGo admin login code",
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;">
+          <h2 style="color:#00A3FF;">FlexaGo Admin Login</h2>
+          <p>Your login code is:</p>
+          <p style="font-size:28px;font-weight:700;letter-spacing:4px;">${code}</p>
+          <p>It expires in 5 minutes. If you didn't try to log in, change your admin password right away.</p>
+        </div>
+      `
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Admin login code email failed:", error.message);
+    return false;
+  }
+}
+
+async function sendDeliveryCancelledEmail({ to, deliveryId, message, amount }) {
+  const details = [{ label: "Delivery", value: String(deliveryId) }];
+
+  if (amount > 0) {
+    details.push({ label: "Amount", value: formatMoney(amount) });
+  }
+
+  return sendOperationalEmail({
+    to,
+    subject: "Your FlexaGo Delivery Was Cancelled",
+    notificationType: "delivery cancelled",
+    html: buildEmailTemplate({
+      title: "Delivery Cancelled",
+      message,
+      details,
+      footer: "Refunds usually reach your card within 5 to 10 business days.",
+    }),
+  });
+}
+
+async function sendBackgroundClearedEmail({ to }) {
+  return sendOperationalEmail({
+    to,
+    subject: "You're Cleared on FlexaGo",
+    notificationType: "background cleared",
+    html: buildEmailTemplate({
+      title: "You're Cleared",
+      message: "Your background check is complete. You can now use FlexaGo.",
+      footer: "Open the app or log in to get started.",
+    }),
+  });
+}
+
 module.exports = {
+  sendDeliveryCancelledEmail,
+  sendBackgroundClearedEmail,
+  sendAdminLoginCodeEmail,
   sendVerificationEmail,
   sendDeliveryAcceptedEmail,
   sendPickupVerifiedEmail,

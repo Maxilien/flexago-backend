@@ -53,6 +53,10 @@ router.get("/", adminAuth, async (req, res) => {
 
     let query = {};
 
+    if (req.query.refund === "failed") {
+      query.refundStatus = "failed";
+    }
+
     if (status) {
       query.status = status;
     }

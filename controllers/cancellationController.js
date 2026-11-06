@@ -8,6 +8,8 @@
 const Stripe = require("stripe");
 const Delivery = require("../models/Delivery");
 const Traveler = require("../models/Traveler");
+const { sendDeliveryCancelledEmail } = require("../utils/emailService");
+const { sendDeliveryCancelledSms } = require("../utils/smsService");
 const {
   NO_SHOW_WAIT_MINUTES,
   noShowAllowed,
@@ -73,6 +75,37 @@ async function moveMoney(job, outcome) {
   await job.save();
 }
 
+const money = (amount) => `$${Number(amount).toFixed(2)}`;
+
+// A failed notice never stops a cancellation.
+async function notifyBothSides(job, outcome) {
+  const traveler = job.travelerId
+    ? await Traveler.findById(job.travelerId).populate("user", "email phone").lean()
+    : null;
+
+  const senderMessage = outcome.refundAmount > 0
+    ? `Your delivery was cancelled. Your refund is ${money(outcome.refundAmount)}.`
+    : "Your delivery was cancelled.";
+
+  const travelerMessage = outcome.travelerAmount > 0
+    ? `A delivery was cancelled. You'll receive ${money(outcome.travelerAmount)} for your time.`
+    : "A delivery you accepted was cancelled.";
+
+  const notices = [
+    sendDeliveryCancelledEmail({ to: job.sender?.email, deliveryId: job._id, message: senderMessage, amount: outcome.refundAmount }),
+    sendDeliveryCancelledSms({ to: job.sender?.phone, message: senderMessage })
+  ];
+
+  if (traveler?.user) {
+    notices.push(
+      sendDeliveryCancelledEmail({ to: traveler.user.email, deliveryId: job._id, message: travelerMessage, amount: outcome.travelerAmount }),
+      sendDeliveryCancelledSms({ to: traveler.user.phone, message: travelerMessage })
+    );
+  }
+
+  await Promise.allSettled(notices);
+}
+
 // Claims the delivery first, so a pickup can't slip in during the refund.
 async function settle(jobId, fromStatuses, outcome, cancelledBy, note) {
   const job = await Delivery.findOneAndUpdate(
@@ -100,9 +133,36 @@ async function settle(jobId, fromStatuses, outcome, cancelledBy, note) {
     console.error("❌ Cancellation refund error:", error.message);
     await Delivery.updateOne({ _id: job._id }, { $set: { refundStatus: "failed" } });
     job.refundStatus = "failed";
+    return job;
   }
 
+  await notifyBothSides(job, outcome);
+
   return job;
+}
+
+// The Stripe calls reuse their keys, so a retry can't pay anyone twice.
+async function retryRefund(job, res) {
+  if (job.refundStatus !== "failed") {
+    return res.status(409).json({ success: false, error: "This refund didn't fail." });
+  }
+
+  const outcome = {
+    case: job.cancellationCase,
+    refundAmount: job.refundAmount,
+    travelerAmount: job.travelerCancelPay
+  };
+
+  try {
+    await moveMoney(job, outcome);
+  } catch (error) {
+    console.error("❌ Refund retry error:", error.message);
+    return res.status(502).json({ success: false, error: "The refund failed again. Check it in Stripe." });
+  }
+
+  await notifyBothSides(job, outcome);
+
+  return res.json({ success: true, data: { status: job.status, ...outcome } });
 }
 
 function reply(res, job, outcome) {
@@ -253,6 +313,10 @@ async function resolveByAdmin(req, res) {
 
     if (!job) {
       return res.status(404).json({ success: false, error: "Delivery not found" });
+    }
+
+    if (req.body?.decision === "retry_refund") {
+      return await retryRefund(job, res);
     }
 
     const decisions = {
