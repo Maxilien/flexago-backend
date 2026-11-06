@@ -888,9 +888,12 @@ async function acceptTravelerJob(req, res) {
       );
     }
 
+    // The sender gives this code at pickup, so the traveler must not get it here.
+    const { pickupCode, pickupQR, ...travelerJob } = fullJob;
+
     return res.json({
       success: true,
-      data: fullJob
+      data: travelerJob
     });
   } catch (error) {
     console.error(
