@@ -90,6 +90,9 @@ travelerDetails: {
     pickupCode: String,
     pickupQR: String,
     pickupVerified: { type: Boolean, default: false },
+    // Wrong-code tries; verification pauses after too many.
+    pickupAttempts: { type: Number, default: 0 },
+    pickupLockedUntil: Date,
 
 status: {
   type: String,

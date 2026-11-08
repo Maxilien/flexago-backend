@@ -21,6 +21,10 @@ const ROUTE_CORRIDOR_MILES = 6;
 const ROUTE_END_ZONE_MILES = 20;
 const ROUTE_DIRECTION_TOLERANCE_MILES = 0.5;
 const MAX_PACKAGE_PHOTOS = 5;
+
+// Wrong pickup codes allowed before verification pauses.
+const MAX_PICKUP_ATTEMPTS = 5;
+const PICKUP_LOCK_MS = 15 * 60 * 1000;
 const Traveler = require("../models/Traveler");
 
 const {
@@ -776,11 +780,14 @@ async function acceptTravelerJob(req, res) {
         )
     };
 
+    // Unpredictable 6-digit code (100000 to 999999).
     job.pickupCode =
-      Math.floor(
-        100000 +
-        Math.random() * 900000
-      ).toString();
+      crypto
+        .randomInt(100000, 1000000)
+        .toString();
+
+    job.pickupAttempts = 0;
+    job.pickupLockedUntil = undefined;
 
     job.pickupQR =
       crypto
@@ -923,6 +930,67 @@ async function acceptTravelerJob(req, res) {
    VERIFY PICKUP CODE OR QR
 ============================================================ */
 
+// Compares without leaking how much of the value was right.
+function sameSecret(expected, provided) {
+  if (!expected) return false;
+  const hash = (value) =>
+    crypto.createHash("sha256").update(String(value)).digest();
+  return crypto.timingSafeEqual(hash(expected), hash(provided));
+}
+
+// Counts one try. Returns null while verification is paused.
+// Reaching the limit starts a 15-minute pause in the same update,
+// so parallel requests cannot get extra tries.
+async function reservePickupAttempt(jobId) {
+  const now = new Date();
+
+  await Delivery.updateOne(
+    { _id: jobId, pickupLockedUntil: { $lte: now } },
+    { $set: { pickupAttempts: 0 }, $unset: { pickupLockedUntil: 1 } }
+  );
+
+  return Delivery.findOneAndUpdate(
+    {
+      _id: jobId,
+      $or: [
+        { pickupAttempts: { $exists: false } },
+        { pickupAttempts: { $lt: MAX_PICKUP_ATTEMPTS } }
+      ]
+    },
+    [
+      {
+        $set: {
+          pickupAttempts: {
+            $add: [{ $ifNull: ["$pickupAttempts", 0] }, 1]
+          }
+        }
+      },
+      {
+        $set: {
+          pickupLockedUntil: {
+            $cond: [
+              { $gte: ["$pickupAttempts", MAX_PICKUP_ATTEMPTS] },
+              new Date(now.getTime() + PICKUP_LOCK_MS),
+              "$pickupLockedUntil"
+            ]
+          }
+        }
+      }
+    ],
+    { new: true }
+  ).lean();
+}
+
+async function minutesUntilUnlock(jobId) {
+  const job = await Delivery.findById(jobId)
+    .select("pickupLockedUntil")
+    .lean();
+  const ms = job?.pickupLockedUntil
+    ? new Date(job.pickupLockedUntil).getTime() - Date.now()
+    : PICKUP_LOCK_MS;
+  return Math.max(1, Math.ceil(ms / 60000));
+}
+
 async function verifyPickupCode(req, res) {
   try {
     const { jobId } = req.params;
@@ -966,21 +1034,45 @@ async function verifyPickupCode(req, res) {
         ? String(qr).trim()
         : "";
 
-    const codeMatches =
-      Boolean(providedCode) &&
-      job.pickupCode === providedCode;
+    // Every try counts, so the code cannot be guessed.
+    const attempt =
+      await reservePickupAttempt(job._id);
 
-    const qrMatches =
-      Boolean(providedQr) &&
-      job.pickupQR === providedQr;
-
-    if (!codeMatches && !qrMatches) {
-      return res.status(400).json({
+    if (!attempt) {
+      return res.status(429).json({
         success: false,
-        error: "Invalid pickup verification"
+        error:
+          "Too many wrong codes. Try again in " +
+          (await minutesUntilUnlock(job._id)) +
+          " minutes, or contact the sender."
       });
     }
 
+    const codeMatches =
+      Boolean(providedCode) &&
+      sameSecret(job.pickupCode, providedCode);
+
+    const qrMatches =
+      Boolean(providedQr) &&
+      sameSecret(job.pickupQR, providedQr);
+
+    if (!codeMatches && !qrMatches) {
+      const left = Math.max(
+        MAX_PICKUP_ATTEMPTS - attempt.pickupAttempts,
+        0
+      );
+
+      return res.status(left ? 400 : 429).json({
+        success: false,
+        attemptsLeft: left,
+        error: left
+          ? `Wrong pickup code. ${left} ${left === 1 ? "try" : "tries"} left.`
+          : "Too many wrong codes. Try again in 15 minutes, or contact the sender."
+      });
+    }
+
+    job.pickupAttempts = 0;
+    job.pickupLockedUntil = undefined;
     job.pickupVerified = true;
     job.status = "in_transit";
     job.pickedUpAt = new Date();
