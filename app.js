@@ -295,6 +295,12 @@ app.use(
   require("./routes/adminPromos")
 );
 
+// Website waitlist
+app.use(
+  "/api/waitlist",
+  require("./routes/waitlistRoutes")
+);
+
 // Stripe Identity Webhook
 app.use(
   "/webhook",
