@@ -5,6 +5,7 @@
 
 const crypto = require("crypto");
 const Delivery = require("../models/Delivery");
+const serviceArea = require("../utils/serviceArea");
 const UserBlock = require("../models/UserBlock");
 const {
   uploadImage,
@@ -255,6 +256,37 @@ async function createDelivery(req, res) {
       return res.status(400).json({
         success: false,
         error: "Drop-off address is required."
+      });
+    }
+
+    // Launch area: both ends must be inside it (Texas only for now).
+    const area = serviceArea.describe();
+    const placeInfo = (raw, point) => ({
+      ...point,
+      state: raw?.state,
+      country: raw?.country
+    });
+
+    if (
+      !serviceArea.placeAllowed(placeInfo(rawPickup, pickup)) ||
+      !serviceArea.placeAllowed(placeInfo(rawDropoff, dropoff))
+    ) {
+      return res.status(400).json({
+        success: false,
+        code: "OUTSIDE_SERVICE_AREA",
+        error: serviceArea.outsideMessage()
+      });
+    }
+
+    if (
+      area.limited &&
+      packageData?.deliveryType &&
+      !area.deliveryTypes.includes(packageData.deliveryType)
+    ) {
+      return res.status(400).json({
+        success: false,
+        code: "OUTSIDE_SERVICE_AREA",
+        error: `Only local deliveries within ${area.name} are available for now.`
       });
     }
 

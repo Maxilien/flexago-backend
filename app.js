@@ -295,6 +295,12 @@ app.use(
   require("./routes/adminPromos")
 );
 
+// Where FlexaGo delivers (Texas only at launch)
+app.get("/api/service-area", (req, res) => {
+  res.set("Cache-Control", "public, max-age=300");
+  res.json({ success: true, data: require("./utils/serviceArea").describe() });
+});
+
 // Website waitlist
 app.use(
   "/api/waitlist",
