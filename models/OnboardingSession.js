@@ -18,6 +18,7 @@ const OnboardingSessionSchema = new mongoose.Schema(
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
     role: { type: String, enum: ["sender", "traveler"], required: true },
+    referredBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
 
     email: { type: String, lowercase: true, trim: true, default: null },
     emailVerifiedAt: { type: Date, default: null },

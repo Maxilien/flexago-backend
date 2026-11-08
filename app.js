@@ -284,6 +284,17 @@ app.use(
   require("./routes/safetyRoutes")
 );
 
+// Promo codes, referrals and rewards
+app.use(
+  "/api/rewards",
+  require("./routes/rewardsRoutes")
+);
+
+app.use(
+  "/api/admin/promos",
+  require("./routes/adminPromos")
+);
+
 // Stripe Identity Webhook
 app.use(
   "/webhook",

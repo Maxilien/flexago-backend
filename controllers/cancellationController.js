@@ -5,6 +5,7 @@
 // problems, a person on the team decides.
 // ------------------------------------------------------
 
+const { releaseDiscount } = require("../utils/rewards");
 const Stripe = require("stripe");
 const Delivery = require("../models/Delivery");
 const Traveler = require("../models/Traveler");
@@ -134,6 +135,15 @@ async function settle(jobId, fromStatuses, outcome, cancelledBy, note) {
     await Delivery.updateOne({ _id: job._id }, { $set: { refundStatus: "failed" } });
     job.refundStatus = "failed";
     return job;
+  }
+
+  // A full refund (or no payment) gives back the promo code and credit.
+  if (job.paymentStatus !== "partially_refunded") {
+    try {
+      await releaseDiscount(job._id);
+    } catch (error) {
+      console.error("❌ Discount release error:", error.message);
+    }
   }
 
   await notifyBothSides(job, outcome);

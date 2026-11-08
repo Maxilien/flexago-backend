@@ -19,6 +19,7 @@ const rateLimit = require("../middleware/rateLimit");
 const generateToken = require("../utils/generateToken");
 const { sendVerificationEmail } = require("../utils/emailService");
 
+const { findInviter, ensureReferralCode } = require("../utils/rewards");
 const router = express.Router();
 
 const CODE_TTL_MS = 10 * 60 * 1000;
@@ -220,7 +221,20 @@ router.post("/start", startLimit, async (req, res) => {
       return res.status(400).json({ success: false, error: "Please choose a role." });
     }
 
-    const session = await OnboardingSession.create({ firstName, lastName, role });
+    // Optional code from the person who invited them.
+    let referredBy = null;
+    if (String(req.body?.referralCode || "").trim()) {
+      const inviter = await findInviter(req.body.referralCode);
+      if (!inviter) {
+        return res.status(400).json({
+          success: false,
+          error: "That referral code wasn't found. Check it or leave it empty."
+        });
+      }
+      referredBy = inviter._id;
+    }
+
+    const session = await OnboardingSession.create({ firstName, lastName, role, referredBy });
 
     return res.status(201).json({
       success: true,
@@ -557,8 +571,16 @@ router.post("/complete", requireSession, async (req, res) => {
       identityVerified: true,
       identityVerifiedAt: session.identityVerifiedAt,
       stripeIdentitySessionId: session.stripeIdentitySessionId,
-      kycVerified: true
+      kycVerified: true,
+      referredBy: session.referredBy || null
     });
+
+    try {
+      await ensureReferralCode(user);
+    } catch (error) {
+      // A code is made later from the Invite screen.
+      console.error("Referral code error:", error.message);
+    }
 
     if (user.role === "traveler") {
       await Traveler.create({

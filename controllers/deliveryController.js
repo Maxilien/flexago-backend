@@ -14,6 +14,11 @@ const {
   calculatePrice,
   resolveDistanceMiles
 } = require("../utils/pricing");
+const {
+  RewardError,
+  reserveDiscount,
+  undoReservation
+} = require("../utils/rewards");
 
 // Route matching: how far a stop may be from the traveler's road,
 // and the wider area allowed around the start and destination.
@@ -309,7 +314,28 @@ async function createDelivery(req, res) {
 
     const resolvedPhotoUrl = photoUrls[0] || null;
 
-    const delivery =
+    // Promo code and saved credit come off FlexaGo's share only.
+    let savings;
+    try {
+      savings = await reserveDiscount({
+        senderId,
+        promoCode: String(req.body.promoCode || "").trim(),
+        price: roundedPrice,
+        payoutAmount
+      });
+    } catch (error) {
+      if (error instanceof RewardError) {
+        return res.status(400).json({ success: false, error: error.message });
+      }
+      throw error;
+    }
+
+    const finalPrice =
+      Math.round((roundedPrice - savings.discount) * 100) / 100;
+
+    let delivery;
+    try {
+      delivery =
       await Delivery.create({
         senderId: String(senderId),
         itemConfirmedAt: new Date(),
@@ -370,7 +396,22 @@ async function createDelivery(req, res) {
           notes || "",
 
         price:
+          finalPrice,
+
+        listPrice:
           roundedPrice,
+
+        discount:
+          savings.discount,
+
+        promoCode:
+          savings.promoCode,
+
+        promoAmount:
+          savings.promoAmount,
+
+        creditUsed:
+          savings.creditUsed,
 
         payoutAmount,
 
@@ -410,6 +451,10 @@ async function createDelivery(req, res) {
         transferGroup:
           null
       });
+    } catch (error) {
+      await undoReservation(senderId, savings);
+      throw error;
+    }
 
     return res.status(201).json({
       success: true,

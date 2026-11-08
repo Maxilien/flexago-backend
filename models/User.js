@@ -121,6 +121,11 @@ const UserSchema = new mongoose.Schema(
     phoneVerified: { type: Boolean, default: false },
     identityVerified: { type: Boolean, default: false },
 
+    // Referrals and rewards. Credit comes off future deliveries.
+    referralCode: { type: String, unique: true, sparse: true, uppercase: true, trim: true },
+    referredBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    creditBalance: { type: Number, default: 0, min: 0 },
+
     // Everyone needs a clear background check to use the app.
     background_status: {
       type: String,

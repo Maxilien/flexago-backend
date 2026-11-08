@@ -56,8 +56,16 @@ const DeliverySchema = new mongoose.Schema(
 
     package: PackageSchema,
 
+    // What the sender pays, after any promo code or credit.
     price: { type: Number, required: true },
     payoutAmount: { type: Number, required: true },
+    // Price before discounts, and what was taken off.
+    listPrice: { type: Number, default: null },
+    discount: { type: Number, default: 0 },
+    promoCode: { type: String, default: null },
+    promoAmount: { type: Number, default: 0 },
+    creditUsed: { type: Number, default: 0 },
+    discountReleased: { type: Boolean, default: false },
 
     travelerId: {
       type: mongoose.Schema.Types.ObjectId,
