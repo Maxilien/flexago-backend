@@ -575,6 +575,21 @@ async function sendDeliveryCancelledEmail({ to, deliveryId, message, amount }) {
   });
 }
 
+// The traveler cancelled before pickup; the delivery is open to other travelers again.
+async function sendTravelerReleasedEmail({ to, deliveryId }) {
+  return sendOperationalEmail({
+    to,
+    subject: "Your FlexaGo Delivery Is Looking for a New Traveler",
+    notificationType: "traveler released",
+    html: buildEmailTemplate({
+      title: "Finding a New Traveler",
+      message: "Your traveler can't make this trip, so your delivery is open to other travelers again. Your payment is still held, and you don't need to do anything. We'll let you know when someone accepts.",
+      details: [{ label: "Delivery", value: String(deliveryId) }],
+      footer: "You can still cancel the delivery from the app at any time before pickup.",
+    }),
+  });
+}
+
 async function sendBackgroundClearedEmail({ to }) {
   return sendOperationalEmail({
     to,
@@ -590,6 +605,7 @@ async function sendBackgroundClearedEmail({ to }) {
 
 module.exports = {
   sendDeliveryCancelledEmail,
+  sendTravelerReleasedEmail,
   sendBackgroundClearedEmail,
   sendAdminLoginCodeEmail,
   sendVerificationEmail,

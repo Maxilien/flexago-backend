@@ -245,9 +245,22 @@ proofPhotos: {
   default: []
 },
 
+// Photos the traveler took of the item at pickup, before leaving with it.
+pickupPhotos: {
+  type: [String],
+  default: []
+},
+
+// Travelers who cancelled this job after accepting it. They don't see it again.
 declinedBy: {
   type: [String],
   default: []
+},
+
+// How many times a traveler cancelled and the job went back to other travelers.
+releaseCount: {
+  type: Number,
+  default: 0
 },
 
 signedBy: {

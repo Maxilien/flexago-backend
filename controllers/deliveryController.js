@@ -1148,11 +1148,11 @@ async function verifyPickupCode(req, res) {
       });
     }
 
+    // The code proves the traveler met the sender. The trip starts at Pick Up,
+    // after the traveler has checked the item and photographed it.
     job.pickupAttempts = 0;
     job.pickupLockedUntil = undefined;
     job.pickupVerified = true;
-    job.status = "in_transit";
-    job.pickedUpAt = new Date();
 
     await job.save();
 
@@ -1247,6 +1247,25 @@ async function pickupTravelerJob(req, res) {
         error: "Pickup verification is required"
       });
     }
+
+    // A photo of the item, taken before the traveler leaves with it.
+    const pickupFiles = req.files?.photo || [];
+
+    if (!pickupFiles.length) {
+      return res.status(400).json({
+        success: false,
+        code: "PICKUP_PHOTO_REQUIRED",
+        error: "Take a photo of the item before you pick it up."
+      });
+    }
+
+    const backendBaseUrl =
+      process.env.BACKEND_URL ||
+      `${req.protocol}://${req.get("host")}`;
+
+    job.pickupPhotos = await Promise.all(
+      pickupFiles.map((file) => storeUploadedFile(file, "flexago/pickup", backendBaseUrl))
+    );
 
     job.status = "in_transit";
     job.pickedUpAt =

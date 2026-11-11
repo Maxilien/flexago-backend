@@ -259,6 +259,14 @@ async function sendDeliveryCancelledSms({ to, message }) {
   });
 }
 
+async function sendTravelerReleasedSms({ to }) {
+  return sendOperationalSms({
+    to,
+    body: "FlexaGo: Your traveler can't make this trip, so your delivery is open to other travelers again. Your payment is still held. No action needed.",
+    notificationType: "traveler released"
+  });
+}
+
 async function sendBackgroundClearedSms({ to }) {
   return sendOperationalSms({
     to,
@@ -269,6 +277,7 @@ async function sendBackgroundClearedSms({ to }) {
 
 module.exports = {
   sendDeliveryCancelledSms,
+  sendTravelerReleasedSms,
   sendBackgroundClearedSms,
   sendAdminLoginCodeSms,
   sendDeliveryAcceptedSms,

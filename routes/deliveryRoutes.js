@@ -150,21 +150,13 @@ router.post("/search", requireRole("traveler"), requireVerified, requireBackgrou
 ============================================================ */
 router.post("/:jobId/accept", requireRole("traveler"), requireVerified, acceptTravelerJob);
 
-// Hides the job from this traveler's search results.
-router.post("/:jobId/decline", requireRole("traveler"), async (req, res) => {
-  try {
-    await Delivery.updateOne(
-      { _id: req.params.jobId, status: "available" },
-      { $addToSet: { declinedBy: req.user.id } }
-    );
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error("Decline error:", err);
-    res.status(500).json({ success: false, error: "Unable to decline job" });
-  }
-});
-router.post("/:jobId/pickup", requireAssignedTraveler(), pickupTravelerJob);
+// The traveler photographs the item before taking it (at least one photo).
+router.post(
+  "/:jobId/pickup",
+  requireAssignedTraveler(),
+  proofUpload.fields([{ name: "photo", maxCount: 3 }]),
+  pickupTravelerJob
+);
 
 // ⭐ NEW — Pickup Verification Route
 router.post("/:jobId/verifyPickup", requireAssignedTraveler(), verifyPickupCode);

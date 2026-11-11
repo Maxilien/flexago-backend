@@ -3,14 +3,16 @@
 // Cancelling a delivery, and refunding the sender.
 // Before pickup the rules decide. After pickup, and for item
 // problems, a person on the team decides.
+// A traveler who cancels before pickup doesn't end the delivery:
+// it goes back to other travelers, and the sender's payment stays held.
 // ------------------------------------------------------
 
 const { releaseDiscount } = require("../utils/rewards");
 const Stripe = require("stripe");
 const Delivery = require("../models/Delivery");
 const Traveler = require("../models/Traveler");
-const { sendDeliveryCancelledEmail } = require("../utils/emailService");
-const { sendDeliveryCancelledSms } = require("../utils/smsService");
+const { sendDeliveryCancelledEmail, sendTravelerReleasedEmail } = require("../utils/emailService");
+const { sendDeliveryCancelledSms, sendTravelerReleasedSms } = require("../utils/smsService");
 const {
   NO_SHOW_WAIT_MINUTES,
   noShowAllowed,
@@ -204,6 +206,39 @@ async function loadForUser(req, res) {
   return { job, role };
 }
 
+// The traveler gives the job back. Only from "accepted": after pickup, support decides.
+// The new pickup code is made when the next traveler accepts.
+async function releaseToTravelers(job, userId) {
+  const released = await Delivery.findOneAndUpdate(
+    { _id: job._id, status: "accepted", travelerId: job.travelerId },
+    {
+      $set: {
+        status: "available",
+        travelerId: null,
+        travelerDetails: { firstName: "", lastName: "", rating: 5, totalDeliveries: 0 },
+        pickupVerified: false,
+        pickupAttempts: 0,
+        arrivedAt: null
+      },
+      $unset: { pickupCode: 1, pickupQR: 1, pickupLockedUntil: 1, acceptedAt: 1 },
+      $addToSet: { declinedBy: String(userId) },
+      $inc: { releaseCount: 1 }
+    },
+    { new: true }
+  );
+
+  if (!released) return null;
+
+  await Traveler.updateOne({ _id: job.travelerId }, { $inc: { cancellationCount: 1 } });
+
+  await Promise.allSettled([
+    sendTravelerReleasedEmail({ to: released.sender?.email, deliveryId: released._id }),
+    sendTravelerReleasedSms({ to: released.sender?.phone })
+  ]);
+
+  return released;
+}
+
 function termsFor(job, role) {
   return outcomeFor(role === "sender" ? senderCase(job, new Date()) : "traveler_cancelled", job.price);
 }
@@ -215,6 +250,10 @@ async function previewCancel(req, res) {
 
     if (!BEFORE_PICKUP.includes(job.status)) {
       return res.status(409).json({ success: false, error: "This delivery can no longer be cancelled here. Please contact support." });
+    }
+
+    if (role === "traveler") {
+      return res.json({ success: true, data: { price: job.price, released: true, refundAmount: 0, travelerAmount: 0 } });
     }
 
     return res.json({ success: true, data: { price: job.price, ...termsFor(job, role) } });
@@ -229,15 +268,19 @@ async function cancelDelivery(req, res) {
     const { job, role } = await loadForUser(req, res);
     if (!job) return undefined;
 
+    if (role === "traveler") {
+      const released = await releaseToTravelers(job, req.user.id);
+
+      return released
+        ? res.json({ success: true, data: { status: released.status, released: true } })
+        : res.status(409).json({ success: false, error: "This job can no longer be cancelled here. Please contact support." });
+    }
+
     const outcome = termsFor(job, role);
     const settled = await settle(job._id, BEFORE_PICKUP, outcome, role);
 
     if (!settled) {
       return res.status(409).json({ success: false, error: "This delivery can no longer be cancelled here. Please contact support." });
-    }
-
-    if (role === "traveler") {
-      await Traveler.updateOne({ _id: job.travelerId }, { $inc: { cancellationCount: 1 } });
     }
 
     return reply(res, settled, outcome);
@@ -299,8 +342,9 @@ async function reportItemProblem(req, res) {
       return res.status(400).json({ success: false, error: "Please describe the problem" });
     }
 
+    // At pickup: after "I've arrived", or once the pickup code is verified.
     const job = await Delivery.findOneAndUpdate(
-      { _id: req.params.jobId, status: "accepted", arrivedAt: { $ne: null } },
+      { _id: req.params.jobId, status: "accepted", $or: [{ arrivedAt: { $ne: null } }, { pickupVerified: true }] },
       { $set: { status: "under_review", cancellationNote: details } },
       { new: true }
     );
