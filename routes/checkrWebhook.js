@@ -35,6 +35,16 @@ router.post("/", async (req, res) => {
 
   const report = event.data?.object;
 
+  // An invitation link that expired or was deleted can't be used, so the
+  // user starts again and gets a fresh link from /api/background/start.
+  if (report?.candidate_id && /^invitation\.(expired|deleted)$/.test(event.type)) {
+    await User.updateOne(
+      { checkr_candidate_id: report.candidate_id, background_status: "invited" },
+      { $set: { background_status: "not_started", checkr_invitation_url: null } }
+    );
+    return res.status(200).end();
+  }
+
   if (report && /^report\.(created|completed|suspended)$/.test(event.type)) {
     // Only match on IDs that are present: an empty condition would
     // match any user and attach this result to the wrong person.
