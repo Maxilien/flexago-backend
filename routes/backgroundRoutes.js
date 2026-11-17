@@ -27,6 +27,11 @@ router.post("/start", auth, requireVerified, async (req, res) => {
       return res.json({ success: true, alreadyClear: true });
     }
 
+    // A check that is running or has a result can't be replaced by a new one.
+    if (!["not_started", "invited", "canceled"].includes(user.background_status)) {
+      return res.status(409).json({ success: false, error: "Your background check is already with Checkr." });
+    }
+
     if (!checkr.isConfigured()) {
       return res.status(503).json({ success: false, error: "Background checks aren't available yet. Please try again soon." });
     }

@@ -129,7 +129,10 @@ const UserSchema = new mongoose.Schema(
     // Everyone needs a clear background check to use the app.
     background_status: {
       type: String,
-      enum: ["not_started", "invited", "pending", "clear", "consider", "suspended"],
+      enum: [
+        "not_started", "invited", "pending", "clear", "consider", "suspended",
+        "canceled", "disputed", "pre_adverse_action", "post_adverse_action"
+      ],
       default: "not_started"
     },
     background_completed_at: { type: Date, default: null },

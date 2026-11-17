@@ -26,6 +26,13 @@ function validSignature(rawBody, signature) {
   );
 }
 
+// Report lifecycle events FlexaGo acts on. Only "completed" with a clear
+// result, or "engaged" after FlexaGo's own review, gives access.
+const REPORT_STAGES = new Set([
+  "created", "completed", "suspended", "resumed", "canceled",
+  "disputed", "engaged", "pre_adverse_action", "post_adverse_action"
+]);
+
 router.post("/", async (req, res) => {
   if (!validSignature(req.body, req.headers["x-checkr-signature"])) {
     return res.status(401).end();
@@ -45,7 +52,9 @@ router.post("/", async (req, res) => {
     return res.status(200).end();
   }
 
-  if (report && /^report\.(created|completed|suspended)$/.test(event.type)) {
+  const stage = event.type?.startsWith("report.") ? event.type.slice(7) : null;
+
+  if (report && stage && REPORT_STAGES.has(stage)) {
     // Only match on IDs that are present: an empty condition would
     // match any user and attach this result to the wrong person.
     const matches = [
@@ -63,14 +72,23 @@ router.post("/", async (req, res) => {
 
     user.checkr_report_id = report.id;
 
-    if (event.type === "report.created") {
+    if (stage === "created" || stage === "resumed") {
       user.background_status = "pending";
-    } else {
-      const outcome = event.type === "report.suspended" ? "suspended" : report.result;
-
+    } else if (stage === "completed") {
       // Only a clean result gives access. Anything else stays blocked.
-      user.background_status =
-        ["clear", "consider", "suspended"].includes(outcome) ? outcome : "consider";
+      user.background_status = report.result === "clear" ? "clear" : "consider";
+      user.background_completed_at = new Date();
+    } else if (stage === "engaged") {
+      // FlexaGo reviewed a "consider" report in Checkr and chose to go ahead.
+      user.background_status = "clear";
+      user.background_completed_at = new Date();
+    } else if (stage === "canceled") {
+      // No result: the user may start again with a fresh invitation.
+      user.background_status = "canceled";
+      user.checkr_invitation_url = null;
+    } else {
+      // suspended, disputed, pre_adverse_action, post_adverse_action: blocked.
+      user.background_status = stage;
       user.background_completed_at = new Date();
     }
 
