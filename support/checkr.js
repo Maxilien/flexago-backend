@@ -39,12 +39,19 @@ async function post(path, body) {
   return data;
 }
 
+// Where the user will do their work. Checkr requires it on both the
+// candidate and the invitation.
+function workLocations(user) {
+  return [{ country: "US", state: user.state || LAUNCH_STATE }];
+}
+
 async function createCandidate(user) {
   const candidate = await post("/candidates", {
     first_name: user.firstName,
     last_name: user.lastName,
     email: user.email,
-    phone: user.phone
+    phone: user.phone,
+    work_locations: workLocations(user)
   });
 
   return candidate.id;
@@ -54,7 +61,7 @@ async function createInvitation(candidateId, user) {
   const invitation = await post("/invitations", {
     candidate_id: candidateId,
     package: process.env.CHECKR_PACKAGE,
-    work_locations: [{ country: "US", state: user.state || LAUNCH_STATE }]
+    work_locations: workLocations(user)
   });
 
   return invitation.invitation_url;
