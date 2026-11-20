@@ -31,7 +31,8 @@ const PackageSchema = new mongoose.Schema({
   deliveryType: String,
   description: String,
   declaredValue: Number,
-  photoUrl: { type: String, default: null }
+  photoUrl: { type: String, default: null },
+  photoUrls: { type: [String], default: [] }
 });
 
 const DeliverySchema = new mongoose.Schema(
@@ -55,8 +56,16 @@ const DeliverySchema = new mongoose.Schema(
 
     package: PackageSchema,
 
+    // What the sender pays, after any promo code or credit.
     price: { type: Number, required: true },
     payoutAmount: { type: Number, required: true },
+    // Price before discounts, and what was taken off.
+    listPrice: { type: Number, default: null },
+    discount: { type: Number, default: 0 },
+    promoCode: { type: String, default: null },
+    promoAmount: { type: Number, default: 0 },
+    creditUsed: { type: Number, default: 0 },
+    discountReleased: { type: Boolean, default: false },
 
     travelerId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -89,6 +98,9 @@ travelerDetails: {
     pickupCode: String,
     pickupQR: String,
     pickupVerified: { type: Boolean, default: false },
+    // Wrong-code tries; verification pauses after too many.
+    pickupAttempts: { type: Number, default: 0 },
+    pickupLockedUntil: Date,
 
 status: {
   type: String,
@@ -101,7 +113,9 @@ status: {
     "in_transit",
     "delivered",
     "payout_pending",
-    "payout_completed"
+    "payout_completed",
+    "under_review",
+    "cancelled"
   ],
   default: "payment_pending"
 },
@@ -121,10 +135,24 @@ paymentStatus: {
     "requires_payment",
     "paid",
     "failed",
+    "partially_refunded",
     "refunded"
   ],
   default: "pending"
 },
+
+itemConfirmedAt: { type: Date, default: null },
+arrivedAt: { type: Date, default: null },
+cancelledAt: { type: Date, default: null },
+cancelledBy: { type: String, default: null },
+cancellationCase: { type: String, default: null },
+cancellationNote: { type: String, default: "" },
+refundAmount: { type: Number, default: 0 },
+refundStatus: { type: String, default: null },
+stripeRefundId: { type: String, default: null },
+travelerCancelPay: { type: Number, default: 0 },
+travelerCancelPayStatus: { type: String, default: null },
+stripeCancelTransferId: { type: String, default: null },
 
 payoutStatus: {
   type: String,
@@ -210,6 +238,29 @@ transferGroup: {
 proofPhoto: {
   type: String,
   default: null
+},
+
+proofPhotos: {
+  type: [String],
+  default: []
+},
+
+// Photos the traveler took of the item at pickup, before leaving with it.
+pickupPhotos: {
+  type: [String],
+  default: []
+},
+
+// Travelers who cancelled this job after accepting it. They don't see it again.
+declinedBy: {
+  type: [String],
+  default: []
+},
+
+// How many times a traveler cancelled and the job went back to other travelers.
+releaseCount: {
+  type: Number,
+  default: 0
 },
 
 signedBy: {

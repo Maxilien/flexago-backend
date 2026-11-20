@@ -14,6 +14,7 @@ const User = require("../models/User");
 const Delivery = require("../models/Delivery");
 const Traveler = require("../models/Traveler");
 const Payout = require("../models/Payout");
+const { grantDeliveryRewards } = require("../utils/rewards");
 
 // ------------------------------------------------------
 // HELPERS
@@ -908,6 +909,14 @@ async function processTravelerPayment(deliveryId) {
         delivery.payoutStatus
     }
   );
+
+  // First-trip bonus and referral rewards. A failure here never
+  // affects the traveler's payout; admins can retry rewards.
+  try {
+    await grantDeliveryRewards(delivery._id);
+  } catch (error) {
+    console.error("❌ Delivery rewards error:", error.message);
+  }
 
   return {
     alreadyTransferred: false,

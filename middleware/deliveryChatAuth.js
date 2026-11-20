@@ -3,17 +3,12 @@
 
    Authorizes Sender <-> Traveler chat access for one delivery.
 
-   Current authentication architecture:
-   - The frontend sends the logged-in user ID and role in headers.
-   - This middleware verifies that the user belongs to the delivery.
-
-   Required headers:
-   x-user-id
-   x-user-role
+   Runs after middleware/auth.js, so identity comes from the
+   verified login token.
 ============================================================ */
 
 const mongoose = require("mongoose");
-const Delivery = require("../models/Delivery");
+const { getDeliveryAccess } = require("./access");
 
 /* ============================================================
    HELPERS
@@ -21,14 +16,6 @@ const Delivery = require("../models/Delivery");
 
 function isValidObjectId(value) {
   return mongoose.Types.ObjectId.isValid(value);
-}
-
-function normalizeRole(value) {
-  if (typeof value !== "string") {
-    return "";
-  }
-
-  return value.trim().toLowerCase();
 }
 
 /* ============================================================
@@ -46,79 +33,25 @@ async function deliveryChatAuth(req, res, next) {
       });
     }
 
-    const userId = String(
-      req.headers["x-user-id"] || ""
-    ).trim();
+    const access = await getDeliveryAccess(deliveryId, req.user.id);
 
-    const requestedRole = normalizeRole(
-      req.headers["x-user-role"]
-    );
-
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        error: "User authentication is required."
-      });
-    }
-
-    if (!isValidObjectId(userId)) {
-      return res.status(401).json({
-        success: false,
-        error: "Invalid authenticated user ID."
-      });
-    }
-
-    if (
-      requestedRole !== "sender" &&
-      requestedRole !== "traveler"
-    ) {
-      return res.status(401).json({
-        success: false,
-        error: "A valid user role is required."
-      });
-    }
-
-    const delivery = await Delivery.findById(deliveryId)
-      .select("senderId travelerId status")
-      .lean();
-
-    if (!delivery) {
+    if (!access.found) {
       return res.status(404).json({
         success: false,
         error: "Delivery not found."
       });
     }
 
-    const deliverySenderId = delivery.senderId
-      ? String(delivery.senderId)
-      : "";
-
-    const deliveryTravelerId = delivery.travelerId
-      ? String(delivery.travelerId)
-      : "";
-
-    let authorizedRole = null;
-
-    if (
-      requestedRole === "sender" &&
-      deliverySenderId === userId
-    ) {
-      authorizedRole = "sender";
-    }
-
-    if (
-      requestedRole === "traveler" &&
-      deliveryTravelerId === userId
-    ) {
-      authorizedRole = "traveler";
-    }
-
-    if (!authorizedRole) {
+    if (!access.role) {
       return res.status(403).json({
         success: false,
         error: "You are not authorized to access this delivery chat."
       });
     }
+
+    const { delivery } = access;
+    const userId = access.participantId;
+    const authorizedRole = access.role;
 
     /* ========================================================
        ATTACH AUTHORIZED CHAT USER

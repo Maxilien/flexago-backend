@@ -147,7 +147,11 @@ router.post(
           });
 
           if (delivery) {
-            delivery.paymentStatus = "refunded";
+            // This event also fires for partial refunds.
+            delivery.paymentStatus =
+              charge.amount_refunded >= charge.amount
+                ? "refunded"
+                : "partially_refunded";
 
             await delivery.save();
 

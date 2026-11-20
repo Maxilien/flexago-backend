@@ -128,6 +128,9 @@ connectDB();
 // Create HTTP server
 const server = http.createServer(app);
 
+const jwt = require("jsonwebtoken");
+const { getDeliveryAccess } = require("./middleware/access");
+
 // Create WebSocket server (Socket.IO)
 const io = new Server(server, {
   cors: {
@@ -135,6 +138,8 @@ const io = new Server(server, {
       "https://app.flexagoo.com",
       "https://flexago-frontend.onrender.com",
       "https://flexago-backend.onrender.com",
+      "capacitor://localhost",
+      "https://localhost",
     ],
     methods: ["GET", "POST"],
     credentials: true,
@@ -145,33 +150,43 @@ const io = new Server(server, {
 // Native WebSocket server for delivery chat
 initExplorerSocket(server);
 // WebSocket logic (delivery rooms + updates)
+io.use((socket, next) => {
+  try {
+    const decoded = jwt.verify(
+      socket.handshake.auth?.token,
+      process.env.JWT_SECRET
+    );
+
+    if (!decoded.id) return next(new Error("Authentication required"));
+
+    socket.userId = decoded.id;
+    return next();
+  } catch (error) {
+    return next(new Error("Authentication required"));
+  }
+});
+
 io.on("connection", (socket) => {
-  console.log("🔌 WS connected:", socket.id);
-
-  socket.on("join_delivery", (deliveryId) => {
-    socket.join(deliveryId);
-    console.log(`📦 Socket ${socket.id} joined room ${deliveryId}`);
+  // Only delivery participants can join; events relay only to joined rooms.
+  socket.on("join_delivery", async (deliveryId) => {
+    try {
+      const access = await getDeliveryAccess(deliveryId, socket.userId);
+      if (access.role) socket.join(String(deliveryId));
+    } catch (error) {
+      console.error("join_delivery failed:", error.message);
+    }
   });
 
-  socket.on("location_update", (data) => {
-    io.to(data.deliveryId).emit("location_update", data);
-  });
+  ["location_update", "status_update", "delivery_photo", "signature_submitted"]
+    .forEach((eventName) => {
+      socket.on(eventName, (data) => {
+        const room = String(data?.deliveryId || "");
 
-  socket.on("status_update", (data) => {
-    io.to(data.deliveryId).emit("status_update", data);
-  });
-
-  socket.on("delivery_photo", (data) => {
-    io.to(data.deliveryId).emit("delivery_photo", data);
-  });
-
-  socket.on("signature_submitted", (data) => {
-    io.to(data.deliveryId).emit("signature_submitted", data);
-  });
-
-  socket.on("disconnect", () => {
-    console.log("🔴 WS disconnected:", socket.id);
-  });
+        if (room && socket.rooms.has(room)) {
+          io.to(room).emit(eventName, data);
+        }
+      });
+    });
 });
 
 // Start server

@@ -5,6 +5,10 @@ const adminAuth = require("../middleware/adminAuth");
 const Delivery = require("../models/Delivery");
 const User = require("../models/User");
 const Traveler = require("../models/Traveler");
+const { resolveByAdmin } = require("../controllers/cancellationController");
+
+// POST /api/admin/deliveries/:id/resolve
+router.post("/:id/resolve", adminAuth, resolveByAdmin);
 
 // GET /api/admin/deliveries
 router.get("/", adminAuth, async (req, res) => {
@@ -48,6 +52,10 @@ router.get("/", adminAuth, async (req, res) => {
     const search = req.query.search || "";
 
     let query = {};
+
+    if (req.query.refund === "failed") {
+      query.refundStatus = "failed";
+    }
 
     if (status) {
       query.status = status;

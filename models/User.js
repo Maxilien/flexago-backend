@@ -31,7 +31,7 @@ const UserSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
-      minlength: 6,
+      minlength: 8,
       select: false,
     },
 
@@ -116,6 +116,33 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+
+    emailVerified: { type: Boolean, default: false },
+    phoneVerified: { type: Boolean, default: false },
+    identityVerified: { type: Boolean, default: false },
+
+    // Referrals and rewards. Credit comes off future deliveries.
+    referralCode: { type: String, unique: true, sparse: true, uppercase: true, trim: true },
+    referredBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    creditBalance: { type: Number, default: 0, min: 0 },
+
+    // Everyone needs a clear background check to use the app.
+    background_status: {
+      type: String,
+      enum: [
+        "not_started", "invited", "pending", "clear", "consider", "suspended",
+        "canceled", "disputed", "pre_adverse_action", "post_adverse_action"
+      ],
+      default: "not_started"
+    },
+    background_completed_at: { type: Date, default: null },
+    checkr_candidate_id: { type: String, default: null },
+    checkr_invitation_url: { type: String, default: null },
+    checkr_report_id: { type: String, default: null },
+    identityVerifiedAt: { type: Date, default: null },
+    stripeIdentitySessionId: { type: String, default: null },
+
+    photoUrl: { type: String, default: null },
 
     kyc: {
       ssnLast4: { type: String },

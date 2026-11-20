@@ -7,8 +7,10 @@ console.log("🟢 userRoutes.js LOADED");
 
 const express = require("express");
 const {
-  createUser,
-  getUserById,
+  getMe,
+  updateMe,
+  updateMyPhoto,
+  deleteMe,
   loginUser
 } = require("../controllers/userController");
 
@@ -16,52 +18,27 @@ const User = require("../models/User"); // ⭐ Needed for direct update
 
 const router = express.Router();
 
-// REGISTER
-router.post("/", createUser);
+const auth = require("../middleware/auth");
+const { requireSelf } = require("../middleware/access");
+const rateLimit = require("../middleware/rateLimit");
 
-// LOGIN
-router.post("/login", loginUser);
-
-// GET USER BY ID
-router.get("/:id", getUserById);
-
-// ============================================================
-// UPDATE USER (ADDRESS ONLY — IDENTITY LOCKED)
-// ============================================================
-router.put("/users/:id", async (req, res) => {
-  try {
-    const id = req.params.id;
-
-    // Only allow address fields (Option A)
-    const allowed = {
-      address: req.body.address,
-      city: req.body.city,
-      state: req.body.state,
-      zipcode: req.body.zipcode,
-      country: req.body.country,
-    };
-
-    const updated = await User.findByIdAndUpdate(
-      id,
-      { $set: allowed },
-      { new: true }
-    );
-
-    if (!updated) {
-      return res.json({ success: false, error: "User not found" });
-    }
-
-    res.json({ success: true, data: updated });
-  } catch (err) {
-    console.error("Update error:", err);
-    res.json({ success: false, error: "Server error" });
-  }
+const loginLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  keyFn: (req) => `${req.ip}:${String(req.body?.email || "").toLowerCase()}`,
+  message: "Too many login attempts. Please try again in 15 minutes."
 });
 
-// ============================================================
-// SAVE PAYOUT METHOD
-// ============================================================
-router.put("/payout-method/:id", async (req, res) => {
+// LOGIN
+router.post("/login", loginLimit, loginUser);
+
+// CURRENT USER
+router.get("/me", auth, getMe);
+router.put("/me", auth, updateMe);
+router.put("/me/photo", auth, updateMyPhoto);
+router.delete("/me", auth, deleteMe);
+
+router.put("/payout-method/:id", auth, requireSelf("id"), async (req, res) => {
   try {
     const id = req.params.id;
 

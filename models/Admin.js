@@ -10,6 +10,10 @@ const adminSchema = new mongoose.Schema({
   // 2FA fields
   twoFACode: { type: String, default: null },
   twoFAExpires: { type: Number, default: null },
+  twoFAAttempts: { type: Number, default: 0 },
+
+  // Where login codes are texted. ADMIN_2FA_PHONE is used if this is empty.
+  phone: { type: String, default: null },
 
   role: { type: String, default: "superadmin" },
   createdAt: { type: Date, default: Date.now }

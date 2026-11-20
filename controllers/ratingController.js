@@ -75,17 +75,9 @@ function isValidObjectId(value) {
 ============================================================ */
 
 function getRequestingUser(req) {
-  const userId = normalizeText(
-    req.headers["x-user-id"]
-  );
-
-  const userRole = normalizeRole(
-    req.headers["x-user-role"]
-  );
-
   return {
-    userId,
-    userRole
+    userId: req.user.id,
+    userRole: normalizeRole(req.user.role)
   };
 }
 

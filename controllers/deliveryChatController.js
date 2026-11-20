@@ -10,6 +10,7 @@
 
 const mongoose = require("mongoose");
 const DeliveryMessage = require("../models/DeliveryMessage");
+const Delivery = require("../models/Delivery");
 
 /* ============================================================
    HELPERS
@@ -43,8 +44,14 @@ async function getDeliveryMessages(req, res) {
       });
     }
 
+    // Only the current traveler's conversation: if a traveler cancelled and
+    // another accepted, the new one doesn't see the earlier messages.
+    const delivery = await Delivery.findById(deliveryId).select("acceptedAt").lean();
+    const since = delivery?.acceptedAt ? { createdAt: { $gte: delivery.acceptedAt } } : {};
+
     const messages = await DeliveryMessage.find({
-      deliveryId
+      deliveryId,
+      ...since
     })
       .sort({
         createdAt: 1

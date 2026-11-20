@@ -7,147 +7,135 @@ console.log("🟢 userController.js LOADED");
 const User = require("../models/User");
 const Traveler = require("../models/Traveler");
 const bcrypt = require("bcryptjs");
+const Delivery = require("../models/Delivery");
 const generateToken = require("../utils/generateToken");
+const { uploadImage } = require("../utils/imageUpload");
 
 // ------------------------------------------------------
-// CREATE USER (Sender or Traveler)
+// CURRENT USER
 // ------------------------------------------------------
-async function createUser(req, res) {
+const PRIVATE_FIELDS = "-password -kyc -resetToken -resetTokenExpire";
+const EDITABLE_FIELDS = ["address", "city", "state", "zipcode", "country"];
+
+async function loadProfile(userId) {
+  const user = await User.findById(userId).select(PRIVATE_FIELDS).lean();
+  if (!user) return null;
+
+  const traveler = user.role === "traveler"
+    ? await Traveler.findOne({ user: user._id }).lean()
+    : null;
+
+  const deliveryFilter = traveler
+    ? { travelerId: traveler._id }
+    : { senderId: String(user._id) };
+
+  const totalDeliveries = await Delivery.countDocuments(deliveryFilter);
+
+  return { ...user, traveler, totalDeliveries };
+}
+
+async function getMe(req, res) {
   try {
-    const {
-      firstName,
-      lastName,
-      email,
-      password,
-      role,
-      phone,
-      dob,
-      address,
-      city,
-      state,
-      zipcode,
-      country
-    } = req.body;
+    const profile = await loadProfile(req.user.id);
 
-    // ⭐ Validate required fields
-    if (!firstName || !lastName || !email || !password || !role) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required fields."
-      });
+    if (!profile) {
+      return res.status(404).json({ success: false, error: "User not found" });
     }
 
-    // ⭐ Prevent duplicate accounts
-    const existing = await User.findOne({ email: email.toLowerCase() });
-    if (existing) {
-      return res.status(400).json({
-        success: false,
-        message: "Email already exists."
-      });
+    return res.json({ success: true, data: profile });
+  } catch (err) {
+    console.error("Get profile error:", err);
+    return res.status(500).json({ success: false, error: "Unable to load profile" });
+  }
+}
+
+// Verified identity (name, email, phone, DOB) can never change here.
+async function updateMe(req, res) {
+  try {
+    const update = {};
+
+    for (const field of EDITABLE_FIELDS) {
+      if (typeof req.body?.[field] === "string") {
+        update[field] = req.body[field].trim().slice(0, 200);
+      }
     }
 
-    // ⭐ Create user (password auto‑hashed by User model)
-    const user = await User.create({
-      firstName,
-      lastName,
-      email: email.toLowerCase(),
-      password,
-      role,
-      phone,
-      dob,
-      address,
-      city,
-      state,
-      zipcode,
-      country,
-      kycVerified: false // ⭐ FIXED — matches your User model
-    });
+    await User.updateOne({ _id: req.user.id }, { $set: update });
 
-    let traveler = null;
+    return res.json({ success: true, data: await loadProfile(req.user.id) });
+  } catch (err) {
+    console.error("Update profile error:", err);
+    return res.status(500).json({ success: false, error: "Unable to save changes" });
+  }
+}
 
-    // ⭐ Only create traveler profile if role === "traveler"
-    if (role === "traveler") {
-      traveler = await Traveler.create({
-        user: user._id,
-        vehicleType: "car",
-        yearJoined: new Date().getFullYear(),
-        totalTrips: 0,
-        status: "offline",
-        verified: false,
-        rating: 5,
-        location: {
-          type: "Point",
-          coordinates: [0, 0],
-          updatedAt: new Date()
-        },
-        createdAt: new Date()
-      });
+async function updateMyPhoto(req, res) {
+  try {
+    const photoUrl = await uploadImage(req.body?.photo, "flexago/profiles");
+
+    await User.updateOne({ _id: req.user.id }, { $set: { photoUrl } });
+
+    return res.json({ success: true, data: { photoUrl } });
+  } catch (err) {
+    console.error("Profile photo error:", err.message);
+    return res.status(400).json({ success: false, error: "Unable to save that photo" });
+  }
+}
+
+// App Store requirement. Personal details are removed; delivery and
+// payment records stay, without the person's details, for tax and disputes.
+async function deleteMe(req, res) {
+  try {
+    const password = req.body?.password;
+    const user = await User.findById(req.user.id).select("+password");
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
     }
 
-    // ⭐ Return clean user object (no password)
-    const safeUser = {
-      _id: user._id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      phone: user.phone,
-      role: user.role,
-      dob: user.dob,
-      address: user.address,
-      city: user.city,
-      state: user.state,
-      zipcode: user.zipcode,
-      country: user.country,
-      kycVerified: user.kycVerified
+    if (
+      typeof password !== "string" ||
+      !(await bcrypt.compare(password, user.password))
+    ) {
+      return res.status(401).json({ success: false, error: "Incorrect password" });
+    }
+
+    const traveler = await Traveler.findOne({ user: user._id }).select("_id").lean();
+
+    const activeFilter = {
+      status: { $in: ["accepted", "picked_up", "in_transit"] },
+      $or: [
+        { senderId: String(user._id) },
+        ...(traveler ? [{ travelerId: traveler._id }] : [])
+      ]
     };
 
-    res.status(201).json({
-      success: true,
-      data: {
-        user: safeUser,
-        traveler
-      }
-    });
+    if (await Delivery.exists(activeFilter)) {
+      return res.status(409).json({
+        success: false,
+        error: "Finish your active deliveries before deleting your account."
+      });
+    }
 
+    await Delivery.updateMany(
+      { senderId: String(user._id) },
+      { $set: { "sender.name": "Deleted user", "sender.phone": "", "sender.email": "" } }
+    );
+
+    if (traveler) {
+      await Delivery.updateMany(
+        { travelerId: traveler._id },
+        { $set: { "travelerDetails.firstName": "Deleted", "travelerDetails.lastName": "user" } }
+      );
+      await Traveler.deleteOne({ _id: traveler._id });
+    }
+
+    await User.deleteOne({ _id: user._id });
+
+    return res.json({ success: true });
   } catch (err) {
-    console.error("❌ Create User Error:", err);
-    res.status(400).json({
-      success: false,
-      error: err.message
-    });
-  }
-}
-
-// ------------------------------------------------------
-// GET USER BY ID
-// ------------------------------------------------------
-async function getUserById(req, res) {
-  try {
-    const user = await User.findById(req.params.id).select("-password");
-    if (!user)
-      return res.status(404).json({ success: false, error: "User not found" });
-
-    res.json({ success: true, data: user });
-
-  } catch (err) {
-    res.status(400).json({ success: false, error: err.message });
-  }
-}
-
-// ------------------------------------------------------
-// UPDATE USER
-// ------------------------------------------------------
-async function updateUser(req, res) {
-  try {
-    const updated = await User.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    }).select("-password");
-
-    res.json({ success: true, data: updated });
-
-  } catch (err) {
-    res.status(400).json({ success: false, error: err.message });
+    console.error("Delete account error:", err);
+    return res.status(500).json({ success: false, error: "Unable to delete account" });
   }
 }
 
@@ -179,9 +167,9 @@ async function loginUser(req, res) {
       }).select("+password");
 
     if (!user) {
-      return res.status(404).json({
+      return res.status(401).json({
         success: false,
-        error: "User not found"
+        error: "Invalid email or password"
       });
     }
 
@@ -194,7 +182,7 @@ async function loginUser(req, res) {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        error: "Invalid password"
+        error: "Invalid email or password"
       });
     }
 
@@ -224,8 +212,9 @@ async function loginUser(req, res) {
   }
 }
 module.exports = {
-  createUser,
-  getUserById,
-  updateUser,
+  getMe,
+  updateMe,
+  updateMyPhoto,
+  deleteMe,
   loginUser
 };

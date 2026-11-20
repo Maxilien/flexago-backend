@@ -14,6 +14,9 @@
 ============================================================ */
 
 const express = require("express");
+const Traveler = require("../models/Traveler");
+const UserBlock = require("../models/UserBlock");
+const auth = require("../middleware/auth");
 
 const {
   getDeliveryMessages,
@@ -27,12 +30,31 @@ const deliveryChatAuth = require(
 
 const router = express.Router();
 
+async function rejectBlockedChat(req, res, next) {
+  try {
+    const { senderId, travelerId } = req.deliveryChatDelivery;
+    const traveler = await Traveler.findById(travelerId).select("user").lean();
+
+    if (traveler && await UserBlock.between(senderId, traveler.user)) {
+      return res.status(403).json({
+        success: false,
+        error: "You can't message this person."
+      });
+    }
+
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+}
+
 /* ============================================================
    GET DELIVERY CHAT HISTORY
 ============================================================ */
 
 router.get(
   "/:deliveryId",
+  auth,
   deliveryChatAuth,
   getDeliveryMessages
 );
@@ -43,7 +65,9 @@ router.get(
 
 router.post(
   "/:deliveryId",
+  auth,
   deliveryChatAuth,
+  rejectBlockedChat,
   sendDeliveryMessage
 );
 
@@ -53,6 +77,7 @@ router.post(
 
 router.patch(
   "/:deliveryId/read",
+  auth,
   deliveryChatAuth,
   markDeliveryMessagesRead
 );

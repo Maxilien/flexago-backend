@@ -10,6 +10,14 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const auth = require("../middleware/auth");
+const Traveler = require("../models/Traveler");
+const {
+  requireRole,
+  requireBackgroundClear,
+  requireVerified,
+  requireSelf,
+  requireAssignedTraveler
+} = require("../middleware/access");
 const {
   createDelivery,
   searchTravelerJobs,
@@ -22,8 +30,18 @@ const {
 } = require("../controllers/deliveryController");
 
 const Delivery = require("../models/Delivery");
+const {
+  cancelDelivery,
+  markArrived,
+  previewCancel,
+  reportItemProblem,
+  reportNoShow
+} = require("../controllers/cancellationController");
 
 const router = express.Router();
+
+// Every delivery route requires a logged-in user.
+router.use(auth);
 /* ============================================================
    PROOF OF DELIVERY UPLOAD
 ============================================================ */
@@ -112,6 +130,9 @@ const proofUpload =
 ============================================================ */
 router.post(
   "/",
+  requireRole("sender"),
+  requireVerified,
+  requireBackgroundClear,
   (req, res, next) => {
     console.log("🔥 DELIVERY ROUTE HIT");
     next();
@@ -122,27 +143,42 @@ router.post(
 /* ============================================================
    TRAVELER JOB SEARCH
 ============================================================ */
-router.post("/search", searchTravelerJobs);
+router.post("/search", requireRole("traveler"), requireVerified, requireBackgroundClear, searchTravelerJobs);
 
 /* ============================================================
    TRAVELER ACTIONS
 ============================================================ */
-router.post("/:jobId/accept", acceptTravelerJob);
-router.post("/:jobId/pickup", pickupTravelerJob);
+router.post("/:jobId/accept", requireRole("traveler"), requireVerified, acceptTravelerJob);
+
+// The traveler photographs the item before taking it (at least one photo).
+router.post(
+  "/:jobId/pickup",
+  requireAssignedTraveler(),
+  proofUpload.fields([{ name: "photo", maxCount: 3 }]),
+  pickupTravelerJob
+);
 
 // ⭐ NEW — Pickup Verification Route
-router.post("/:jobId/verifyPickup", verifyPickupCode);
+router.post("/:jobId/verifyPickup", requireAssignedTraveler(), verifyPickupCode);
 
-router.post("/:jobId/deliver", deliverTravelerJob);
+router.post("/:jobId/deliver", requireAssignedTraveler(), deliverTravelerJob);
+
+// Cancelling and problems at pickup
+router.get("/:jobId/cancel-preview", previewCancel);
+router.post("/:jobId/cancel", cancelDelivery);
+router.post("/:jobId/arrived", requireAssignedTraveler(), markArrived);
+router.post("/:jobId/no-show", requireAssignedTraveler(), reportNoShow);
+router.post("/:jobId/item-problem", requireAssignedTraveler(), reportItemProblem);
+
 router.post(
   "/:jobId/complete",
 
-  auth,
+  requireAssignedTraveler(),
 
   proofUpload.fields([
     {
       name: "photo",
-      maxCount: 1
+      maxCount: 5
     },
     {
       name: "signature",
@@ -152,14 +188,35 @@ router.post(
 
   completeTravelerJob
 );
-router.post("/:jobId/payout", payoutTravelerJob);
+router.post("/:jobId/payout", requireAssignedTraveler(), payoutTravelerJob);
 
 /* ============================================================
-   GET ALL DELIVERIES (Admin / Debug)
+   GET THE LOGGED-IN USER'S DELIVERIES
 ============================================================ */
 router.get("/", async (req, res) => {
   try {
-    const deliveries = await Delivery.find().lean();
+    let filter = { senderId: req.user.id };
+
+    if (req.user.role === "traveler") {
+      const traveler = await Traveler.findOne({ user: req.user.id })
+        .select("_id")
+        .lean();
+
+      filter = { travelerId: traveler?._id || null };
+    }
+
+    const deliveries = await Delivery.find(filter)
+      .select("-declinedBy")
+      .lean();
+
+    // Only the sender holds the code they give the traveler at pickup.
+    if (req.user.role === "traveler") {
+      deliveries.forEach((delivery) => {
+        delete delivery.pickupCode;
+        delete delivery.pickupQR;
+      });
+    }
+
     res.json({ success: true, data: deliveries });
   } catch (err) {
     console.error("Error fetching deliveries:", err);
@@ -170,7 +227,7 @@ router.get("/", async (req, res) => {
 /* ============================================================
    ⭐ GET DELIVERIES FOR A SPECIFIC SENDER (Sender Workspace)
 ============================================================ */
-router.get("/sender/:senderId", async (req, res) => {
+router.get("/sender/:senderId", requireSelf("senderId"), async (req, res) => {
   try {
     const deliveries = await Delivery.find({ senderId: req.params.senderId })
       .select(

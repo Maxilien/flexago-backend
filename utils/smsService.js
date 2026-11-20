@@ -243,7 +243,43 @@ async function sendPayoutFailedSms({
 // EXPORTS
 // ------------------------------------------------------
 
+async function sendAdminLoginCodeSms({ to, code }) {
+  return sendOperationalSms({
+    to,
+    body: `Your FlexaGo admin login code is ${code}. It expires in 5 minutes.`,
+    notificationType: "Admin login code"
+  });
+}
+
+async function sendDeliveryCancelledSms({ to, message }) {
+  return sendOperationalSms({
+    to,
+    body: `FlexaGo: ${message}`,
+    notificationType: "delivery cancelled"
+  });
+}
+
+async function sendTravelerReleasedSms({ to }) {
+  return sendOperationalSms({
+    to,
+    body: "FlexaGo: Your traveler can't make this trip, so your delivery is open to other travelers again. Your payment is still held. No action needed.",
+    notificationType: "traveler released"
+  });
+}
+
+async function sendBackgroundClearedSms({ to }) {
+  return sendOperationalSms({
+    to,
+    body: "FlexaGo: Your background check is complete. You can now use the app.",
+    notificationType: "background cleared"
+  });
+}
+
 module.exports = {
+  sendDeliveryCancelledSms,
+  sendTravelerReleasedSms,
+  sendBackgroundClearedSms,
+  sendAdminLoginCodeSms,
   sendDeliveryAcceptedSms,
   sendPickupVerifiedSms,
   sendDeliveryCompletedSms,

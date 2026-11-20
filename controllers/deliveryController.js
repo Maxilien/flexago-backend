@@ -5,6 +5,32 @@
 
 const crypto = require("crypto");
 const Delivery = require("../models/Delivery");
+const serviceArea = require("../utils/serviceArea");
+const UserBlock = require("../models/UserBlock");
+const {
+  uploadImage,
+  storeUploadedFile
+} = require("../utils/imageUpload");
+const {
+  calculatePrice,
+  resolveDistanceMiles
+} = require("../utils/pricing");
+const {
+  RewardError,
+  reserveDiscount,
+  undoReservation
+} = require("../utils/rewards");
+
+// Route matching: how far a stop may be from the traveler's road,
+// and the wider area allowed around the start and destination.
+const ROUTE_CORRIDOR_MILES = 6;
+const ROUTE_END_ZONE_MILES = 20;
+const ROUTE_DIRECTION_TOLERANCE_MILES = 0.5;
+const MAX_PACKAGE_PHOTOS = 5;
+
+// Wrong pickup codes allowed before verification pauses.
+const MAX_PICKUP_ATTEMPTS = 5;
+const PICKUP_LOCK_MS = 15 * 60 * 1000;
 const Traveler = require("../models/Traveler");
 
 const {
@@ -67,73 +93,51 @@ function haversineMiles(a, b) {
   return EARTH_RADIUS_MILES * c;
 }
 
-function distancePointToSegmentMiles(point, start, end) {
-  const [px, py] = point;
-  const [ax, ay] = start;
-  const [bx, by] = end;
+// Finds where a point sits along a route: how far it is from the
+// road, and how many miles into the trip that closest spot is.
+function locateOnRoute(point, polyline) {
+  const milesPerDegreeLng = Math.cos((point[1] * Math.PI) / 180);
 
-  const segment = [bx - ax, by - ay];
-  const pointVector = [px - ax, py - ay];
+  let closest = { offRouteMiles: Infinity, progressMiles: 0 };
+  let travelled = 0;
 
-  const segmentLengthSquared =
-    segment[0] * segment[0] +
-    segment[1] * segment[1];
+  for (let index = 0; index < polyline.length - 1; index += 1) {
+    const start = polyline[index];
+    const end = polyline[index + 1];
 
-  if (segmentLengthSquared === 0) {
-    return haversineMiles(point, start);
-  }
+    const segmentX = (end[0] - start[0]) * milesPerDegreeLng;
+    const segmentY = end[1] - start[1];
+    const pointX = (point[0] - start[0]) * milesPerDegreeLng;
+    const pointY = point[1] - start[1];
 
-  const projection =
-    pointVector[0] * segment[0] +
-    pointVector[1] * segment[1];
+    const lengthSquared = segmentX * segmentX + segmentY * segmentY;
 
-  let ratio =
-    projection / segmentLengthSquared;
+    const ratio = lengthSquared === 0
+      ? 0
+      : Math.max(
+          0,
+          Math.min(1, (pointX * segmentX + pointY * segmentY) / lengthSquared)
+        );
 
-  ratio = Math.max(
-    0,
-    Math.min(1, ratio)
-  );
+    const nearest = [
+      start[0] + (end[0] - start[0]) * ratio,
+      start[1] + (end[1] - start[1]) * ratio
+    ];
 
-  const closestPoint = [
-    ax + segment[0] * ratio,
-    ay + segment[1] * ratio
-  ];
+    const offRouteMiles = haversineMiles(point, nearest);
+    const segmentMiles = haversineMiles(start, end);
 
-  return haversineMiles(
-    point,
-    closestPoint
-  );
-}
-
-function distancePointToPolylineMiles(point, polyline) {
-  if (
-    !Array.isArray(polyline) ||
-    polyline.length < 2
-  ) {
-    return Infinity;
-  }
-
-  let minimumDistance = Infinity;
-
-  for (
-    let index = 0;
-    index < polyline.length - 1;
-    index += 1
-  ) {
-    const distance =
-      distancePointToSegmentMiles(
-        point,
-        polyline[index],
-        polyline[index + 1]
-      );
-
-    if (distance < minimumDistance) {
-      minimumDistance = distance;
+    if (offRouteMiles < closest.offRouteMiles) {
+      closest = {
+        offRouteMiles,
+        progressMiles: travelled + segmentMiles * ratio
+      };
     }
+
+    travelled += segmentMiles;
   }
 
-  return minimumDistance;
+  return closest;
 }
 
 /* ============================================================
@@ -213,16 +217,20 @@ async function createDelivery(req, res) {
       sender,
       receiver,
       notes,
-      price,
-      senderId
+      distanceMiles,
+      insuranceType,
+      itemConfirmed
     } = req.body;
 
-    if (!senderId) {
+    if (itemConfirmed !== true) {
       return res.status(400).json({
         success: false,
-        error: "senderId is required"
+        error: "Please confirm your item is allowed."
       });
     }
+
+    // The sender is whoever is logged in, never the request body.
+    const senderId = req.user.id;
 
     const pickup =
       normalizeGeoPoint(rawPickup);
@@ -251,83 +259,118 @@ async function createDelivery(req, res) {
       });
     }
 
-    const numericPrice = Number(price);
+    // Launch area: both ends must be inside it (Texas only for now).
+    const area = serviceArea.describe();
+    const placeInfo = (raw, point) => ({
+      ...point,
+      state: raw?.state,
+      country: raw?.country
+    });
 
     if (
-      !Number.isFinite(numericPrice) ||
-      numericPrice <= 0
+      !serviceArea.placeAllowed(placeInfo(rawPickup, pickup)) ||
+      !serviceArea.placeAllowed(placeInfo(rawDropoff, dropoff))
     ) {
       return res.status(400).json({
         success: false,
-        error: "Delivery price must be greater than zero."
+        code: "OUTSIDE_SERVICE_AREA",
+        error: serviceArea.outsideMessage()
       });
     }
 
-    const roundedPrice =
-      Math.round(numericPrice * 100) / 100;
-
-    const payoutAmount =
-      Math.round(roundedPrice * 0.8 * 100) / 100;
-
-    let resolvedPhotoUrl = null;
-
     if (
-      packageData?.photoUrl &&
-      packageData.photoUrl.startsWith("data:")
+      area.limited &&
+      packageData?.deliveryType &&
+      !area.deliveryTypes.includes(packageData.deliveryType)
     ) {
-      try {
-        const cloudinary =
-          require("cloudinary").v2;
-
-        cloudinary.config({
-          cloud_name:
-            process.env.CLOUDINARY_CLOUD_NAME,
-
-          api_key:
-            process.env.CLOUDINARY_API_KEY,
-
-          api_secret:
-            process.env.CLOUDINARY_API_SECRET
-        });
-
-        const uploaded =
-          await cloudinary.uploader.upload(
-            packageData.photoUrl,
-            {
-              folder: "flexago/deliveries",
-              transformation: [
-                {
-                  width: 800,
-                  quality: "auto"
-                }
-              ]
-            }
-          );
-
-        resolvedPhotoUrl = uploaded.secure_url;
-
-        console.log(
-          "✅ Photo uploaded to Cloudinary:",
-          resolvedPhotoUrl
-        );
-      } catch (uploadError) {
-        console.error(
-          "❌ Cloudinary upload failed:",
-          uploadError.message
-        );
-
-        resolvedPhotoUrl = null;
-      }
-    } else if (
-      typeof packageData?.photoUrl === "string"
-    ) {
-      resolvedPhotoUrl =
-        packageData.photoUrl;
+      return res.status(400).json({
+        success: false,
+        code: "OUTSIDE_SERVICE_AREA",
+        error: `Only local deliveries within ${area.name} are available for now.`
+      });
     }
 
-    const delivery =
+    // Priced on the server. Any price sent by the app is ignored.
+    const { price: roundedPrice, payoutAmount } = calculatePrice({
+      deliveryType: packageData?.deliveryType,
+      distanceMiles: resolveDistanceMiles(
+        distanceMiles,
+        haversineMiles(
+          pickup.location.coordinates,
+          dropoff.location.coordinates
+        )
+      ),
+      weight: packageData?.weight,
+      declaredValue: packageData?.declaredValue,
+      packageType: packageData?.type,
+      size: packageData?.size,
+      insuranceType
+    });
+
+    if (roundedPrice <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Unable to price this delivery. Check the delivery type and addresses."
+      });
+    }
+
+    const submittedPhotos = Array.isArray(packageData?.photos)
+      ? packageData.photos
+      : packageData?.photoUrl
+        ? [packageData.photoUrl]
+        : [];
+
+    if (submittedPhotos.length > MAX_PACKAGE_PHOTOS) {
+      return res.status(400).json({
+        success: false,
+        error: `You can add up to ${MAX_PACKAGE_PHOTOS} photos.`
+      });
+    }
+
+    let photoUrls = [];
+
+    try {
+      photoUrls = await Promise.all(
+        submittedPhotos.map((photo) =>
+          uploadImage(photo, "flexago/deliveries")
+        )
+      );
+    } catch (uploadError) {
+      console.error("Photo upload failed:", uploadError.message);
+
+      return res.status(400).json({
+        success: false,
+        error: "One of your photos could not be uploaded. Please try again."
+      });
+    }
+
+    const resolvedPhotoUrl = photoUrls[0] || null;
+
+    // Promo code and saved credit come off FlexaGo's share only.
+    let savings;
+    try {
+      savings = await reserveDiscount({
+        senderId,
+        promoCode: String(req.body.promoCode || "").trim(),
+        price: roundedPrice,
+        payoutAmount
+      });
+    } catch (error) {
+      if (error instanceof RewardError) {
+        return res.status(400).json({ success: false, error: error.message });
+      }
+      throw error;
+    }
+
+    const finalPrice =
+      Math.round((roundedPrice - savings.discount) * 100) / 100;
+
+    let delivery;
+    try {
+      delivery =
       await Delivery.create({
         senderId: String(senderId),
+        itemConfirmedAt: new Date(),
 
         sender: {
           name: sender?.name || "",
@@ -376,14 +419,31 @@ async function createDelivery(req, res) {
               : null,
 
           photoUrl:
-            resolvedPhotoUrl
+            resolvedPhotoUrl,
+
+          photoUrls
         },
 
         notes:
           notes || "",
 
         price:
+          finalPrice,
+
+        listPrice:
           roundedPrice,
+
+        discount:
+          savings.discount,
+
+        promoCode:
+          savings.promoCode,
+
+        promoAmount:
+          savings.promoAmount,
+
+        creditUsed:
+          savings.creditUsed,
 
         payoutAmount,
 
@@ -423,6 +483,10 @@ async function createDelivery(req, res) {
         transferGroup:
           null
       });
+    } catch (error) {
+      await undoReservation(senderId, savings);
+      throw error;
+    }
 
     return res.status(201).json({
       success: true,
@@ -464,7 +528,6 @@ async function searchTravelerJobs(req, res) {
       start,
       destination,
       route,
-      maxMiles = 5,
       deliveryType
     } = req.body;
 
@@ -509,18 +572,16 @@ async function searchTravelerJobs(req, res) {
         .filter(validCoordinates);
     }
 
-    const parsedMaxMiles =
-      Number(maxMiles);
-
-    const allowedMiles =
-      Number.isFinite(parsedMaxMiles) &&
-      parsedMaxMiles > 0
-        ? parsedMaxMiles
-        : 5;
+    // Without a drawn route, use the straight line between the two points.
+    if (polyline.length < 2) {
+      polyline = [startPoint, destinationPoint];
+    }
 
     const query = {
       status: "available",
-      paymentStatus: "paid"
+      paymentStatus: "paid",
+      declinedBy: { $ne: req.user.id },
+      senderId: { $nin: await UserBlock.idsHiddenFrom(req.user.id) }
     };
 
     if (deliveryType) {
@@ -558,69 +619,71 @@ async function searchTravelerJobs(req, res) {
             destinationPoint
           );
 
-        const pickupRouteDistance =
-          distancePointToPolylineMiles(
-            pickupCoordinates,
-            polyline
-          );
+        const pickupOnRoad =
+          locateOnRoute(pickupCoordinates, polyline);
 
-        const dropoffRouteDistance =
-          distancePointToPolylineMiles(
-            dropoffCoordinates,
-            polyline
-          );
+        const dropoffOnRoad =
+          locateOnRoute(dropoffCoordinates, polyline);
+
+        // These limits live on the server so the app can't widen them.
+        const pickupAllowed =
+          pickupOnRoad.offRouteMiles <= ROUTE_CORRIDOR_MILES ||
+          pickupStartDistance <= ROUTE_END_ZONE_MILES;
+
+        const dropoffAllowed =
+          dropoffOnRoad.offRouteMiles <= ROUTE_CORRIDOR_MILES ||
+          dropoffDestinationDistance <= ROUTE_END_ZONE_MILES;
+
+        // The traveler must reach the pickup before the drop-off.
+        const sameDirection =
+          pickupOnRoad.progressMiles <=
+          dropoffOnRoad.progressMiles + ROUTE_DIRECTION_TOLERANCE_MILES;
 
         const matches =
-          polyline.length < 2
-            ? pickupStartDistance <= allowedMiles &&
-              dropoffDestinationDistance <= allowedMiles
-            : (
-                pickupStartDistance <= allowedMiles ||
-                pickupRouteDistance <= allowedMiles
-              ) &&
-              (
-                dropoffDestinationDistance <= allowedMiles ||
-                dropoffRouteDistance <= allowedMiles
-              );
+          pickupAllowed &&
+          dropoffAllowed &&
+          sameDirection;
 
         if (!matches) {
           return null;
         }
 
+        const {
+          pickupCode,
+          pickupQR,
+          declinedBy,
+          ...publicJob
+        } = job;
+
         return {
-          ...job,
+          ...publicJob,
+
+          sender: { name: job.sender?.name || "" },
+
+          receiver: { name: job.receiver?.name || "" },
+
+          pickup: {
+            ...job.pickup,
+            contactPhone: ""
+          },
+
+          dropoff: {
+            ...job.dropoff,
+            contactPhone: ""
+          },
 
           _distance: {
-            pickupStartMiles:
-              pickupStartDistance,
-
-            dropoffDestMiles:
-              dropoffDestinationDistance,
-
-            pickupRouteMiles:
-              pickupRouteDistance,
-
-            dropoffRouteMiles:
-              dropoffRouteDistance
+            offRouteMiles: Math.max(
+              pickupOnRoad.offRouteMiles,
+              dropoffOnRoad.offRouteMiles
+            )
           }
         };
       })
       .filter(Boolean)
-      .sort((a, b) => {
-        const aDistance =
-          a._distance.pickupStartMiles +
-          a._distance.dropoffDestMiles +
-          a._distance.pickupRouteMiles +
-          a._distance.dropoffRouteMiles;
-
-        const bDistance =
-          b._distance.pickupStartMiles +
-          b._distance.dropoffDestMiles +
-          b._distance.pickupRouteMiles +
-          b._distance.dropoffRouteMiles;
-
-        return aDistance - bDistance;
-      });
+      .sort((a, b) =>
+        a._distance.offRouteMiles - b._distance.offRouteMiles
+      );
 
     return res.json({
       success: true,
@@ -657,15 +720,9 @@ async function acceptTravelerJob(req, res) {
     const { jobId } =
       req.params;
 
+    // The traveler is whoever is logged in, never the request body.
     const requestedTravelerId =
-      req.body?.travelerId;
-
-    if (!requestedTravelerId) {
-      return res.status(400).json({
-        success: false,
-        error: "Missing travelerId"
-      });
-    }
+      req.user.id;
 
     const job =
       await Delivery.findById(jobId);
@@ -735,6 +792,21 @@ async function acceptTravelerJob(req, res) {
       });
     }
 
+    if (req.user.user.background_status !== "clear") {
+      return res.status(403).json({
+        success: false,
+        code: "BACKGROUND_CHECK_REQUIRED",
+        error: "Complete your background check before accepting jobs."
+      });
+    }
+
+    if (await UserBlock.between(job.senderId, traveler.user._id)) {
+      return res.status(403).json({
+        success: false,
+        error: "This job is not available."
+      });
+    }
+
     const firstName =
       String(
         traveler.user.firstName || ""
@@ -785,11 +857,14 @@ async function acceptTravelerJob(req, res) {
         )
     };
 
+    // Unpredictable 6-digit code (100000 to 999999).
     job.pickupCode =
-      Math.floor(
-        100000 +
-        Math.random() * 900000
-      ).toString();
+      crypto
+        .randomInt(100000, 1000000)
+        .toString();
+
+    job.pickupAttempts = 0;
+    job.pickupLockedUntil = undefined;
 
     job.pickupQR =
       crypto
@@ -906,9 +981,12 @@ async function acceptTravelerJob(req, res) {
       );
     }
 
+    // The sender gives this code at pickup, so the traveler must not get it here.
+    const { pickupCode, pickupQR, ...travelerJob } = fullJob;
+
     return res.json({
       success: true,
-      data: fullJob
+      data: travelerJob
     });
   } catch (error) {
     console.error(
@@ -928,6 +1006,67 @@ async function acceptTravelerJob(req, res) {
 /* ============================================================
    VERIFY PICKUP CODE OR QR
 ============================================================ */
+
+// Compares without leaking how much of the value was right.
+function sameSecret(expected, provided) {
+  if (!expected) return false;
+  const hash = (value) =>
+    crypto.createHash("sha256").update(String(value)).digest();
+  return crypto.timingSafeEqual(hash(expected), hash(provided));
+}
+
+// Counts one try. Returns null while verification is paused.
+// Reaching the limit starts a 15-minute pause in the same update,
+// so parallel requests cannot get extra tries.
+async function reservePickupAttempt(jobId) {
+  const now = new Date();
+
+  await Delivery.updateOne(
+    { _id: jobId, pickupLockedUntil: { $lte: now } },
+    { $set: { pickupAttempts: 0 }, $unset: { pickupLockedUntil: 1 } }
+  );
+
+  return Delivery.findOneAndUpdate(
+    {
+      _id: jobId,
+      $or: [
+        { pickupAttempts: { $exists: false } },
+        { pickupAttempts: { $lt: MAX_PICKUP_ATTEMPTS } }
+      ]
+    },
+    [
+      {
+        $set: {
+          pickupAttempts: {
+            $add: [{ $ifNull: ["$pickupAttempts", 0] }, 1]
+          }
+        }
+      },
+      {
+        $set: {
+          pickupLockedUntil: {
+            $cond: [
+              { $gte: ["$pickupAttempts", MAX_PICKUP_ATTEMPTS] },
+              new Date(now.getTime() + PICKUP_LOCK_MS),
+              "$pickupLockedUntil"
+            ]
+          }
+        }
+      }
+    ],
+    { new: true }
+  ).lean();
+}
+
+async function minutesUntilUnlock(jobId) {
+  const job = await Delivery.findById(jobId)
+    .select("pickupLockedUntil")
+    .lean();
+  const ms = job?.pickupLockedUntil
+    ? new Date(job.pickupLockedUntil).getTime() - Date.now()
+    : PICKUP_LOCK_MS;
+  return Math.max(1, Math.ceil(ms / 60000));
+}
 
 async function verifyPickupCode(req, res) {
   try {
@@ -972,24 +1111,48 @@ async function verifyPickupCode(req, res) {
         ? String(qr).trim()
         : "";
 
-    const codeMatches =
-      Boolean(providedCode) &&
-      job.pickupCode === providedCode;
+    // Every try counts, so the code cannot be guessed.
+    const attempt =
+      await reservePickupAttempt(job._id);
 
-    const qrMatches =
-      Boolean(providedQr) &&
-      job.pickupQR === providedQr;
-
-    if (!codeMatches && !qrMatches) {
-      return res.status(400).json({
+    if (!attempt) {
+      return res.status(429).json({
         success: false,
-        error: "Invalid pickup verification"
+        error:
+          "Too many wrong codes. Try again in " +
+          (await minutesUntilUnlock(job._id)) +
+          " minutes, or contact the sender."
       });
     }
 
+    const codeMatches =
+      Boolean(providedCode) &&
+      sameSecret(job.pickupCode, providedCode);
+
+    const qrMatches =
+      Boolean(providedQr) &&
+      sameSecret(job.pickupQR, providedQr);
+
+    if (!codeMatches && !qrMatches) {
+      const left = Math.max(
+        MAX_PICKUP_ATTEMPTS - attempt.pickupAttempts,
+        0
+      );
+
+      return res.status(left ? 400 : 429).json({
+        success: false,
+        attemptsLeft: left,
+        error: left
+          ? `Wrong pickup code. ${left} ${left === 1 ? "try" : "tries"} left.`
+          : "Too many wrong codes. Try again in 15 minutes, or contact the sender."
+      });
+    }
+
+    // The code proves the traveler met the sender. The trip starts at Pick Up,
+    // after the traveler has checked the item and photographed it.
+    job.pickupAttempts = 0;
+    job.pickupLockedUntil = undefined;
     job.pickupVerified = true;
-    job.status = "in_transit";
-    job.pickedUpAt = new Date();
 
     await job.save();
 
@@ -1084,6 +1247,25 @@ async function pickupTravelerJob(req, res) {
         error: "Pickup verification is required"
       });
     }
+
+    // A photo of the item, taken before the traveler leaves with it.
+    const pickupFiles = req.files?.photo || [];
+
+    if (!pickupFiles.length) {
+      return res.status(400).json({
+        success: false,
+        code: "PICKUP_PHOTO_REQUIRED",
+        error: "Take a photo of the item before you pick it up."
+      });
+    }
+
+    const backendBaseUrl =
+      process.env.BACKEND_URL ||
+      `${req.protocol}://${req.get("host")}`;
+
+    job.pickupPhotos = await Promise.all(
+      pickupFiles.map((file) => storeUploadedFile(file, "flexago/pickup", backendBaseUrl))
+    );
 
     job.status = "in_transit";
     job.pickedUpAt =
@@ -1349,19 +1531,38 @@ async function completeTravelerJob(
         "host"
       )}`;
 
+    const proofFiles =
+      req.files?.photo || [];
+
+    const proofPhotoUrls =
+      await Promise.all(
+        proofFiles.map((file) =>
+          storeUploadedFile(
+            file,
+            "flexago/proof",
+            backendBaseUrl
+          )
+        )
+      );
+
     const proofPhotoUrl =
-      `${backendBaseUrl}/uploads/` +
-      `${photoFile.filename}`;
+      proofPhotoUrls[0];
 
     const signatureUrl =
-      `${backendBaseUrl}/uploads/` +
-      `${signatureFile.filename}`;
+      await storeUploadedFile(
+        signatureFile,
+        "flexago/proof",
+        backendBaseUrl
+      );
 
     job.signedBy =
       signedBy;
 
     job.proofPhoto =
       proofPhotoUrl;
+
+    job.proofPhotos =
+      proofPhotoUrls;
 
     job.signatureUrl =
       signatureUrl;
