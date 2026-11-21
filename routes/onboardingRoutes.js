@@ -31,6 +31,19 @@ const FRONTEND_URL = (
   process.env.FRONTEND_URL || "https://flexago-frontend.onrender.com"
 ).replace(/\/$/, "");
 
+// The signup session lives in the browser storage of the site where
+// the person started, so Stripe must send them back to that same site.
+const WEB_APP_ORIGINS = new Set([
+  "https://app.flexagoo.com",
+  "https://flexago-frontend.onrender.com",
+  FRONTEND_URL
+]);
+
+function returnBase(req) {
+  const origin = req.get("origin");
+  return !req.body?.native && WEB_APP_ORIGINS.has(origin) ? origin : FRONTEND_URL;
+}
+
 // Phone carriers share IP addresses across many customers, so the
 // strict limit is per signup and the per-IP limit is only a backstop.
 const startLimit = rateLimit({ windowMs: 60 * 60 * 1000, max: 30 });
@@ -480,7 +493,7 @@ router.post("/identity/start", ipSendLimit, requireSession, sessionSendLimit, as
         }
       },
       // The app shows Stripe in a sheet, so it needs a "close this" page.
-      return_url: `${FRONTEND_URL}/${req.body?.native ? "identity-done" : "verify-stripe"}`
+      return_url: `${returnBase(req)}/${req.body?.native ? "identity-done" : "verify-stripe"}`
     });
 
     session.stripeIdentitySessionId = verification.id;
