@@ -94,7 +94,7 @@ async function stripeV2Request(
     } catch (parseError) {
       const error =
         new Error(
-          "Stripe returned an invalid response"
+          "The payout service returned an invalid response"
         );
 
       error.statusCode =
@@ -111,7 +111,7 @@ async function stripeV2Request(
     const error =
       new Error(
         stripeError.message ||
-        "Stripe API request failed"
+        "The payout service request failed"
       );
 
     error.statusCode =
@@ -234,7 +234,7 @@ async function authorizeTraveler(req, travelerId) {
     travelerUserId !== req.user.id
   ) {
     throw createRouteError(
-      "You are not authorized to manage this Stripe account",
+      "You are not authorized to manage this payout account",
       403
     );
   }
@@ -472,7 +472,7 @@ router.post(
 
       if (!account?.id) {
         throw createRouteError(
-          "Stripe did not return a connected account ID",
+          "Unable to set up your payout account",
           502
         );
       }
@@ -582,7 +582,7 @@ router.post(
 
       if (!traveler.stripeAccountId) {
         throw createRouteError(
-          "Traveler does not have a Stripe connected account",
+          "Connect your payout account first",
           400
         );
       }
@@ -652,7 +652,7 @@ router.post(
 
       if (!accountLink?.url) {
         throw createRouteError(
-          "Stripe did not return an onboarding URL",
+          "Account setup is unavailable right now",
           502
         );
       }
@@ -875,7 +875,7 @@ router.get(
 
       if (!traveler.stripeAccountId) {
         throw createRouteError(
-          "Traveler does not have a connected Stripe account",
+          "Connect your payout account first",
           400
         );
       }
@@ -958,7 +958,7 @@ router.get(
 
           error:
             error.message ||
-            "Failed to retrieve traveler Stripe balance"
+            "Unable to retrieve your balance"
         });
     }
   }
@@ -1015,7 +1015,7 @@ if (requestId.length > 100) {
 
       if (!traveler.stripeAccountId) {
         throw createRouteError(
-          "Traveler does not have a connected Stripe account",
+          "Connect your payout account first",
           400
         );
       }
@@ -1236,7 +1236,7 @@ router.post(
       success: false,
 
       error:
-        "This endpoint is no longer supported. Use Stripe Connect onboarding."
+        "This option is no longer supported. Use Connect Account on the Payouts screen."
     });
   }
 );
