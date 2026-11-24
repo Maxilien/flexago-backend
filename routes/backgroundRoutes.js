@@ -1,12 +1,12 @@
 // routes/backgroundRoutes.js
 // ------------------------------------------------------
-// The background check every user passes after creating an
-// account. Checkr's result decides, with no manual step.
+// The background check every traveler passes after creating an
+// account. Senders don't need one. Checkr's result decides, with no manual step.
 // ------------------------------------------------------
 
 const express = require("express");
 const auth = require("../middleware/auth");
-const { requireVerified } = require("../middleware/access");
+const { requireVerified, requireRole } = require("../middleware/access");
 const User = require("../models/User");
 const checkr = require("../support/checkr");
 
@@ -19,7 +19,7 @@ router.get("/status", auth, (req, res) => {
 });
 
 // Returns Checkr's hosted application link.
-router.post("/start", auth, requireVerified, async (req, res) => {
+router.post("/start", auth, requireRole("traveler"), requireVerified, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
 

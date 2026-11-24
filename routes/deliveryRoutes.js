@@ -132,7 +132,6 @@ router.post(
   "/",
   requireRole("sender"),
   requireVerified,
-  requireBackgroundClear,
   (req, res, next) => {
     console.log("🔥 DELIVERY ROUTE HIT");
     next();
